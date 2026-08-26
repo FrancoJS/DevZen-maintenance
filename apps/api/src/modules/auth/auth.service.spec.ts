@@ -86,4 +86,32 @@ describe('AuthService', () => {
     );
     expect(jwtService.signAsync).not.toHaveBeenCalled();
   });
+
+  it('returns the current user without its password hash', async () => {
+    const user = Object.assign(new User(), {
+      id: 'user-id',
+      name: 'Matías Vega',
+      email: loginDto.email,
+      passwordHash: 'hashed-password',
+      role: UserRole.ADMIN,
+    });
+    (usersService as unknown as { findSafeById: jest.Mock }).findSafeById =
+      jest.fn().mockResolvedValue(user);
+
+    await expect(service.getCurrentUser('user-id')).resolves.toEqual({
+      id: 'user-id',
+      name: 'Matías Vega',
+      email: loginDto.email,
+      role: UserRole.ADMIN,
+    });
+  });
+
+  it('rejects a token whose user no longer exists', async () => {
+    (usersService as unknown as { findSafeById: jest.Mock }).findSafeById =
+      jest.fn().mockResolvedValue(null);
+
+    await expect(service.getCurrentUser('user-id')).rejects.toEqual(
+      new UnauthorizedException('Usuario autenticado inválido'),
+    );
+  });
 });

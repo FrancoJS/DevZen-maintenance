@@ -31,6 +31,15 @@ export class AuthService {
     };
   }
 
+  async getCurrentUser(id: string): Promise<AuthenticatedUserResponseDto> {
+    const user = await this.usersService.findSafeById(id);
+    if (!user) {
+      throw new UnauthorizedException('Usuario autenticado inválido');
+    }
+
+    return this.toAuthenticatedUserResponse(user);
+  }
+
   private toAuthenticatedUserResponse(
     user: AuthenticatedUserResponseDto,
   ): AuthenticatedUserResponseDto {

@@ -31,4 +31,19 @@ describe('AuthController', () => {
     await expect(controller.login(loginDto)).resolves.toEqual(response);
     expect(authService.login).toHaveBeenCalledWith(loginDto);
   });
+
+  it('retrieves the current authenticated user', async () => {
+    const response = {
+      id: 'user-id',
+      name: 'Sofía Rojas',
+      email: 'solicitante@luxnova.demo',
+      role: UserRole.REQUESTER,
+    };
+    (authService as unknown as { getCurrentUser: jest.Mock }).getCurrentUser =
+      jest.fn().mockResolvedValue(response);
+
+    await expect(
+      controller.me({ id: 'user-id', role: UserRole.REQUESTER }),
+    ).resolves.toEqual(response);
+  });
 });
