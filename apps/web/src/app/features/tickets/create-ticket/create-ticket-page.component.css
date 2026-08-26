@@ -1,0 +1,165 @@
+:host {
+  display: block;
+}
+
+.ticket-page {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 2rem;
+  color: #182230;
+}
+
+.ticket-page__header {
+  margin-bottom: 2rem;
+}
+
+.ticket-page__header h1,
+.ticket-result h2 {
+  margin: 0.25rem 0;
+}
+
+.ticket-page__eyebrow,
+.ticket-result__eyebrow {
+  margin: 0;
+  color: #315b8f;
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.ticket-form {
+  display: grid;
+  gap: 1.5rem;
+}
+
+fieldset {
+  display: grid;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 1.25rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.75rem;
+}
+
+legend {
+  padding: 0 0.35rem;
+  font-weight: 700;
+}
+
+label,
+.impact-question > span {
+  font-weight: 600;
+}
+
+input[type='text'],
+textarea {
+  box-sizing: border-box;
+  width: 100%;
+  padding: 0.7rem;
+  border: 1px solid #94a3b8;
+  border-radius: 0.4rem;
+  font: inherit;
+}
+
+textarea {
+  resize: vertical;
+}
+
+.ticket-form__grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.ticket-form__grid > div,
+.impact-question {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.impact-question [role='radiogroup'] {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+}
+
+.impact-question label {
+  font-weight: 400;
+}
+
+.ticket-form__hint {
+  margin: -0.25rem 0 0.25rem;
+  color: #475569;
+}
+
+.field-error,
+.submit-error {
+  margin: 0;
+  color: #b42318;
+  font-size: 0.875rem;
+}
+
+button {
+  justify-self: start;
+  padding: 0.75rem 1rem;
+  border: 0;
+  border-radius: 0.4rem;
+  background: #1d4f91;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.ticket-result {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  border: 1px solid #8ec5a3;
+  border-radius: 0.75rem;
+  background: #f0fdf4;
+}
+
+.ticket-result dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1rem 0 0;
+}
+
+.ticket-result dt {
+  color: #475569;
+  font-size: 0.875rem;
+}
+
+.ticket-result dd {
+  margin: 0.25rem 0 0;
+  font-weight: 700;
+}
+
+.priority-badge {
+  display: inline-flex;
+  padding: 0.25rem 0.5rem;
+  border-radius: 999px;
+}
+
+.priority-badge--low { background: #dbeafe; color: #1e3a8a; }
+.priority-badge--medium { background: #fef3c7; color: #92400e; }
+.priority-badge--high { background: #ffedd5; color: #9a3412; }
+.priority-badge--critical { background: #fee2e2; color: #991b1b; }
+
+@media (max-width: 42rem) {
+  .ticket-page {
+    padding: 1rem;
+  }
+
+  .ticket-form__grid,
+  .ticket-result dl {
+    grid-template-columns: 1fr;
+  }
+}

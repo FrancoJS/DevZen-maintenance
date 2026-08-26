@@ -1,0 +1,141 @@
+<section class="ticket-page" aria-labelledby="create-ticket-title">
+  <header class="ticket-page__header">
+    <p class="ticket-page__eyebrow">Solicitud de mantenimiento</p>
+    <h1 id="create-ticket-title">Reportar una falla</h1>
+    <p>Completa los datos de la falla y su impacto. La prioridad será calculada por el sistema.</p>
+  </header>
+
+  <form class="ticket-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <fieldset>
+      <legend>Datos de la falla</legend>
+
+      <label for="description">Descripción de la falla</label>
+      <textarea
+        id="description"
+        formControlName="description"
+        rows="4"
+        aria-describedby="description-error"
+      ></textarea>
+      @if (hasError('description')) {
+        <p id="description-error" class="field-error">La descripción es obligatoria.</p>
+      }
+
+      <div class="ticket-form__grid">
+        <div>
+          <label for="area">Área</label>
+          <input id="area" type="text" formControlName="area" aria-describedby="area-error" />
+          @if (hasError('area')) {
+            <p id="area-error" class="field-error">El área es obligatoria.</p>
+          }
+        </div>
+
+        <div>
+          <label for="location">Ubicación</label>
+          <input id="location" type="text" formControlName="location" aria-describedby="location-error" />
+          @if (hasError('location')) {
+            <p id="location-error" class="field-error">La ubicación es obligatoria.</p>
+          }
+        </div>
+      </div>
+
+      <label for="asset">Máquina o equipo</label>
+      <input id="asset" type="text" formControlName="asset" aria-describedby="asset-error" />
+      @if (hasError('asset')) {
+        <p id="asset-error" class="field-error">La máquina o equipo es obligatoria.</p>
+      }
+    </fieldset>
+
+    <fieldset formGroupName="impactAssessment">
+      <legend>Evaluación de impacto</legend>
+      <p class="ticket-form__hint">Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
+
+      <div class="impact-question">
+        <span id="safety-risk-label">¿Existe riesgo para la seguridad de una persona?</span>
+        <div role="radiogroup" aria-labelledby="safety-risk-label">
+          <label><input type="radio" formControlName="safetyRisk" [value]="true" /> Sí</label>
+          <label><input type="radio" formControlName="safetyRisk" [value]="false" /> No</label>
+        </div>
+        @if (hasImpactError('safetyRisk')) {
+          <p class="field-error">Selecciona una respuesta.</p>
+        }
+      </div>
+
+      <div class="impact-question">
+        <span id="equipment-stopped-label">¿La falla detiene completamente el equipo?</span>
+        <div role="radiogroup" aria-labelledby="equipment-stopped-label">
+          <label><input type="radio" formControlName="equipmentStopped" value="YES" /> Sí</label>
+          <label><input type="radio" formControlName="equipmentStopped" value="PARTIAL" /> Parcialmente</label>
+          <label><input type="radio" formControlName="equipmentStopped" value="NO" /> No</label>
+        </div>
+        @if (hasImpactError('equipmentStopped')) {
+          <p class="field-error">Selecciona una respuesta.</p>
+        }
+      </div>
+
+      <div class="impact-question">
+        <span id="production-impact-label">¿La falla afecta el proceso productivo?</span>
+        <div role="radiogroup" aria-labelledby="production-impact-label">
+          <label><input type="radio" formControlName="productionImpact" value="STOPPED" /> Detiene producción</label>
+          <label><input type="radio" formControlName="productionImpact" value="REDUCED" /> Reduce producción</label>
+          <label><input type="radio" formControlName="productionImpact" value="NONE" /> No afecta</label>
+        </div>
+        @if (hasImpactError('productionImpact')) {
+          <p class="field-error">Selecciona una respuesta.</p>
+        }
+      </div>
+
+      <div class="impact-question">
+        <span id="workaround-label">¿Existe una alternativa temporal para continuar trabajando?</span>
+        <div role="radiogroup" aria-labelledby="workaround-label">
+          <label><input type="radio" formControlName="workaroundAvailable" [value]="true" /> Sí</label>
+          <label><input type="radio" formControlName="workaroundAvailable" [value]="false" /> No</label>
+        </div>
+        @if (hasImpactError('workaroundAvailable')) {
+          <p class="field-error">Selecciona una respuesta.</p>
+        }
+      </div>
+
+      <div class="impact-question">
+        <span id="other-areas-label">¿La falla afecta a otros equipos o áreas?</span>
+        <div role="radiogroup" aria-labelledby="other-areas-label">
+          <label><input type="radio" formControlName="affectsOtherAreas" [value]="true" /> Sí</label>
+          <label><input type="radio" formControlName="affectsOtherAreas" [value]="false" /> No</label>
+        </div>
+        @if (hasImpactError('affectsOtherAreas')) {
+          <p class="field-error">Selecciona una respuesta.</p>
+        }
+      </div>
+    </fieldset>
+
+    @if (submitError(); as error) {
+      <p class="submit-error" role="alert">{{ error }}</p>
+    }
+
+    <button type="submit" [disabled]="form.invalid || isSubmitting()">
+      {{ isSubmitting() ? 'Creando solicitud…' : 'Crear solicitud' }}
+    </button>
+  </form>
+
+  @if (createdTicket(); as ticket) {
+    <section class="ticket-result" aria-live="polite" aria-labelledby="created-ticket-title">
+      <p class="ticket-result__eyebrow">Solicitud creada</p>
+      <h2 id="created-ticket-title">Ticket {{ ticket.id }}</h2>
+      <dl>
+        <div>
+          <dt>Estado</dt>
+          <dd>{{ statusLabel(ticket) }}</dd>
+        </div>
+        <div>
+          <dt>Prioridad calculada</dt>
+          <dd class="priority-badge" [class]="'priority-badge priority-badge--' + ticket.priority.toLowerCase()">
+            {{ priorityLabel(ticket) }}
+          </dd>
+        </div>
+        <div>
+          <dt>Fecha de creación</dt>
+          <dd>{{ formatCreatedAt(ticket.createdAt) }}</dd>
+        </div>
+      </dl>
+    </section>
+  }
+</section>
