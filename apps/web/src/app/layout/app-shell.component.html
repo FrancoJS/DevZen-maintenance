@@ -29,9 +29,15 @@
     </nav>
     <div class="p-3">
       <div hlmSeparator orientation="horizontal" class="mb-3 bg-sidebar-border"></div>
-      <div class="flex items-center gap-3 rounded-md bg-sidebar-accent/70 p-2">
-        <hlm-avatar size="sm" class="bg-primary text-white"><span hlmAvatarFallback>AG</span></hlm-avatar>
-        @if (!sidebarCollapsed) { <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ user().name }}</p><p class="truncate text-xs text-slate-400">{{ user().roleLabel }}</p></div> }
+      <div class="rounded-md bg-sidebar-accent/70 p-2">
+        <div class="flex items-center gap-3">
+          <hlm-avatar size="sm" class="bg-primary text-white"><span hlmAvatarFallback>AG</span></hlm-avatar>
+          @if (!sidebarCollapsed) { <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ user().name }}</p><p class="truncate text-xs text-slate-400">{{ user().roleLabel }}</p></div> }
+        </div>
+        <button type="button" aria-label="Cerrar sesión" class="mt-2 flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-xs font-medium text-slate-300 transition hover:bg-sidebar-accent hover:text-white" (click)="logout()">
+          <span aria-hidden="true">↪</span>
+          @if (!sidebarCollapsed) { <span>Cerrar sesión</span> }
+        </button>
       </div>
     </div>
   </aside>

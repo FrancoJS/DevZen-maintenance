@@ -43,4 +43,9 @@ export class AppShellComponent {
   protected closeMobileSidebar(): void {
     this.mobileSidebarOpen = false;
   }
+
+  protected logout(): void {
+    this.session.logout();
+    void this.router.navigateByUrl('/login');
+  }
 }

@@ -3,19 +3,23 @@ import { AppShellComponent } from './layout/app-shell.component';
 import { LoginPageComponent } from './features/auth/login/login-page.component';
 import { HomePage } from './features/home/home-page';
 import { PlaceholderPage } from './features/placeholder/placeholder-page';
+import { authGuard, guestGuard } from './core/auth.guard';
 import { roleGuard } from './core/role.guard';
 import { UserRole } from './shared/navigation/navigation.model';
 
 const ALL_ROLES: UserRole[] = ['REQUESTER', 'TECHNICIAN', 'ADMIN'];
 export const appRoutes: Route[] = [
+  { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   {
     path: 'login',
     component: LoginPageComponent,
     title: 'Iniciar sesión | DevZen Maintenance',
+    canActivate: [guestGuard],
   },
   {
     path: '',
     component: AppShellComponent,
+    canActivate: [authGuard],
     children: [
       { path: 'inicio', component: HomePage, title: 'Inicio | DevZen Maintenance', canActivate: [roleGuard], data: { roles: ALL_ROLES } },
       { path: 'mis-solicitudes', component: PlaceholderPage, title: 'Mis solicitudes | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Mis solicitudes', roles: ALL_ROLES } },
@@ -52,6 +56,5 @@ export const appRoutes: Route[] = [
       { path: 'historial-global', component: PlaceholderPage, title: 'Historial global | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Historial global', roles: ['ADMIN'] } },
     ],
   },
-  { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   { path: '**', redirectTo: 'inicio' },
 ];
