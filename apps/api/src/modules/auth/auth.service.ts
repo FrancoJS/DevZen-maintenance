@@ -18,7 +18,10 @@ export class AuthService {
       loginDto.email,
     );
 
-    if (!user || !(await bcrypt.compare(loginDto.password, user.passwordHash))) {
+    if (
+      !user ||
+      !(await bcrypt.compare(loginDto.password, user.passwordHash))
+    ) {
       throw new UnauthorizedException('Credenciales inválidas');
     }
 
