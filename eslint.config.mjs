@@ -54,7 +54,8 @@ export default [
     {
         files: ["apps/web/src/app/shared/ui/**/*.ts"],
         rules: {
-            "@typescript-eslint/no-non-null-assertion": "off"
+            "@typescript-eslint/no-non-null-assertion": "off",
+            "@angular-eslint/no-input-rename": "off"
         }
     }
 ];
