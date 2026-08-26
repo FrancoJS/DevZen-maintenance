@@ -172,6 +172,56 @@ The frontend may preview but must not persist its own priority calculation. Only
 
 Before backend changes, inspect installed Nx, NestJS, Node, package manager, ORM/database library, auth strategy, module boundaries, and test targets.
 
+### Backend folder structure
+
+Follow NestJS module-oriented naming under `apps/api/src/`:
+
+```text
+apps/api/src/
+  main.ts
+  app.module.ts
+  database/
+    # Connection configuration, data source, and migrations only after the ORM is approved.
+  modules/
+    auth/
+      dto/
+      guards/
+      strategies/
+      auth.controller.ts
+      auth.module.ts
+      auth.service.ts
+    users/
+      dto/
+      entities/
+      users.controller.ts
+      users.module.ts
+      users.service.ts
+    tickets/
+      dto/
+      entities/
+      tickets.controller.ts
+      tickets.module.ts
+      tickets.service.ts
+    technicians/
+      dto/
+      technicians.controller.ts
+      technicians.module.ts
+      technicians.service.ts
+    history/
+      history.module.ts
+      history.service.ts
+    dashboard/
+      # Create only when the optional dashboard is approved.
+```
+
+- Keep each capability's DTOs, entities, controller, module, service, and focused tests inside its own module folder.
+- `auth/` owns authentication-specific guards and strategies. Do not place ticket authorization or transition rules in controllers or generic guards.
+- `tickets/` owns the ticket lifecycle, priority, freeze, resolution, and closure rules. Split it only when a demonstrated need makes a submodule clearer.
+- `technicians/` owns technician visibility and derived availability; assignment remains coordinated by the ticket workflow.
+- `history/` owns history queries and persistence support. Ticket actions remain responsible for producing their own audit events atomically.
+- `database/` contains infrastructure only; do not introduce a `data-source.ts`, entities, migrations, or ORM-specific layout until the ORM decision is approved.
+- Do not create a generic `common/` folder preemptively. Add a shared backend location only for a real cross-module primitive.
+
 - Do not introduce a second ORM, validation library, or auth strategy.
 - Keep business rules in services/domain logic, not controllers.
 - Controllers parse transport input, use authenticated identity, call services, and map responses.
@@ -188,6 +238,49 @@ The model in `docs/DATA_MODEL.md` is recommended, not an irreversible schema dec
 ## Frontend architecture and UX
 
 Before frontend changes, inspect installed Angular/Nx versions, routing, auth patterns, styling libraries, and existing shared components.
+
+### Frontend folder structure
+
+Follow this application structure under `apps/web/src/app/`:
+
+```text
+apps/web/src/app/
+  core/
+    # Singleton infrastructure: auth/session, guards, interceptors,
+    # application-wide services, configuration, and global models.
+  layout/
+    # App shell, navigation, top bar, side navigation, and page containers.
+  features/
+    tickets/
+      # Feature routes, pages, feature-only components, data access, and models.
+    technicians/
+    dashboard/        # Only when the optional dashboard is approved.
+    auth/             # Only if login needs feature-specific UI beyond core auth.
+  shared/
+    components/
+      # Repository-owned, feature-agnostic Angular components reused by two or more areas.
+  app.config.ts
+  app.routes.ts
+```
+
+Use Nx libraries for Spartan/Helm UI primitives:
+
+```text
+libs/shared/ui/
+  button/
+  input/
+  dropdown-menu/
+  tooltip/
+  utils/
+```
+
+- `core/` is singleton infrastructure, never a place for ticket business logic or page components.
+- `layout/` composes the persistent application chrome and must not own feature state.
+- `features/` owns feature routes, pages, feature-specific components, state, data access, and models. A component used by one feature stays there.
+- `shared/` in the application is reserved for repository-owned reusable components. Do not place Spartan primitives, feature data access, business rules, or speculative utilities there.
+- `libs/shared/ui/` is reserved for reusable Spartan/Helm primitives and their utilities. It must not depend on `apps/web` features, layouts, services, or domain models.
+- Preserve the dependency direction: `features -> shared/components and libs/shared/ui`; `layout -> shared/components and libs/shared/ui`; `core` remains independent from features.
+- The currently generated Spartan components under `apps/web/src/app/shared/ui/` do not match this target structure. Do not move them as part of unrelated work; migrate them in a dedicated Nx-aware task when approved.
 
 - Follow repository conventions; do not import architecture from unrelated projects.
 - Use typed forms, inputs, outputs, models, and API boundaries; avoid `any`.
