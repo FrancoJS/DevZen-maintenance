@@ -1,141 +1,174 @@
-<section class="ticket-page" aria-labelledby="create-ticket-title">
-  <header class="ticket-page__header">
-    <p class="ticket-page__eyebrow">Solicitud de mantenimiento</p>
-    <h1 id="create-ticket-title">Reportar una falla</h1>
-    <p>Completa los datos de la falla y su impacto. La prioridad será calculada por el sistema.</p>
+<section class="mx-auto max-w-5xl space-y-6" aria-labelledby="create-ticket-title">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
+      <h2 id="create-ticket-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Reportar una falla</h2>
+      <p class="mt-1 max-w-2xl text-muted-foreground">Completa los datos de la falla y su impacto. La prioridad será calculada por el sistema.</p>
+    </div>
+    <span hlmBadge variant="secondary" class="w-fit">Prioridad automática</span>
   </header>
 
-  <form class="ticket-form" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <fieldset>
-      <legend>Datos de la falla</legend>
+  <form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+    <article hlmCard>
+      <header hlmCardHeader>
+        <h3 hlmCardTitle>Datos de la falla</h3>
+        <p hlmCardDescription>Indica dónde ocurrió el problema y describe lo observado.</p>
+      </header>
+      <div hlmCardContent class="grid gap-5">
 
-      <label for="description" tabindex="0" (click)="showRequiredHint('description')" (focus)="showRequiredHint('description')">Descripción de la falla</label>
-      <textarea
-        id="description"
-        formControlName="description"
-        rows="4"
-        aria-describedby="description-error"
-      ></textarea>
-      @if (hasError('description')) {
-        <p id="description-error" class="field-error">La descripción es obligatoria.</p>
-      }
-
-      <div class="ticket-form__grid">
-        <div>
-          <label for="area" tabindex="0" (click)="showRequiredHint('area')" (focus)="showRequiredHint('area')">Área</label>
-          <input id="area" type="text" formControlName="area" aria-describedby="area-error" />
-          @if (hasError('area')) {
-            <p id="area-error" class="field-error">El área es obligatoria.</p>
+        <div class="grid gap-2">
+          <label for="description" class="text-sm font-medium">Descripción de la falla</label>
+          <textarea id="description" formControlName="description" rows="4" aria-describedby="description-error" class="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" [class.border-destructive]="hasError('description')" [class.ring-1]="hasError('description')" [class.ring-destructive]="hasError('description')"></textarea>
+          @if (hasError('description')) {
+            <p id="description-error" class="text-sm text-destructive">La descripción es obligatoria.</p>
           }
         </div>
 
-        <div>
-          <label for="location" tabindex="0" (click)="showRequiredHint('location')" (focus)="showRequiredHint('location')">Ubicación</label>
-          <input id="location" type="text" formControlName="location" aria-describedby="location-error" />
-          @if (hasError('location')) {
-            <p id="location-error" class="field-error">La ubicación es obligatoria.</p>
+        <div class="grid gap-5 sm:grid-cols-2">
+          <div class="grid gap-2">
+            <label for="area" class="text-sm font-medium">Área</label>
+            <input hlmInput id="area" type="text" formControlName="area" aria-describedby="area-error" [class.border-destructive]="hasError('area')" [class.ring-1]="hasError('area')" [class.ring-destructive]="hasError('area')" />
+            @if (hasError('area')) {
+              <p id="area-error" class="text-sm text-destructive">El área es obligatoria.</p>
+            }
+          </div>
+
+          <div class="grid gap-2">
+            <label for="location" class="text-sm font-medium">Ubicación</label>
+            <input hlmInput id="location" type="text" formControlName="location" aria-describedby="location-error" [class.border-destructive]="hasError('location')" [class.ring-1]="hasError('location')" [class.ring-destructive]="hasError('location')" />
+            @if (hasError('location')) {
+              <p id="location-error" class="text-sm text-destructive">La ubicación es obligatoria.</p>
+            }
+          </div>
+        </div>
+
+        <div class="grid gap-2">
+          <label for="asset" class="text-sm font-medium">Máquina o equipo</label>
+          <input hlmInput id="asset" type="text" formControlName="asset" aria-describedby="asset-error" [class.border-destructive]="hasError('asset')" [class.ring-1]="hasError('asset')" [class.ring-destructive]="hasError('asset')" />
+          @if (hasError('asset')) {
+            <p id="asset-error" class="text-sm text-destructive">La máquina o equipo es obligatoria.</p>
           }
         </div>
       </div>
+    </article>
 
-      <label for="asset" tabindex="0" (click)="showRequiredHint('asset')" (focus)="showRequiredHint('asset')">Máquina o equipo</label>
-      <input id="asset" type="text" formControlName="asset" aria-describedby="asset-error" />
-      @if (hasError('asset')) {
-        <p id="asset-error" class="field-error">La máquina o equipo es obligatoria.</p>
-      }
-    </fieldset>
+    <article hlmCard formGroupName="impactAssessment">
+      <header hlmCardHeader>
+        <h3 hlmCardTitle>Evaluación de impacto</h3>
+        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
+      </header>
+      <div hlmCardContent class="grid gap-3">
 
-    <fieldset formGroupName="impactAssessment">
-      <legend>Evaluación de impacto</legend>
-      <p class="ticket-form__hint">Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
-
-      <div class="impact-question">
-        <span id="safety-risk-label" tabindex="0" (click)="showRequiredHint('safetyRisk')" (focus)="showRequiredHint('safetyRisk')">¿Existe riesgo para la seguridad de una persona?</span>
-        <div role="radiogroup" aria-labelledby="safety-risk-label">
-          <label><input type="radio" formControlName="safetyRisk" [value]="true" /> Sí</label>
-          <label><input type="radio" formControlName="safetyRisk" [value]="false" /> No</label>
+        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('safetyRisk')" [class.ring-1]="hasImpactError('safetyRisk')" [class.ring-destructive]="hasImpactError('safetyRisk')">
+          <span id="safety-risk-label" class="font-medium">¿Existe riesgo para la seguridad de una persona?</span>
+          <div role="radiogroup" aria-labelledby="safety-risk-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="safetyRisk" [value]="true" /> Sí</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="safetyRisk" [value]="false" /> No</label>
+          </div>
+          @if (hasImpactError('safetyRisk')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
         </div>
-        @if (hasImpactError('safetyRisk')) {
-          <p class="field-error">Selecciona una respuesta.</p>
-        }
-      </div>
 
-      <div class="impact-question">
-        <span id="equipment-stopped-label" tabindex="0" (click)="showRequiredHint('equipmentStopped')" (focus)="showRequiredHint('equipmentStopped')">¿La falla detiene completamente el equipo?</span>
-        <div role="radiogroup" aria-labelledby="equipment-stopped-label">
-          <label><input type="radio" formControlName="equipmentStopped" value="YES" /> Sí</label>
-          <label><input type="radio" formControlName="equipmentStopped" value="PARTIAL" /> Parcialmente</label>
-          <label><input type="radio" formControlName="equipmentStopped" value="NO" /> No</label>
+        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('equipmentStopped')" [class.ring-1]="hasImpactError('equipmentStopped')" [class.ring-destructive]="hasImpactError('equipmentStopped')">
+          <span id="equipment-stopped-label" class="font-medium">¿La falla detiene completamente el equipo?</span>
+          <div role="radiogroup" aria-labelledby="equipment-stopped-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="YES" /> Sí</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="PARTIAL" /> Parcialmente</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="NO" /> No</label>
+          </div>
+          @if (hasImpactError('equipmentStopped')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
         </div>
-        @if (hasImpactError('equipmentStopped')) {
-          <p class="field-error">Selecciona una respuesta.</p>
-        }
-      </div>
 
-      <div class="impact-question">
-        <span id="production-impact-label" tabindex="0" (click)="showRequiredHint('productionImpact')" (focus)="showRequiredHint('productionImpact')">¿La falla afecta el proceso productivo?</span>
-        <div role="radiogroup" aria-labelledby="production-impact-label">
-          <label><input type="radio" formControlName="productionImpact" value="STOPPED" /> Detiene producción</label>
-          <label><input type="radio" formControlName="productionImpact" value="REDUCED" /> Reduce producción</label>
-          <label><input type="radio" formControlName="productionImpact" value="NONE" /> No afecta</label>
+        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('productionImpact')" [class.ring-1]="hasImpactError('productionImpact')" [class.ring-destructive]="hasImpactError('productionImpact')">
+          <span id="production-impact-label" class="font-medium">¿La falla afecta el proceso productivo?</span>
+          <div role="radiogroup" aria-labelledby="production-impact-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="STOPPED" /> Detiene producción</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="REDUCED" /> Reduce producción</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="NONE" /> No afecta</label>
+          </div>
+          @if (hasImpactError('productionImpact')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
         </div>
-        @if (hasImpactError('productionImpact')) {
-          <p class="field-error">Selecciona una respuesta.</p>
-        }
-      </div>
 
-      <div class="impact-question">
-        <span id="workaround-label" tabindex="0" (click)="showRequiredHint('workaroundAvailable')" (focus)="showRequiredHint('workaroundAvailable')">¿Existe una alternativa temporal para continuar trabajando?</span>
-        <div role="radiogroup" aria-labelledby="workaround-label">
-          <label><input type="radio" formControlName="workaroundAvailable" [value]="true" /> Sí</label>
-          <label><input type="radio" formControlName="workaroundAvailable" [value]="false" /> No</label>
+        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('workaroundAvailable')" [class.ring-1]="hasImpactError('workaroundAvailable')" [class.ring-destructive]="hasImpactError('workaroundAvailable')">
+          <span id="workaround-label" class="font-medium">¿Existe una alternativa temporal para continuar trabajando?</span>
+          <div role="radiogroup" aria-labelledby="workaround-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="workaroundAvailable" [value]="true" /> Sí</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="workaroundAvailable" [value]="false" /> No</label>
+          </div>
+          @if (hasImpactError('workaroundAvailable')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
         </div>
-        @if (hasImpactError('workaroundAvailable')) {
-          <p class="field-error">Selecciona una respuesta.</p>
-        }
-      </div>
 
-      <div class="impact-question">
-        <span id="other-areas-label" tabindex="0" (click)="showRequiredHint('affectsOtherAreas')" (focus)="showRequiredHint('affectsOtherAreas')">¿La falla afecta a otros equipos o áreas?</span>
-        <div role="radiogroup" aria-labelledby="other-areas-label">
-          <label><input type="radio" formControlName="affectsOtherAreas" [value]="true" /> Sí</label>
-          <label><input type="radio" formControlName="affectsOtherAreas" [value]="false" /> No</label>
+        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('affectsOtherAreas')" [class.ring-1]="hasImpactError('affectsOtherAreas')" [class.ring-destructive]="hasImpactError('affectsOtherAreas')">
+          <span id="other-areas-label" class="font-medium">¿La falla afecta a otros equipos o áreas?</span>
+          <div role="radiogroup" aria-labelledby="other-areas-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="affectsOtherAreas" [value]="true" /> Sí</label>
+            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="affectsOtherAreas" [value]="false" /> No</label>
+          </div>
+          @if (hasImpactError('affectsOtherAreas')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
         </div>
-        @if (hasImpactError('affectsOtherAreas')) {
-          <p class="field-error">Selecciona una respuesta.</p>
-        }
       </div>
-    </fieldset>
+    </article>
 
     @if (submitError(); as error) {
-      <p class="submit-error" role="alert">{{ error }}</p>
+      <p class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{{ error }}</p>
     }
 
-    <button type="submit" [disabled]="form.invalid || isSubmitting()">
-      {{ isSubmitting() ? 'Creando solicitud…' : 'Crear solicitud' }}
-    </button>
+    <div class="flex flex-wrap items-center gap-3">
+      <button hlmBtn type="submit" size="lg" [disabled]="isSubmitting() || !!createdTicket()">
+        {{ isSubmitting() ? 'Creando solicitud…' : createdTicket() ? 'Solicitud creada' : 'Crear solicitud' }}
+      </button>
+      @if (createdTicket()) {
+        <button hlmBtn type="button" variant="outline" size="lg" (click)="openTicketDetail()">Ver detalle del ticket</button>
+        <button hlmBtn type="button" variant="ghost" size="lg" (click)="startNewTicket()">Nueva solicitud</button>
+      }
+    </div>
   </form>
 
-  @if (createdTicket(); as ticket) {
-    <section class="ticket-result" aria-live="polite" aria-labelledby="created-ticket-title">
-      <p class="ticket-result__eyebrow">Solicitud creada</p>
-      <h2 id="created-ticket-title">Ticket {{ ticket.id }}</h2>
-      <dl>
-        <div>
-          <dt>Estado</dt>
-          <dd>{{ statusLabel(ticket) }}</dd>
+  @if (isDetailOpen()) {
+    @if (createdTicket(); as ticket) {
+      <div class="ticket-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" [class.ticket-modal-backdrop--closing]="isDetailClosing()" role="presentation" (click)="closeTicketDetail()">
+      <article hlmCard role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title" class="ticket-modal max-h-[90vh] w-full max-w-2xl overflow-y-auto" [class.ticket-modal--closing]="isDetailClosing()" (click)="$event.stopPropagation()" (keydown.escape)="closeTicketDetail()" tabindex="-1">
+        <header hlmCardHeader class="border-b">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm text-muted-foreground">Detalle de la solicitud</p>
+              <h3 hlmCardTitle id="ticket-detail-title" class="mt-1">Ticket {{ ticket.id }}</h3>
+            </div>
+            <button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar detalle del ticket" (click)="closeTicketDetail()">×</button>
+          </div>
+        </header>
+        <div hlmCardContent class="grid gap-6">
+          <dl class="grid gap-4 sm:grid-cols-3">
+            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado</dt><dd class="mt-1 font-semibold">{{ statusLabel(ticket) }}</dd></div>
+            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket) }}</span></dd></div>
+            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creado</dt><dd class="mt-1 font-semibold">{{ formatCreatedAt(ticket.createdAt) }}</dd></div>
+          </dl>
+
+          @if (createdTicketRequest(); as request) {
+            <div class="grid gap-4 border-t pt-5">
+              <div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</p><p class="mt-1 whitespace-pre-wrap">{{ request.description }}</p></div>
+              <dl class="grid gap-4 sm:grid-cols-3">
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Área</dt><dd class="mt-1">{{ request.area }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ request.location }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Máquina o equipo</dt><dd class="mt-1">{{ request.asset }}</dd></div>
+              </dl>
+              <div>
+                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Evaluación de impacto</p>
+                <ul class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
+                  <li>Riesgo de seguridad: <strong>{{ request.impactAssessment.safetyRisk ? 'Sí' : 'No' }}</strong></li>
+                  <li>Equipo detenido: <strong>{{ equipmentStoppedLabel(request.impactAssessment.equipmentStopped) }}</strong></li>
+                  <li>Impacto productivo: <strong>{{ productionImpactLabel(request.impactAssessment.productionImpact) }}</strong></li>
+                  <li>Alternativa temporal: <strong>{{ request.impactAssessment.workaroundAvailable ? 'Sí' : 'No' }}</strong></li>
+                  <li>Afecta otras áreas: <strong>{{ request.impactAssessment.affectsOtherAreas ? 'Sí' : 'No' }}</strong></li>
+                </ul>
+              </div>
+            </div>
+          }
         </div>
-        <div>
-          <dt>Prioridad calculada</dt>
-          <dd class="priority-badge" [class]="'priority-badge priority-badge--' + ticket.priority.toLowerCase()">
-            {{ priorityLabel(ticket) }}
-          </dd>
-        </div>
-        <div>
-          <dt>Fecha de creación</dt>
-          <dd>{{ formatCreatedAt(ticket.createdAt) }}</dd>
-        </div>
-      </dl>
-    </section>
+        <footer hlmCardFooter class="justify-end">
+          <button hlmBtn type="button" (click)="closeTicketDetail()">Cerrar</button>
+        </footer>
+      </article>
+      </div>
+    }
   }
 </section>

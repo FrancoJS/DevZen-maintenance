@@ -3,8 +3,7 @@ import { appConfig } from './app/app.config';
 import { App } from './app/app';
 
 const savedTheme = typeof localStorage !== 'undefined' ? localStorage.getItem('devzen-theme') : null;
-const prefersDark = typeof matchMedia !== 'undefined' && matchMedia('(prefers-color-scheme: dark)').matches;
-if (savedTheme === 'dark' || (savedTheme !== 'light' && prefersDark)) {
+if (savedTheme === 'dark') {
   document.documentElement.classList.add('dark');
 }
 
