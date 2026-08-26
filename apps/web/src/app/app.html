@@ -13,20 +13,25 @@
       }
     </div>
     <div hlmSeparator orientation="horizontal" class="bg-sidebar-border"></div>
-    <nav aria-label="Navegación principal" class="flex-1 space-y-1 px-3 py-6">
-      @for (item of navigation; track item.route) {
+    <nav aria-label="Navegación principal" class="flex-1 space-y-6 overflow-y-auto px-3 py-6">
+      @for (group of navigationGroups(); track group.label) {
+        <div class="space-y-1">
+          @if (!sidebarCollapsed) { <p class="px-3 pb-2 text-[10px] font-semibold uppercase tracking-wider text-slate-500">{{ group.label }}</p> }
+          @for (item of group.items; track item.route) {
         <a [routerLink]="item.route" routerLinkActive="bg-sidebar-primary text-white shadow-sm" [routerLinkActiveOptions]="{ exact: true }" [attr.aria-label]="sidebarCollapsed ? item.label : null" class="group flex items-center gap-3 rounded-md px-3 py-3 text-sm font-medium text-slate-300 transition hover:bg-sidebar-accent hover:text-white" (click)="closeMobileSidebar()">
           <span aria-hidden="true" class="grid size-5 shrink-0 place-items-center text-lg">{{ item.icon }}</span>
           @if (!sidebarCollapsed) { <span class="truncate">{{ item.label }}</span> }
           @if (sidebarCollapsed) { <span hlmTooltip="{{ item.label }}" class="sr-only">{{ item.label }}</span> }
         </a>
+          }
+        </div>
       }
     </nav>
     <div class="p-3">
       <div hlmSeparator orientation="horizontal" class="mb-3 bg-sidebar-border"></div>
       <div class="flex items-center gap-3 rounded-md bg-sidebar-accent/70 p-2">
         <hlm-avatar size="sm" class="bg-primary text-white"><span hlmAvatarFallback>AG</span></hlm-avatar>
-        @if (!sidebarCollapsed) { <div class="min-w-0"><p class="truncate text-sm font-semibold">Ana González</p><p class="truncate text-xs text-slate-400">Administrador</p></div> }
+        @if (!sidebarCollapsed) { <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ user().name }}</p><p class="truncate text-xs text-slate-400">{{ user().roleLabel }}</p></div> }
       </div>
     </div>
   </aside>
@@ -38,7 +43,7 @@
         <button type="button" aria-label="Colapsar barra lateral" class="hidden size-10 items-center justify-center rounded-md border bg-card text-foreground hover:bg-muted lg:inline-flex" (click)="toggleSidebar()"><span aria-hidden="true" class="text-lg">{{ sidebarCollapsed ? '»' : '«' }}</span></button>
         <div><p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Panel de control</p><h1 class="text-lg font-semibold text-foreground">DevZen Maintenance</h1></div>
       </div>
-      <div class="flex items-center gap-3"><span class="hidden text-sm text-muted-foreground sm:inline">Administrador</span><hlm-avatar class="bg-primary text-white"><span hlmAvatarFallback>AG</span></hlm-avatar></div>
+      <div class="flex items-center gap-3"><label class="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">Rol demo<select aria-label="Seleccionar rol demo" class="h-9 rounded-md border bg-card px-2 text-sm text-foreground" [value]="role()" (change)="changeRole($event)"><option value="REQUESTER">Solicitante</option><option value="TECHNICIAN">Técnico</option><option value="ADMIN">Administrador</option></select></label><span class="hidden text-sm text-muted-foreground md:inline">{{ user().name }}</span><hlm-avatar class="bg-primary text-white"><span hlmAvatarFallback>{{ user().initials }}</span></hlm-avatar></div>
     </header>
     <main id="contenido" class="min-h-[calc(100vh-5rem)] p-4 sm:p-6 lg:p-8"><router-outlet></router-outlet></main>
   </div>
