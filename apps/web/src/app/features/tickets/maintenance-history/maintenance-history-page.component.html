@@ -106,7 +106,7 @@
   }
 
   <hlm-sheet side="right" [state]="selectedRecord() ? 'open' : 'closed'" (stateChanged)="onSheetStateChange($event)">
-    <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full gap-0 overflow-y-auto p-0 sm:max-w-xl" aria-label="Detalle de la mantención">
+    <hlm-sheet-content #detailSheet *hlmSheetPortal="let ctx" class="w-full! gap-0 overflow-y-auto p-0 sm:max-w-2xl!" aria-label="Detalle de la mantención">
       @if (selectedRecord(); as record) {
         <header class="border-b px-6 py-6 pr-14"><p class="text-sm text-muted-foreground">Detalle de mantención</p><h3 hlmSheetTitle class="mt-1 text-xl font-bold">{{ record.ticketId }} · {{ record.asset }}</h3><p hlmSheetDescription class="mt-1">Consulta de solo lectura de la trazabilidad registrada.</p></header>
         <div class="space-y-7 px-6 py-6">

@@ -1,4 +1,4 @@
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, computed, ElementRef, inject, signal, ViewChild } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -51,6 +51,8 @@ const ACTION_LABELS: Record<MaintenanceHistoryAction, string> = {
 })
 export class MaintenanceHistoryPageComponent {
   private readonly route = inject(ActivatedRoute);
+
+  @ViewChild('detailSheet', { read: ElementRef }) private readonly detailSheet?: ElementRef<HTMLElement>;
 
   readonly scope = (this.route.snapshot.data['historyScope'] as MaintenanceHistoryScope | undefined) ?? 'personal';
   readonly filters = signal<MaintenanceHistoryFilters>({ ...INITIAL_FILTERS });
@@ -111,6 +113,11 @@ export class MaintenanceHistoryPageComponent {
 
   openRecord(record: MaintenanceHistoryRecord): void {
     this.selectedRecord.set(record);
+    setTimeout(() => {
+      if (this.detailSheet) {
+        this.detailSheet.nativeElement.scrollTop = 0;
+      }
+    });
   }
 
   closeRecord(): void {
