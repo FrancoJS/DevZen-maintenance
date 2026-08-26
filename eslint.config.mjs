@@ -50,5 +50,11 @@ export default [
         ],
         // Override or add rules here
         rules: {}
+    },
+    {
+        files: ["apps/web/src/app/shared/ui/**/*.ts"],
+        rules: {
+            "@typescript-eslint/no-non-null-assertion": "off"
+        }
     }
 ];

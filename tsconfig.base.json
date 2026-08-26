@@ -10,11 +10,30 @@
     "importHelpers": true,
     "target": "es2015",
     "module": "esnext",
-    "lib": ["es2020", "dom"],
+    "lib": [
+      "es2020",
+      "dom"
+    ],
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "strict": false,
-    "paths": {}
+    "paths": {
+      "@spartan-ng/helm/card": [
+        "./apps/web/src/app/shared/ui/card/src/index.ts"
+      ],
+      "@spartan-ng/helm/utils": [
+        "./apps/web/src/app/shared/ui/utils/src/index.ts"
+      ],
+      "@spartan-ng/helm/button": [
+        "./apps/web/src/app/shared/ui/button/src/index.ts"
+      ],
+      "@spartan-ng/helm/badge": [
+        "./apps/web/src/app/shared/ui/badge/src/index.ts"
+      ]
+    }
   },
-  "exclude": ["node_modules", "tmp"]
+  "exclude": [
+    "node_modules",
+    "tmp"
+  ]
 }

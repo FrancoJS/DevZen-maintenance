@@ -14,7 +14,7 @@ export default [
                 "error",
                 {
                     type: "attribute",
-                    prefix: "app",
+                    prefix: ["app", "hlm"],
                     style: "camelCase"
                 }
             ],
