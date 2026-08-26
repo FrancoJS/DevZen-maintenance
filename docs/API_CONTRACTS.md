@@ -2,27 +2,49 @@
 
 ## Criterio de documentación
 
-El Word define explícitamente solo `POST /auth/login`. Para las demás capacidades describe operaciones, no rutas HTTP exactas. En consecuencia, se documenta el contrato funcional y se marca **Contrato pendiente de definición** donde no existe endpoint aprobado.
+La API aplica el prefijo global `/api`; las rutas de este documento muestran por tanto sus URL efectivas. Los contratos de autenticación implementados se describen con precisión. Para las capacidades de tickets, el Word describe operaciones pero no rutas HTTP exactas, por lo que se mantiene **Contrato pendiente de definición** donde no existe un endpoint aprobado.
 
 Todos los contratos protegidos deben derivar actor y rol de la identidad autenticada. Los cambios de estado, ownership, técnico actual, prioridad y disponibilidad se validan en backend.
 
 ## Autenticación
 
-### Iniciar sesión — `POST /auth/login`
+### Iniciar sesión — `POST /api/auth/login`
 
 - **Actor:** usuario con credenciales válidas.
 - **Precondición:** credenciales recibidas y validadas.
-- **Efecto:** establecer sesión/JWT según estrategia aún no definida y permitir obtener usuario actual.
+- **Efecto:** emitir un JWT stateless para permitir el acceso autenticado y obtener el usuario actual.
 - **Cambio de estado:** ninguno sobre tickets.
-- **Datos relevantes:** credenciales de login; identidad/rol en respuesta o sesión según contrato futuro.
+- **Entrada:** `LoginDto` con `email` válido y `password` no vacía. Las propiedades desconocidas se rechazan.
+- **Respuesta `200`:** `{ accessToken, user }`, donde `user` contiene únicamente `id`, `name`, `email` y `role`.
+- **JWT:** firmado con HS256, con payload `{ sub, role, iat, exp }` y vigencia de `28.800` segundos (8 horas).
 - **Validaciones backend:** autenticidad, rol persistido y no proveniente del cliente.
+- **Errores:** `400` para DTO inválido; `401` (`Credenciales inválidas`) para email inexistente o contraseña incorrecta.
 
-### Obtener usuario actual
-
-**Contrato pendiente de definición.**
+### Obtener usuario actual — `GET /api/auth/me`
 
 - **Actor:** autenticado.
+- **Autorización:** Bearer JWT válido en `Authorization: Bearer <accessToken>`.
 - **Efecto:** devolver identidad y rol efectivos sin exponer `passwordHash`.
+- **Respuesta `200`:** `{ id, name, email, role }`, con `role` en `REQUESTER`, `TECHNICIAN` o `ADMIN`.
+- **Errores:** `401` si falta el token, es inválido/expirado o el usuario ya no existe.
+
+### Autorización transversal
+
+- Todas las rutas NestJS requieren autenticación por defecto mediante `JwtAuthGuard` global.
+- `@Public()` marca explícitamente una excepción pública; actualmente solo se aplica a `/api/auth/login`.
+- `@Roles(...)` restringe por el rol firmado en el JWT y responde `403` cuando no hay coincidencia.
+- `@CurrentUser()` entrega la identidad autenticada `{ id, role }` al controlador.
+- Ownership, técnico asignado, estado del ticket y demás autorización contextual se validarán en servicios de dominio; no se delegan únicamente a `RolesGuard`.
+- El logout queda fuera del backend: el cliente elimina el token. No se implementan refresh tokens, sesiones ni blacklist.
+
+### Documentación OpenAPI (solo desarrollo)
+
+- Disponible únicamente cuando `NODE_ENV=development`.
+- UI: `GET /api/docs`.
+- JSON: `GET /api/docs-json`.
+- El esquema Bearer JWT se denomina `access-token` y se declara globalmente.
+- El login documenta `security: []`; `/api/auth/me` hereda el requisito Bearer.
+- Los schemas documentados son `LoginDto`, `LoginResponseDto` y `AuthenticatedUserResponseDto`; ninguno expone `passwordHash`, secretos ni credenciales reales.
 
 ## Tickets
 
@@ -192,4 +214,3 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 - **Actor:** `ADMIN`.
 - **Datos posibles respaldados:** totales por estado/prioridad, críticos, sin asignar y tiempo promedio si se autoriza.
 - **Validaciones:** el tiempo activo suma solo períodos `IN_PROGRESS`, excluyendo `FROZEN` y `PENDING_REASSIGNMENT`.
-

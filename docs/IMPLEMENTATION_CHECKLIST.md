@@ -1,12 +1,13 @@
 # Checklist de implementación
 
-Los ítems reproducen la sección 16 de la especificación en formato Markdown. Permanecen sin marcar porque la inspección encontró únicamente el scaffold inicial de Angular/NestJS, sin implementación funcional que satisfaga estas reglas.
+Los ítems reproducen la sección 16 de la especificación en formato Markdown. Los elementos completados reflejan la implementación disponible; las capacidades de tickets y frontend continúan pendientes.
 
 ## Backend / dominio
 
 - [x] Definir enums de roles, prioridad, estados y congelamiento.
 - [x] Crear entidades/tablas principales y migraciones.
-- [ ] Implementar autenticación y guards por rol.
+- [x] Implementar autenticación y guards por rol.
+- [x] Exponer documentación OpenAPI de autenticación únicamente en desarrollo.
 - [ ] Implementar cálculo de prioridad con pruebas unitarias.
 - [ ] Implementar máquina de estados del ticket.
 - [ ] Implementar regla de máximo un ticket `ASSIGNED`/`IN_PROGRESS`/`FREEZE_REQUESTED` por técnico.
@@ -40,9 +41,10 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 
 - Nx `23.1.1`, Angular `22.0.x`, NestJS `11.x`.
 - `apps/web` contiene la bienvenida de Nx y rutas vacías.
-- `apps/api` conserva el endpoint scaffold y ahora incluye configuración TypeORM, entidades, migración inicial y seed de usuarios.
-- Pruebas unitarias/E2E existentes cubren únicamente el scaffold.
-- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; auth y flujos funcionales siguen pendientes.
+- `apps/api` incorpora configuración TypeORM, entidades, migración inicial y seed de usuarios.
+- La autenticación JWT, el guard global, la autorización gruesa por roles, `/api/auth/login`, `/api/auth/me` y la documentación OpenAPI de desarrollo están implementados.
+- Los servicios/controladores y contratos funcionales de tickets todavía no están implementados; sus ítems permanecen pendientes.
+- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; los flujos de tickets siguen pendientes.
 
 ## Flujo de trabajo por fases
 

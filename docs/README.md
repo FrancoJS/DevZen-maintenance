@@ -20,7 +20,7 @@ El MVP se limita al mantenimiento correctivo de maquinarias. Incluye autenticaci
 4. `DesafioHackaton.pdf`, desafío oficial.
 5. Código existente, solo como evidencia de implementación actual.
 
-No se encontraron decisiones aprobadas adicionales que modifiquen la especificación. `AGENTS.md` no reemplaza reglas funcionales del Word; sus precisiones compatibles se incorporan como criterios técnicos.
+No se encontraron decisiones funcionales adicionales que modifiquen la especificación. Las decisiones técnicas aprobadas para autenticación JWT y documentación OpenAPI quedan registradas en [PENDING_DECISIONS.md](PENDING_DECISIONS.md). `AGENTS.md` no reemplaza reglas funcionales del Word; sus precisiones compatibles se incorporan como criterios técnicos.
 
 ## Estado actual observado del repositorio
 
@@ -29,9 +29,11 @@ No se encontraron decisiones aprobadas adicionales que modifiquen la especificac
 - Frontend Angular `22.0.x` en `apps/web`.
 - Backend NestJS `11.x` en `apps/api`.
 - Proyectos E2E: `apps/web-e2e` y `apps/api-e2e`.
-- El backend conserva el endpoint scaffold, pero ya incorpora configuración TypeORM, entidades de persistencia, migración inicial y seed de usuarios.
-- No se implementaron todavía DTOs funcionales, autenticación ni servicios/controladores de tickets.
-- Las pruebas existentes verifican únicamente el scaffold; por ello ningún elemento funcional de [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) se marca como completado.
+- El backend incorpora configuración TypeORM, entidades de persistencia, migración inicial y seed de usuarios.
+- La autenticación JWT stateless está implementada: `POST /api/auth/login` es público, `GET /api/auth/me` requiere Bearer JWT y las rutas NestJS quedan protegidas globalmente por defecto.
+- La autorización gruesa usa `@Roles(...)`; ownership, técnico asignado y estado del ticket permanecen como reglas de dominio pendientes de los servicios de tickets.
+- Swagger/OpenAPI se expone únicamente en desarrollo mediante `/api/docs` y `/api/docs-json`, con el esquema Bearer `access-token`.
+- Los servicios/controladores y contratos funcionales de tickets todavía no están implementados; el detalle vigente se mantiene en [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md).
 
 ## Índice y guía de consulta
 
