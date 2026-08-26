@@ -16,4 +16,15 @@ describe('roleGuard', () => {
 
     expect(TestBed.inject(Router).url).toBe('/inicio');
   });
+
+  it('redirects a technician away from the global maintenance history', async () => {
+    localStorage.removeItem('devzen-preview-role');
+    TestBed.configureTestingModule({ providers: [provideRouter(appRoutes)] });
+    TestBed.inject(PreviewSessionService).setRole('TECHNICIAN');
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl('/historial-global');
+
+    expect(TestBed.inject(Router).url).toBe('/inicio');
+  });
 });
