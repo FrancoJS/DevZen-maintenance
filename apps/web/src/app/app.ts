@@ -22,34 +22,4 @@ import { HlmToasterImports } from '@spartan-ng/helm/sonner';
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
-export class App {
-  private readonly session = inject(PreviewSessionService);
-  protected readonly theme = inject(ThemeService);
-  private readonly router = inject(Router);
-  protected sidebarCollapsed = false;
-  protected mobileSidebarOpen = false;
-  protected readonly role = this.session.role;
-  protected readonly user = this.session.user;
-  protected readonly navigationGroups = computed(() => NAVIGATION_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.roles.includes(this.role())),
-  })));
-
-  protected changeRole(event: Event): void {
-    const role = (event.target as HTMLSelectElement).value as UserRole;
-    this.session.setRole(role);
-    this.mobileSidebarOpen = false;
-    const allowed = NAVIGATION_GROUPS.some((group) =>
-      group.items.some((item) => item.route === this.router.url && item.roles.includes(role))
-    );
-    if (!allowed) void this.router.navigateByUrl('/inicio');
-  }
-
-  protected toggleSidebar(): void {
-    this.sidebarCollapsed = !this.sidebarCollapsed;
-  }
-
-  protected closeMobileSidebar(): void {
-    this.mobileSidebarOpen = false;
-  }
-}
+export class App {}

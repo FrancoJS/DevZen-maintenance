@@ -7,8 +7,9 @@ import { PreviewSessionService } from './preview-session.service';
 describe('roleGuard', () => {
   it('redirects a requester away from an admin route', async () => {
     localStorage.removeItem('devzen-preview-role');
+    localStorage.removeItem('devzen-mock-session');
     TestBed.configureTestingModule({ providers: [provideRouter(appRoutes)] });
-    TestBed.inject(PreviewSessionService).setRole('REQUESTER');
+    TestBed.inject(PreviewSessionService).login('camila.rojas@devzen.test', 'Solicitante123!');
     const harness = await RouterTestingHarness.create();
 
     await harness.navigateByUrl('/tecnicos');

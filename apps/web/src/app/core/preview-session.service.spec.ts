@@ -4,6 +4,7 @@ import { PreviewSessionService } from './preview-session.service';
 describe('PreviewSessionService', () => {
   beforeEach(() => {
     localStorage.removeItem('devzen-preview-role');
+    localStorage.removeItem('devzen-mock-session');
     TestBed.configureTestingModule({ providers: [PreviewSessionService] });
   });
 
@@ -16,5 +17,36 @@ describe('PreviewSessionService', () => {
     expect(service.role()).toBe('REQUESTER');
     expect(localStorage.getItem('devzen-preview-role')).toBe('REQUESTER');
     expect(service.user().roleLabel).toBe('Solicitante');
+  });
+
+  it('authenticates a demo user and stores the active session without the password', () => {
+    const service = TestBed.inject(PreviewSessionService);
+
+    expect(service.login('ana.gonzalez@devzen.test', 'Admin123!')).toBe(true);
+    expect(service.role()).toBe('ADMIN');
+    expect(service.user().name).toBe('Ana González');
+    expect(localStorage.getItem('devzen-mock-session')).toBe(
+      JSON.stringify({ email: 'ana.gonzalez@devzen.test', role: 'ADMIN' })
+    );
+    expect(localStorage.getItem('devzen-mock-session')).not.toContain('Admin123!');
+  });
+
+  it('rejects invalid demo credentials', () => {
+    const service = TestBed.inject(PreviewSessionService);
+
+    expect(service.login('ana.gonzalez@devzen.test', 'incorrecta')).toBe(false);
+    expect(localStorage.getItem('devzen-mock-session')).toBeNull();
+  });
+
+  it('clears the active session on logout', () => {
+    const service = TestBed.inject(PreviewSessionService);
+    service.login('ana.gonzalez@devzen.test', 'Admin123!');
+
+    service.logout();
+
+    expect(service.isAuthenticated()).toBe(false);
+    expect(service.role()).toBe('ADMIN');
+    expect(localStorage.getItem('devzen-mock-session')).toBeNull();
+    expect(localStorage.getItem('devzen-preview-role')).toBeNull();
   });
 });
