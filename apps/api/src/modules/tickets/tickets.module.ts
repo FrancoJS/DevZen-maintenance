@@ -1,13 +1,17 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { HistoryModule } from '../history/history.module';
 import { AssignmentHistory } from './entities/assignment-history.entity';
 import { FreezeRequest } from './entities/freeze-request.entity';
 import { ImpactAssessment } from './entities/impact-assessment.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
+import { TicketsController } from './tickets.controller';
+import { TicketsService } from './tickets.service';
 
 @Module({
   imports: [
+    HistoryModule,
     TypeOrmModule.forFeature([
       Ticket,
       ImpactAssessment,
@@ -16,5 +20,7 @@ import { Ticket } from './entities/ticket.entity';
       AssignmentHistory,
     ]),
   ],
+  controllers: [TicketsController],
+  providers: [TicketsService],
 })
 export class TicketsModule {}

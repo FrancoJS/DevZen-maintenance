@@ -19,16 +19,16 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 
 - **Parte resuelta (autenticación):** `POST /api/auth/login` y `GET /api/auth/me`, junto con sus DTOs, respuestas, errores y requisitos Bearer, están definidos en [API_CONTRACTS.md](API_CONTRACTS.md).
 - **Parte resuelta (OpenAPI):** durante desarrollo se exponen `/api/docs` y `/api/docs-json` con el esquema Bearer `access-token`.
-- **Parte pendiente:** las rutas, métodos, DTOs y respuestas de tickets, técnicos, historial y dashboard todavía no están aprobados y no deben inventarse.
+- **Parte resuelta (núcleo de tickets):** `POST /api/tickets`, `GET /api/tickets`, `GET /api/tickets/:id` y `PATCH /api/tickets/:id`, con DTOs, respuestas, filtros mínimos y errores, se definen en `API_CONTRACTS.md`.
+- **Parte pendiente:** contratos de técnicos, asignaciones, mantención, historial global y dashboard.
 - **Fuentes:** Word 13.1; [API_CONTRACTS.md](API_CONTRACTS.md).
 
-## `PD-004` — Campos editables del ticket `NEW`
+## `PD-004` — Campos editables del ticket `NEW` — Resuelta
 
 - **Contexto:** `RN-02` permite editar la solicitud propia en `NEW`, pero no enumera qué campos pueden cambiarse ni cómo repercute en la prioridad.
 - **Fuentes:** Word 3.1, 9.1, `RN-02`, `RN-03` y 13.1.
-- **Decisión requerida:** definir campos editables y si un cambio en respuestas recalcula prioridad y genera qué historial.
-- **Impacto:** DTO de edición, prioridad, auditoría y formulario.
-- **Opciones conocidas:** no especificadas.
+- **Decisión aprobada:** esta fase permite editar exclusivamente `description` en un ticket propio `NEW`.
+- **Consecuencia:** la evaluación de impacto queda inmutable y no se recalcula prioridad durante `PATCH`; la edición registra `TICKET_UPDATED`.
 
 ## `PD-005` — Contrato de edición de información técnica
 
@@ -59,26 +59,24 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Impacto:** navegación, alcance frontend/backend y demo.
 - **Opciones conocidas:** resumen administrativo mínimo; dashboard completo opcional; postergación total.
 
-## `PD-009` — Alcance de filtros básicos frente a completos
+## `PD-009` — Alcance de filtros básicos frente a completos — Parcialmente resuelta
 
 - **Contexto:** “Mis solicitudes” menciona búsqueda/filtros básicos, mientras filtros y búsqueda completos son valor adicional.
 - **Fuentes:** Word 10.2 y 14.2; `AGENTS.md`, Optional.
-- **Decisión requerida:** definir si el MVP incluye algún filtro mínimo y cuál.
-- **Impacto:** consultas, UI, criterios de aceptación y tiempo de implementación.
-- **Opciones conocidas:** sin filtros; filtro mínimo por definir; filtros completos opcionales.
+- **Decisión aprobada para API:** listado paginado con filtros opcionales por `status` y `priority`; no hay búsqueda ni filtros por fecha en esta fase.
+- **Pendiente:** decidir si el frontend requiere filtros adicionales.
 
 ## `PD-010` — Protección concreta de concurrencia — Parcialmente resuelta
 
 - **Decisión aprobada para persistencia:** índices únicos parciales impiden más de una asignación activa por ticket o técnico.
 - **Pendiente:** la futura operación de asignación debe usar una transacción y manejar correctamente una violación de unicidad concurrente.
 
-## `PD-011` — Contratos de listados e historial
+## `PD-011` — Contratos de listados e historial — Parcialmente resuelta
 
 - **Contexto:** se requieren listados e historial, pero no se definen paginación, orden, límites ni formato de eventos.
 - **Fuentes:** Word 10 y 13.1; `AGENTS.md`, Performance y History.
-- **Decisión requerida:** definir contrato mínimo de consulta y representación de eventos.
-- **Impacto:** API, rendimiento, frontend y pruebas.
-- **Opciones conocidas:** no especificadas; la cronología debe preservar actor/timestamp y detalles relevantes.
+- **Decisión aprobada para núcleo:** listado con `page`, `limit`, `total` y `totalPages`, orden descendente por creación; detalle incluye cronología ascendente con actor, acción, estados/prioridades y detalle relevante.
+- **Pendiente:** contratos de historial global y técnico, incluido su control de volumen.
 
 ## `PD-012` — Exposición de documentación OpenAPI — Resuelta
 
