@@ -52,6 +52,17 @@ label,
   font-weight: 600;
 }
 
+label[tabindex='0'],
+.impact-question > span[tabindex='0'] {
+  cursor: pointer;
+}
+
+label[tabindex='0']:focus,
+.impact-question > span[tabindex='0']:focus {
+  outline: 2px solid #1d4f91;
+  outline-offset: 2px;
+}
+
 input[type='text'],
 textarea {
   box-sizing: border-box;

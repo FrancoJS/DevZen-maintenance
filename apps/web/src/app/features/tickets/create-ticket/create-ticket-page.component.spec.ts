@@ -55,14 +55,22 @@ describe('CreateTicketPageComponent', () => {
     });
   }
 
-  it('no envía una solicitud incompleta y muestra los errores', () => {
+  it('no envía una solicitud incompleta y muestra cada aviso al activar su etiqueta', () => {
     const fixture = createComponent();
 
     fixture.componentInstance.submit();
     fixture.detectChanges();
 
     expect(gateway.createTicket).not.toHaveBeenCalled();
+    expect(fixture.nativeElement.textContent).not.toContain('La descripción es obligatoria.');
+    expect(fixture.nativeElement.textContent).not.toContain('Selecciona una respuesta.');
+
+    (fixture.nativeElement.querySelector('label[for="description"]') as HTMLElement).click();
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('La descripción es obligatoria.');
+
+    (fixture.nativeElement.querySelector('#safety-risk-label') as HTMLElement).click();
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Selecciona una respuesta.');
   });
 

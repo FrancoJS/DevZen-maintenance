@@ -29,6 +29,7 @@ export class CreateTicketPageComponent {
   readonly isSubmitting = signal(false);
   readonly createdTicket = signal<CreatedTicket | null>(null);
   readonly submitError = signal<string | null>(null);
+  readonly requiredHint = signal<string | null>(null);
 
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
@@ -47,6 +48,7 @@ export class CreateTicketPageComponent {
   submit(): void {
     this.createdTicket.set(null);
     this.submitError.set(null);
+    this.requiredHint.set(null);
     this.form.markAllAsTouched();
 
     if (this.form.invalid || this.isSubmitting()) {
@@ -69,7 +71,7 @@ export class CreateTicketPageComponent {
 
   hasError(controlName: 'description' | 'area' | 'location' | 'asset'): boolean {
     const control = this.form.controls[controlName];
-    return control.invalid && control.touched;
+    return control.invalid && this.requiredHint() === controlName;
   }
 
   hasImpactError(
@@ -81,7 +83,11 @@ export class CreateTicketPageComponent {
       | 'affectsOtherAreas'
   ): boolean {
     const control = this.form.controls.impactAssessment.controls[controlName];
-    return control.invalid && control.touched;
+    return control.invalid && this.requiredHint() === controlName;
+  }
+
+  showRequiredHint(controlName: string): void {
+    this.requiredHint.set(controlName);
   }
 
   priorityLabel(ticket: CreatedTicket): string {

@@ -9,7 +9,7 @@
     <fieldset>
       <legend>Datos de la falla</legend>
 
-      <label for="description">Descripción de la falla</label>
+      <label for="description" tabindex="0" (click)="showRequiredHint('description')" (focus)="showRequiredHint('description')">Descripción de la falla</label>
       <textarea
         id="description"
         formControlName="description"
@@ -22,7 +22,7 @@
 
       <div class="ticket-form__grid">
         <div>
-          <label for="area">Área</label>
+          <label for="area" tabindex="0" (click)="showRequiredHint('area')" (focus)="showRequiredHint('area')">Área</label>
           <input id="area" type="text" formControlName="area" aria-describedby="area-error" />
           @if (hasError('area')) {
             <p id="area-error" class="field-error">El área es obligatoria.</p>
@@ -30,7 +30,7 @@
         </div>
 
         <div>
-          <label for="location">Ubicación</label>
+          <label for="location" tabindex="0" (click)="showRequiredHint('location')" (focus)="showRequiredHint('location')">Ubicación</label>
           <input id="location" type="text" formControlName="location" aria-describedby="location-error" />
           @if (hasError('location')) {
             <p id="location-error" class="field-error">La ubicación es obligatoria.</p>
@@ -38,7 +38,7 @@
         </div>
       </div>
 
-      <label for="asset">Máquina o equipo</label>
+      <label for="asset" tabindex="0" (click)="showRequiredHint('asset')" (focus)="showRequiredHint('asset')">Máquina o equipo</label>
       <input id="asset" type="text" formControlName="asset" aria-describedby="asset-error" />
       @if (hasError('asset')) {
         <p id="asset-error" class="field-error">La máquina o equipo es obligatoria.</p>
@@ -50,7 +50,7 @@
       <p class="ticket-form__hint">Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
 
       <div class="impact-question">
-        <span id="safety-risk-label">¿Existe riesgo para la seguridad de una persona?</span>
+        <span id="safety-risk-label" tabindex="0" (click)="showRequiredHint('safetyRisk')" (focus)="showRequiredHint('safetyRisk')">¿Existe riesgo para la seguridad de una persona?</span>
         <div role="radiogroup" aria-labelledby="safety-risk-label">
           <label><input type="radio" formControlName="safetyRisk" [value]="true" /> Sí</label>
           <label><input type="radio" formControlName="safetyRisk" [value]="false" /> No</label>
@@ -61,7 +61,7 @@
       </div>
 
       <div class="impact-question">
-        <span id="equipment-stopped-label">¿La falla detiene completamente el equipo?</span>
+        <span id="equipment-stopped-label" tabindex="0" (click)="showRequiredHint('equipmentStopped')" (focus)="showRequiredHint('equipmentStopped')">¿La falla detiene completamente el equipo?</span>
         <div role="radiogroup" aria-labelledby="equipment-stopped-label">
           <label><input type="radio" formControlName="equipmentStopped" value="YES" /> Sí</label>
           <label><input type="radio" formControlName="equipmentStopped" value="PARTIAL" /> Parcialmente</label>
@@ -73,7 +73,7 @@
       </div>
 
       <div class="impact-question">
-        <span id="production-impact-label">¿La falla afecta el proceso productivo?</span>
+        <span id="production-impact-label" tabindex="0" (click)="showRequiredHint('productionImpact')" (focus)="showRequiredHint('productionImpact')">¿La falla afecta el proceso productivo?</span>
         <div role="radiogroup" aria-labelledby="production-impact-label">
           <label><input type="radio" formControlName="productionImpact" value="STOPPED" /> Detiene producción</label>
           <label><input type="radio" formControlName="productionImpact" value="REDUCED" /> Reduce producción</label>
@@ -85,7 +85,7 @@
       </div>
 
       <div class="impact-question">
-        <span id="workaround-label">¿Existe una alternativa temporal para continuar trabajando?</span>
+        <span id="workaround-label" tabindex="0" (click)="showRequiredHint('workaroundAvailable')" (focus)="showRequiredHint('workaroundAvailable')">¿Existe una alternativa temporal para continuar trabajando?</span>
         <div role="radiogroup" aria-labelledby="workaround-label">
           <label><input type="radio" formControlName="workaroundAvailable" [value]="true" /> Sí</label>
           <label><input type="radio" formControlName="workaroundAvailable" [value]="false" /> No</label>
@@ -96,7 +96,7 @@
       </div>
 
       <div class="impact-question">
-        <span id="other-areas-label">¿La falla afecta a otros equipos o áreas?</span>
+        <span id="other-areas-label" tabindex="0" (click)="showRequiredHint('affectsOtherAreas')" (focus)="showRequiredHint('affectsOtherAreas')">¿La falla afecta a otros equipos o áreas?</span>
         <div role="radiogroup" aria-labelledby="other-areas-label">
           <label><input type="radio" formControlName="affectsOtherAreas" [value]="true" /> Sí</label>
           <label><input type="radio" formControlName="affectsOtherAreas" [value]="false" /> No</label>
