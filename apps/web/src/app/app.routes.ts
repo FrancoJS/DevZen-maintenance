@@ -1,3 +1,11 @@
 import { Route } from '@angular/router';
 
-export const appRoutes: Route[] = [];
+export const appRoutes: Route[] = [
+  {
+    path: 'tickets/new',
+    loadComponent: () =>
+      import('./features/tickets/create-ticket/create-ticket-page.component').then(
+        (module) => module.CreateTicketPageComponent
+      ),
+  },
+];
