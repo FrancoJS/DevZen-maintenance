@@ -34,11 +34,29 @@ export const appRoutes: Route[] = [
     ],
   },
   { path: 'mi-mantencion', component: PlaceholderPage, title: 'Mi mantención | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Mi mantención', roles: ['TECHNICIAN'] } },
-  { path: 'historial-mantenciones', component: PlaceholderPage, title: 'Historial | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Historial', roles: ['TECHNICIAN'] } },
+  {
+    path: 'historial-mantenciones',
+    title: 'Historial de mantenciones | DevZen Maintenance',
+    canActivate: [roleGuard],
+    data: { historyScope: 'personal', roles: ['TECHNICIAN'] },
+    loadComponent: () =>
+      import('./features/tickets/maintenance-history/maintenance-history-page.component').then(
+        (module) => module.MaintenanceHistoryPageComponent
+      ),
+  },
   { path: 'gestion-tickets', component: PlaceholderPage, title: 'Gestión de tickets | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Gestión de tickets', roles: ['ADMIN'] } },
   { path: 'tecnicos', component: PlaceholderPage, title: 'Técnicos | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Técnicos', roles: ['ADMIN'] } },
   { path: 'congelamientos', component: PlaceholderPage, title: 'Congelamientos | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Congelamientos', roles: ['ADMIN'] } },
-  { path: 'historial-global', component: PlaceholderPage, title: 'Historial global | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Historial global', roles: ['ADMIN'] } },
+  {
+    path: 'historial-global',
+    title: 'Historial global | DevZen Maintenance',
+    canActivate: [roleGuard],
+    data: { historyScope: 'global', roles: ['ADMIN'] },
+    loadComponent: () =>
+      import('./features/tickets/maintenance-history/maintenance-history-page.component').then(
+        (module) => module.MaintenanceHistoryPageComponent
+      ),
+  },
   { path: '', pathMatch: 'full', redirectTo: 'inicio' },
   { path: '**', redirectTo: 'inicio' },
 ];
