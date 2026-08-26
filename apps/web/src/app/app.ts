@@ -6,9 +6,18 @@ import { NAVIGATION_GROUPS, UserRole } from './shared/navigation/navigation.mode
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
+import { HlmToasterImports } from '@spartan-ng/helm/sonner';
 
 @Component({
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, HlmAvatarImports, HlmSeparatorImports, HlmTooltipImports],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    HlmAvatarImports,
+    HlmSeparatorImports,
+    HlmTooltipImports,
+    HlmToasterImports,
+  ],
   selector: 'app-root',
   templateUrl: './app.html',
   styleUrl: './app.css',

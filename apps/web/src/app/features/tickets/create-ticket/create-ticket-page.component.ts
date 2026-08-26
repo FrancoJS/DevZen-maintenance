@@ -1,7 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, inject, signal } from '@angular/core';
-import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
+import { HlmBadgeImports } from '@spartan-ng/helm/badge';
+import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInputImports } from '@spartan-ng/helm/input';
+import { toast } from '@spartan-ng/brain/sonner';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
 import { MockTicketGateway } from '../../../core/tickets/mock-ticket.gateway';
 import {
@@ -15,9 +20,31 @@ import {
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
 
+const requiredBooleanResponse = (control: AbstractControl): ValidationErrors | null =>
+  control.value === null || control.value === undefined ? { required: true } : null;
+
+const EQUIPMENT_STOPPED_LABELS: Record<EquipmentStopped, string> = {
+  YES: 'Sí, se detiene completamente',
+  PARTIAL: 'Parcialmente',
+  NO: 'No, continúa funcionando',
+};
+
+const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
+  STOPPED: 'Detiene la producción',
+  REDUCED: 'Reduce la producción',
+  NONE: 'No afecta la producción',
+};
+
 @Component({
   selector: 'app-create-ticket-page',
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    HlmBadgeImports,
+    HlmButtonImports,
+    HlmCardImports,
+    HlmInputImports,
+  ],
   providers: [MockTicketGateway, { provide: TICKET_GATEWAY, useExisting: MockTicketGateway }],
   templateUrl: './create-ticket-page.component.html',
   styleUrl: './create-ticket-page.component.css',
@@ -28,8 +55,11 @@ export class CreateTicketPageComponent {
 
   readonly isSubmitting = signal(false);
   readonly createdTicket = signal<CreatedTicket | null>(null);
+  readonly createdTicketRequest = signal<CreateTicketRequest | null>(null);
+  readonly isDetailOpen = signal(false);
+  readonly isDetailClosing = signal(false);
   readonly submitError = signal<string | null>(null);
-  readonly requiredHint = signal<string | null>(null);
+  readonly showValidationErrors = signal(false);
 
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
@@ -37,18 +67,22 @@ export class CreateTicketPageComponent {
     location: this.formBuilder.control('', [Validators.required]),
     asset: this.formBuilder.control('', [Validators.required]),
     impactAssessment: this.formBuilder.group({
-      safetyRisk: this.formBuilder.control<boolean | null>(null, [Validators.required]),
+      safetyRisk: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
       equipmentStopped: this.formBuilder.control<EquipmentStopped | null>(null, [Validators.required]),
       productionImpact: this.formBuilder.control<ProductionImpact | null>(null, [Validators.required]),
-      workaroundAvailable: this.formBuilder.control<boolean | null>(null, [Validators.required]),
-      affectsOtherAreas: this.formBuilder.control<boolean | null>(null, [Validators.required]),
+      workaroundAvailable: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
+      affectsOtherAreas: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
     }),
   });
 
   submit(): void {
+    if (this.createdTicket() || this.isSubmitting()) {
+      return;
+    }
+
     this.createdTicket.set(null);
     this.submitError.set(null);
-    this.requiredHint.set(null);
+    this.showValidationErrors.set(true);
     this.form.markAllAsTouched();
 
     if (this.form.invalid || this.isSubmitting()) {
@@ -56,12 +90,26 @@ export class CreateTicketPageComponent {
     }
 
     this.isSubmitting.set(true);
+    const request = this.toRequest();
 
     this.ticketGateway
-      .createTicket(this.toRequest())
+      .createTicket(request)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: ({ ticket }) => this.createdTicket.set(ticket),
+        next: ({ ticket }) => {
+          this.createdTicket.set(ticket);
+          this.createdTicketRequest.set(request);
+          this.isDetailOpen.set(false);
+          this.isDetailClosing.set(false);
+          this.form.disable({ emitEvent: false });
+          toast.success('Solicitud creada', {
+            description: `El ticket ${ticket.id} fue registrado correctamente.`,
+            action: { label: 'Descartar', onClick: () => undefined },
+            duration: 8000,
+            class: 'border-primary! bg-card! text-card-foreground! shadow-lg!',
+            actionButtonStyle: 'background-color: var(--primary); color: var(--primary-foreground);',
+          });
+        },
         error: () =>
           this.submitError.set(
             'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.'
@@ -69,9 +117,53 @@ export class CreateTicketPageComponent {
       });
   }
 
+  openTicketDetail(): void {
+    if (this.createdTicket()) {
+      this.isDetailClosing.set(false);
+      this.isDetailOpen.set(true);
+    }
+  }
+
+  closeTicketDetail(): void {
+    if (!this.isDetailOpen() || this.isDetailClosing()) {
+      return;
+    }
+
+    this.isDetailClosing.set(true);
+    setTimeout(() => {
+      this.isDetailOpen.set(false);
+      this.isDetailClosing.set(false);
+    }, 220);
+  }
+
+  startNewTicket(): void {
+    this.isDetailOpen.set(false);
+    this.isDetailClosing.set(false);
+    this.createdTicket.set(null);
+    this.createdTicketRequest.set(null);
+    this.submitError.set(null);
+    this.showValidationErrors.set(false);
+    this.form.enable({ emitEvent: false });
+    this.form.reset({
+      description: '',
+      area: '',
+      location: '',
+      asset: '',
+      impactAssessment: {
+        safetyRisk: null,
+        equipmentStopped: null,
+        productionImpact: null,
+        workaroundAvailable: null,
+        affectsOtherAreas: null,
+      },
+    });
+    this.form.markAsPristine();
+    this.form.markAsUntouched();
+  }
+
   hasError(controlName: 'description' | 'area' | 'location' | 'asset'): boolean {
     const control = this.form.controls[controlName];
-    return control.invalid && this.requiredHint() === controlName;
+    return control.invalid && this.showValidationErrors();
   }
 
   hasImpactError(
@@ -83,11 +175,7 @@ export class CreateTicketPageComponent {
       | 'affectsOtherAreas'
   ): boolean {
     const control = this.form.controls.impactAssessment.controls[controlName];
-    return control.invalid && this.requiredHint() === controlName;
-  }
-
-  showRequiredHint(controlName: string): void {
-    this.requiredHint.set(controlName);
+    return control.invalid && this.showValidationErrors();
   }
 
   priorityLabel(ticket: CreatedTicket): string {
@@ -96,6 +184,24 @@ export class CreateTicketPageComponent {
 
   statusLabel(ticket: CreatedTicket): string {
     return STATUS_LABELS[ticket.status];
+  }
+
+  equipmentStoppedLabel(value: EquipmentStopped): string {
+    return EQUIPMENT_STOPPED_LABELS[value];
+  }
+
+  productionImpactLabel(value: ProductionImpact): string {
+    return PRODUCTION_IMPACT_LABELS[value];
+  }
+
+  priorityClass(priority: CreatedTicket['priority']): string {
+    const classes: Record<CreatedTicket['priority'], string> = {
+      LOW: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200',
+      MEDIUM: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
+      HIGH: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-200',
+      CRITICAL: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200',
+    };
+    return classes[priority];
   }
 
   formatCreatedAt(createdAt: string): string {

@@ -1,6 +1,7 @@
 import { TestBed } from '@angular/core/testing';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { toast } from '@spartan-ng/brain/sonner';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
 import { CreateTicketRequest, CreateTicketResponse } from '../../../core/tickets/ticket.models';
 import { CreateTicketPageComponent } from './create-ticket-page.component';
@@ -55,29 +56,38 @@ describe('CreateTicketPageComponent', () => {
     });
   }
 
-  it('no envía una solicitud incompleta y muestra cada aviso al activar su etiqueta', () => {
+  it('no envía una solicitud incompleta y resalta todos los campos requeridos', () => {
     const fixture = createComponent();
 
     fixture.componentInstance.submit();
     fixture.detectChanges();
 
     expect(gateway.createTicket).not.toHaveBeenCalled();
-    expect(fixture.nativeElement.textContent).not.toContain('La descripción es obligatoria.');
-    expect(fixture.nativeElement.textContent).not.toContain('Selecciona una respuesta.');
-
-    (fixture.nativeElement.querySelector('label[for="description"]') as HTMLElement).click();
-    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('La descripción es obligatoria.');
-
-    (fixture.nativeElement.querySelector('#safety-risk-label') as HTMLElement).click();
-    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Selecciona una respuesta.');
+    expect(fixture.nativeElement.querySelectorAll('.border-destructive').length).toBeGreaterThan(0);
+  });
+
+  it('no muestra errores requeridos solo por enfocar y abandonar un campo vacío', () => {
+    const fixture = createComponent();
+    const description = fixture.nativeElement.querySelector('#description') as HTMLTextAreaElement;
+
+    description.dispatchEvent(new FocusEvent('focus'));
+    description.dispatchEvent(new FocusEvent('blur'));
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).not.toContain('La descripción es obligatoria.');
+    expect(description.classList.contains('border-destructive')).toBe(false);
   });
 
   it('envía el payload completo y muestra la prioridad respondida en español', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     fillValidForm(component);
+    fixture.detectChanges();
+
+    expect(component.form.valid).toBe(true);
+    expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
 
     component.submit();
     fixture.detectChanges();
@@ -95,8 +105,78 @@ describe('CreateTicketPageComponent', () => {
         affectsOtherAreas: false,
       },
     } satisfies CreateTicketRequest);
+    const detailButton = (Array.from(fixture.nativeElement.querySelectorAll('button[type="button"]')) as HTMLButtonElement[])
+      .find((button) => button.textContent?.includes('Ver detalle')) as HTMLButtonElement;
+    detailButton.click();
+    fixture.detectChanges();
     expect(fixture.nativeElement.textContent).toContain('Crítica');
     expect(fixture.nativeElement.textContent).toContain('Nueva');
+  });
+
+  it('muestra una confirmación flotante y descartable al crear la solicitud', () => {
+    const toastSuccess = vi.spyOn(toast, 'success');
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    fillValidForm(component);
+
+    component.submit();
+
+    expect(toastSuccess).toHaveBeenCalledWith('Solicitud creada', expect.objectContaining({
+      description: 'El ticket TK-000123 fue registrado correctamente.',
+      action: expect.objectContaining({ label: 'Descartar' }),
+    }));
+    toastSuccess.mockRestore();
+  });
+
+  it('bloquea duplicados después de crear y permite iniciar una nueva solicitud', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    fillValidForm(component);
+
+    component.submit();
+    component.submit();
+    fixture.detectChanges();
+
+    expect(gateway.createTicket).toHaveBeenCalledTimes(1);
+    expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(true);
+    expect(component.form.disabled).toBe(true);
+    expect(component.isDetailOpen()).toBe(false);
+
+    const newTicketButton = (Array.from(fixture.nativeElement.querySelectorAll('button[type="button"]')) as HTMLButtonElement[])
+      .find((button) => button.textContent?.includes('Nueva solicitud')) as HTMLButtonElement;
+    newTicketButton.click();
+    fixture.detectChanges();
+
+    expect(component.createdTicket()).toBeNull();
+    expect(component.form.enabled).toBe(true);
+    expect(component.form.pristine).toBe(true);
+    expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
+  });
+
+  it('abre el detalle del ticket y lo desvanece antes de cerrarlo', async () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    fillValidForm(component);
+
+    component.submit();
+    fixture.detectChanges();
+    (fixture.nativeElement.querySelector('button[type="button"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('TK-000123');
+    expect(fixture.nativeElement.textContent).toContain('No inicia el sistema hidráulico.');
+    expect(fixture.nativeElement.textContent).toContain('No, continúa funcionando');
+    expect(fixture.nativeElement.textContent).toContain('No afecta la producción');
+    expect(fixture.nativeElement.querySelector('section[hlmCard]')).toBeNull();
+
+    (fixture.nativeElement.querySelector('button[aria-label="Cerrar detalle del ticket"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('.ticket-modal--closing')).not.toBeNull();
+
+    await new Promise((resolve) => setTimeout(resolve, 230));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('evita envíos duplicados mientras la solicitud está pendiente', () => {
