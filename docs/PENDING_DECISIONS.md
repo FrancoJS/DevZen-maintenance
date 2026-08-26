@@ -7,21 +7,20 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión aprobada:** TypeORM `0.3.31`, PostgreSQL, UUID v4 y migraciones explícitas con `synchronize: false`.
 - **Implementación:** entidades por módulo, `InitialSchema` y DataSource CLI bajo `apps/api/src/database/`.
 
-## `PD-002` — Estrategia de autenticación
+## `PD-002` — Estrategia de autenticación — Resuelta
 
-- **Contexto:** el Word menciona “sesión/JWT”, sin seleccionar una estrategia; el repositorio no implementa auth.
-- **Fuentes:** Word 13.1 y 13.2; `AGENTS.md`, Backend architecture y Security.
-- **Decisión requerida:** definir sesión o JWT, flujo de usuario actual y almacenamiento seguro de credenciales.
-- **Impacto:** guards, contratos frontend/backend, pruebas y demo accounts.
-- **Opciones conocidas:** sesión o JWT.
+- **Decisión aprobada:** autenticación stateless mediante JWT firmado con HS256.
+- **Implementación:** `POST /api/auth/login` emite un token con `{ sub, role, iat, exp }`; la vigencia es de `28.800` segundos (8 horas).
+- **Autorización:** `JwtAuthGuard` global protege las rutas por defecto; `@Public()` permite excepciones explícitas y `@Roles(...)` aplica autorización gruesa por rol.
+- **Identidad:** `@CurrentUser()` entrega `{ id, role }`; ownership, técnico asignado y estado se validan en servicios de dominio.
+- **Sesión:** no hay refresh tokens, blacklist ni endpoint de logout; el cliente elimina el token.
 
-## `PD-003` — Endpoints y DTOs exactos
+## `PD-003` — Endpoints y DTOs exactos — Parcialmente resuelta
 
-- **Contexto:** solo `POST /auth/login` está escrito explícitamente. El resto son responsabilidades funcionales.
+- **Parte resuelta (autenticación):** `POST /api/auth/login` y `GET /api/auth/me`, junto con sus DTOs, respuestas, errores y requisitos Bearer, están definidos en [API_CONTRACTS.md](API_CONTRACTS.md).
+- **Parte resuelta (OpenAPI):** durante desarrollo se exponen `/api/docs` y `/api/docs-json` con el esquema Bearer `access-token`.
+- **Parte pendiente:** las rutas, métodos, DTOs y respuestas de tickets, técnicos, historial y dashboard todavía no están aprobados y no deben inventarse.
 - **Fuentes:** Word 13.1; [API_CONTRACTS.md](API_CONTRACTS.md).
-- **Decisión requerida:** definir rutas, métodos, DTOs, respuestas y errores sin alterar roles/estados.
-- **Impacto:** integración frontend/backend, pruebas y documentación de API.
-- **Opciones conocidas:** no aprobadas; evitar inventar una API antes de la decisión.
 
 ## `PD-004` — Campos editables del ticket `NEW`
 
@@ -80,6 +79,12 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión requerida:** definir contrato mínimo de consulta y representación de eventos.
 - **Impacto:** API, rendimiento, frontend y pruebas.
 - **Opciones conocidas:** no especificadas; la cronología debe preservar actor/timestamp y detalles relevantes.
+
+## `PD-012` — Exposición de documentación OpenAPI — Resuelta
+
+- **Decisión aprobada:** Swagger/OpenAPI solo se registra cuando `NODE_ENV=development`.
+- **Implementación:** UI pública en `/api/docs` y documento JSON en `/api/docs-json`; fuera de desarrollo las rutas no se registran.
+- **Seguridad documentada:** Bearer JWT global con nombre `access-token`; el login declara `security: []` y `/api/auth/me` permanece protegido.
 
 ## Diferencias documentales ya resueltas por precedencia
 
