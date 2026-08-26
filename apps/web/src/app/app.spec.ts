@@ -25,10 +25,10 @@ describe('App', () => {
     await harness.navigateByUrl('/inicio', HomePage);
 
     expect(harness.routeNativeElement?.textContent).toContain(
-      'Sistema de gestión de mantenimiento'
+      'Resumen de actividad y próximos pasos.'
     );
     expect(harness.routeNativeElement?.textContent).toContain(
-      'Interfaz en construcción'
+      'Datos de demostración'
     );
   });
 });
