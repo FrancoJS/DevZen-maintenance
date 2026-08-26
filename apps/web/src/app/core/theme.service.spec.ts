@@ -20,4 +20,11 @@ describe('ThemeService', () => {
     expect(service.theme()).toBe('light');
     expect(document.documentElement.classList.contains('dark')).toBe(false);
   });
+
+  it('uses light theme by default when no user preference has been saved', () => {
+    const service = TestBed.inject(ThemeService);
+
+    expect(service.theme()).toBe('light');
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+  });
 });

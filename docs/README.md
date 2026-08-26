@@ -29,30 +29,30 @@ No se encontraron decisiones aprobadas adicionales que modifiquen la especificac
 - Frontend Angular `22.0.x` en `apps/web`.
 - Backend NestJS `11.x` en `apps/api`.
 - Proyectos E2E: `apps/web-e2e` y `apps/api-e2e`.
-- El código es todavía el scaffold inicial: página de bienvenida Angular y endpoint NestJS `GET /api` con `Hello API`.
-- No se encontraron módulos de dominio, DTOs de tickets, autenticación, ORM, entidades, migraciones ni configuración PostgreSQL.
+- El backend conserva el endpoint scaffold, pero ya incorpora configuración TypeORM, entidades de persistencia, migración inicial y seed de usuarios.
+- No se implementaron todavía DTOs funcionales, autenticación ni servicios/controladores de tickets.
 - Las pruebas existentes verifican únicamente el scaffold; por ello ningún elemento funcional de [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) se marca como completado.
 
 ## Índice y guía de consulta
 
-| Documento | Consultar cuando se necesite... |
-|---|---|
-| [PRODUCT_OVERVIEW.md](PRODUCT_OVERVIEW.md) | Entender el problema, objetivo, actores y límites del producto. |
-| [MVP_SCOPE.md](MVP_SCOPE.md) | Distinguir obligatorio, valor adicional y fuera de alcance. |
-| [DOMAIN_MODEL.md](DOMAIN_MODEL.md) | Comprender conceptos, relaciones e invariantes del dominio. |
-| [ROLES_AND_PERMISSIONS.md](ROLES_AND_PERMISSIONS.md) | Resolver dudas sobre visibilidad, permisos y prohibiciones. |
-| [TICKET_LIFECYCLE.md](TICKET_LIFECYCLE.md) | Consultar estados, transiciones y efectos laterales. |
-| [BUSINESS_RULES.md](BUSINESS_RULES.md) | Revisar el registro completo `RN-01` a `RN-21`. |
-| [PRIORITY_RULES.md](PRIORITY_RULES.md) | Implementar o probar el cálculo determinístico de prioridad. |
-| [TECHNICIAN_ASSIGNMENT.md](TECHNICIAN_ASSIGNMENT.md) | Implementar disponibilidad, capacidad, asignación y concurrencia. |
-| [FREEZE_WORKFLOW.md](FREEZE_WORKFLOW.md) | Implementar congelamiento, liberación y reanudación. |
-| [DATA_MODEL.md](DATA_MODEL.md) | Evaluar el modelo mínimo recomendado sin fijar todavía el ORM. |
-| [API_CONTRACTS.md](API_CONTRACTS.md) | Alinear operaciones funcionales entre frontend y backend. |
-| [SCREENS_AND_NAVIGATION.md](SCREENS_AND_NAVIGATION.md) | Revisar pantallas mínimas y restricciones por rol/estado. |
-| [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md) | Consultar `CA-01` a `CA-14` y escenarios de validación. |
-| [DEMO_FLOW.md](DEMO_FLOW.md) | Preparar la demostración normal y el flujo de congelamiento. |
-| [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) | Planificar trabajo pendiente por backend, frontend y datos demo. |
-| [PENDING_DECISIONS.md](PENDING_DECISIONS.md) | Consultar conflictos, contratos ambiguos y decisiones técnicas abiertas. |
+| Documento                                                  | Consultar cuando se necesite...                                          |
+| ---------------------------------------------------------- | ------------------------------------------------------------------------ |
+| [PRODUCT_OVERVIEW.md](PRODUCT_OVERVIEW.md)                 | Entender el problema, objetivo, actores y límites del producto.          |
+| [MVP_SCOPE.md](MVP_SCOPE.md)                               | Distinguir obligatorio, valor adicional y fuera de alcance.              |
+| [DOMAIN_MODEL.md](DOMAIN_MODEL.md)                         | Comprender conceptos, relaciones e invariantes del dominio.              |
+| [ROLES_AND_PERMISSIONS.md](ROLES_AND_PERMISSIONS.md)       | Resolver dudas sobre visibilidad, permisos y prohibiciones.              |
+| [TICKET_LIFECYCLE.md](TICKET_LIFECYCLE.md)                 | Consultar estados, transiciones y efectos laterales.                     |
+| [BUSINESS_RULES.md](BUSINESS_RULES.md)                     | Revisar el registro completo `RN-01` a `RN-21`.                          |
+| [PRIORITY_RULES.md](PRIORITY_RULES.md)                     | Implementar o probar el cálculo determinístico de prioridad.             |
+| [TECHNICIAN_ASSIGNMENT.md](TECHNICIAN_ASSIGNMENT.md)       | Implementar disponibilidad, capacidad, asignación y concurrencia.        |
+| [FREEZE_WORKFLOW.md](FREEZE_WORKFLOW.md)                   | Implementar congelamiento, liberación y reanudación.                     |
+| [DATA_MODEL.md](DATA_MODEL.md)                             | Consultar el modelo persistente y sus restricciones ya implementadas.    |
+| [API_CONTRACTS.md](API_CONTRACTS.md)                       | Alinear operaciones funcionales entre frontend y backend.                |
+| [SCREENS_AND_NAVIGATION.md](SCREENS_AND_NAVIGATION.md)     | Revisar pantallas mínimas y restricciones por rol/estado.                |
+| [ACCEPTANCE_CRITERIA.md](ACCEPTANCE_CRITERIA.md)           | Consultar `CA-01` a `CA-14` y escenarios de validación.                  |
+| [DEMO_FLOW.md](DEMO_FLOW.md)                               | Preparar la demostración normal y el flujo de congelamiento.             |
+| [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md) | Planificar trabajo pendiente por backend, frontend y datos demo.         |
+| [PENDING_DECISIONS.md](PENDING_DECISIONS.md)               | Consultar conflictos, contratos ambiguos y decisiones técnicas abiertas. |
 
 ## Convenciones
 

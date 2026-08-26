@@ -4,8 +4,8 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 
 ## Backend / dominio
 
-- [ ] Definir enums de roles, prioridad, estados y congelamiento.
-- [ ] Crear entidades/tablas principales y migraciones.
+- [x] Definir enums de roles, prioridad, estados y congelamiento.
+- [x] Crear entidades/tablas principales y migraciones.
 - [ ] Implementar autenticación y guards por rol.
 - [ ] Implementar cálculo de prioridad con pruebas unitarias.
 - [ ] Implementar máquina de estados del ticket.
@@ -40,9 +40,9 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 
 - Nx `23.1.1`, Angular `22.0.x`, NestJS `11.x`.
 - `apps/web` contiene la bienvenida de Nx y rutas vacías.
-- `apps/api` contiene solo `AppModule`, `AppController` y `AppService` con `Hello API`.
+- `apps/api` conserva el endpoint scaffold y ahora incluye configuración TypeORM, entidades, migración inicial y seed de usuarios.
 - Pruebas unitarias/E2E existentes cubren únicamente el scaffold.
-- No se encontraron dependencias ni archivos de ORM, entidades, migraciones, auth, tickets o PostgreSQL.
+- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; auth y flujos funcionales siguen pendientes.
 
 ## Flujo de trabajo por fases
 

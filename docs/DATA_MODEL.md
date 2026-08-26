@@ -2,7 +2,7 @@
 
 ## Estado de la decisión
 
-La sección 12 del Word propone los conceptos siguientes como **recomendación de implementación**, adaptable a las convenciones del proyecto. El repositorio no contiene ORM, esquema ni migraciones; por tanto, este documento no decide tablas, cardinalidades físicas, índices, tipos SQL ni estrategia de IDs.
+La capa de persistencia aprobada usa TypeORM `0.3.31`, PostgreSQL y UUID v4. Las entidades físicas, sus FK, restricciones, índices y migración inicial están implementados bajo `apps/api/src/`; este documento conserva las restricciones funcionales que las próximas fases deben respetar.
 
 Las restricciones funcionales sí son obligatorias aunque cambie la forma de persistirlas.
 
@@ -18,7 +18,7 @@ Las restricciones funcionales sí son obligatorias aunque cambie la forma de per
 ### `Ticket`
 
 - **Propósito:** entidad principal y única identidad del ciclo.
-- **Campos sugeridos:** `id`, `description`, `area`, `location`, `asset`, `priority`, `status`, `requesterId`, `currentTechnicianId?`, `createdAt`, `assignedAt?`, `startedAt?`, `resolvedAt?`, `closedAt?`.
+- **Campos persistidos:** `id`, `description`, `location`, `asset`, `priority`, `status`, `requesterId`, `currentTechnicianId?`, `resolvedById?`, `closedById?`, `createdAt`, `updatedAt`, `resolvedAt?`, `closedAt?`.
 - **Relaciones conceptuales:** solicitante, evaluación de impacto, mantención, congelamientos, asignaciones e historial.
 - **Restricciones:** una falla por ticket; estado inicial `NEW`; sin eliminación física; `CLOSED` inmutable; técnico actual coherente con la asignación activa.
 
@@ -27,16 +27,16 @@ Las restricciones funcionales sí son obligatorias aunque cambie la forma de per
 ### `ImpactAssessment`
 
 - **Propósito:** conservar las respuestas que explican la prioridad automática.
-- **Campos sugeridos:** `ticketId`, `safetyRisk`, `equipmentStopped`, `productionImpact`, `workaroundAvailable`, `affectsOtherAreas`.
+- **Campos persistidos:** `ticketId`, `safetyRisk`, `equipmentStopped`, `productionImpact`, `workaroundAvailable`, `affectsOtherAreas`, `calculatedPriority`.
 - **Relación:** pertenece al ticket evaluado.
 - **Restricciones:** las cinco respuestas son obligatorias al crear; prioridad calculada en backend.
 
 ### `Maintenance`
 
 - **Propósito:** información técnica del trabajo dentro del ticket.
-- **Campos sugeridos:** `ticketId`, `diagnosis`, `workPerformed`, `notes`, `finalEvidenceUrl?`.
+- **Campos persistidos:** `ticketId`, `diagnosis?`, `workPerformed?`, `notes?`, `finalEvidenceUrl?`.
 - **Relación:** corresponde al mismo ticket, no a un flujo independiente.
-- **Restricciones:** solo técnico actual puede escribir; `workPerformed` obligatorio al resolver; observaciones y evidencia final opcionales según alcance.
+- **Restricciones:** solo técnico actual puede escribir; `workPerformed` obligatorio al resolver. La evidencia final es una URL única opcional de hasta 2048 caracteres; la carga de archivos sigue fuera de alcance.
 
 La obligatoriedad exacta de `diagnosis` al resolver debe alinearse con el contrato UI/dominio futuro; el Word exige registrarlo como dato técnico, pero solo declara expresamente obligatorio `workPerformed` al resolver.
 
@@ -104,7 +104,10 @@ La obligatoriedad exacta de `diagnosis` al resolver debe alinearse con el contra
 - Actualizaciones atómicas en acciones que afectan varias entidades conceptuales.
 - PostgreSQL como persistencia requerida por la especificación.
 
-## Pendiente técnico
+## Decisiones de persistencia implementadas
 
-ORM, nombres físicos, claves, relaciones exactas, estrategia de bloqueo/restricción, migraciones y formato de IDs deben definirse antes de implementar. Véase [PENDING_DECISIONS.md](PENDING_DECISIONS.md).
-
+- No existe campo ni columna `area`.
+- `ImpactAssessment` y `Maintenance` usan `ticketId` como PK/FK 1:1.
+- `AssignmentHistory` protege una sola asignación activa por ticket y técnico mediante índices únicos parciales.
+- Las relaciones no usan cascada ni borrado físico; las FK restringen la eliminación de datos trazables.
+- La consistencia transaccional entre ticket, asignación e historial corresponde a la fase de servicios de negocio.

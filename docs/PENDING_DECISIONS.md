@@ -2,13 +2,10 @@
 
 No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las entradas siguientes registran únicamente ambigüedades reales o decisiones técnicas necesarias que las fuentes no resuelven.
 
-## `PD-001` — ORM y esquema PostgreSQL
+## `PD-001` — ORM y esquema PostgreSQL — Resuelta
 
-- **Contexto:** PostgreSQL es obligatorio, pero el repositorio no incluye ORM, esquema ni migraciones.
-- **Fuentes:** Word, secciones 12 y 14.1; `AGENTS.md`, Backend architecture y Database operations.
-- **Decisión requerida:** elegir el ORM/librería y diseñar esquema/migraciones conservando las restricciones funcionales.
-- **Impacto:** entidades físicas, transacciones, consultas, migraciones y pruebas de integración.
-- **Opciones conocidas:** no están aprobadas; deben evaluarse según el stack antes de implementar.
+- **Decisión aprobada:** TypeORM `0.3.31`, PostgreSQL, UUID v4 y migraciones explícitas con `synchronize: false`.
+- **Implementación:** entidades por módulo, `InitialSchema` y DataSource CLI bajo `apps/api/src/database/`.
 
 ## `PD-002` — Estrategia de autenticación
 
@@ -42,13 +39,10 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Impacto:** DTOs, validación, UX y pruebas.
 - **Opciones conocidas:** no especificadas.
 
-## `PD-006` — Condición de obligatoriedad de área
+## `PD-006` — Campo área — Resuelta
 
-- **Contexto:** el Word indica “Área obligatoria si aplica al contexto elegido”, pero no define los contextos.
-- **Fuentes:** Word 9.1.
-- **Decisión requerida:** definir cuándo `area` es obligatoria y el catálogo/formato aplicable.
-- **Impacto:** formulario, DTO, esquema y validación.
-- **Opciones conocidas:** texto libre o catálogo no están aprobados.
+- **Decisión aprobada:** `area` queda fuera del producto y no existe en el esquema ni en el futuro contrato backend.
+- **Seguimiento:** el mock frontend aún lo solicita; deberá eliminarse en una fase frontend autorizada.
 
 ## `PD-007` — Motivo de rechazo de congelamiento
 
@@ -74,13 +68,10 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Impacto:** consultas, UI, criterios de aceptación y tiempo de implementación.
 - **Opciones conocidas:** sin filtros; filtro mínimo por definir; filtros completos opcionales.
 
-## `PD-010` — Protección concreta de concurrencia
+## `PD-010` — Protección concreta de concurrencia — Parcialmente resuelta
 
-- **Contexto:** `RN-20` exige que solo una asignación concurrente gane, pero el mecanismo depende del ORM/esquema.
-- **Fuentes:** Word 7.2, `RN-20` y 13.2; `AGENTS.md`, Assignment and concurrency.
-- **Decisión requerida:** elegir transacción, bloqueo, restricción única o mecanismo equivalente tras definir el ORM.
-- **Impacto:** integridad de datos y prueba concurrente.
-- **Opciones conocidas:** las enumeradas por las fuentes, sin selección aprobada.
+- **Decisión aprobada para persistencia:** índices únicos parciales impiden más de una asignación activa por ticket o técnico.
+- **Pendiente:** la futura operación de asignación debe usar una transacción y manejar correctamente una violación de unicidad concurrente.
 
 ## `PD-011` — Contratos de listados e historial
 

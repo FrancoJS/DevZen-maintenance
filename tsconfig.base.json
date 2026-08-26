@@ -53,6 +53,9 @@
       ],
       "@spartan-ng/helm/skeleton": [
         "./apps/web/src/app/shared/ui/skeleton/src/index.ts"
+      ],
+      "@spartan-ng/helm/sonner": [
+        "./apps/web/src/app/shared/ui/sonner/src/index.ts"
       ]
     }
   },
