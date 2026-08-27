@@ -41,6 +41,8 @@ A phase is authorized only when:
 
 Do not infer authorization for later phases merely because they appear in a plan. A plan describes intended work; it does not authorize every phase automatically.
 
+An instruction such as "implement this plan", "implement the plan", or equivalent authorizes only the first planned phase. It does **not** authorize all phases. To authorize every phase in one turn, the user must say explicitly "implement all phases" or use equally unambiguous wording. After each phase, stop and wait for explicit approval before continuing unless that full authorization was given.
+
 If the user explicitly authorizes all phases, they may be implemented in one turn, but they must remain logically separated in scope, validation, and reporting. Do not create commits or push changes unless the user explicitly requests it.
 
 ## Sources of truth

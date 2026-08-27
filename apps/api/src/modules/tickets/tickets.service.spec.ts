@@ -16,7 +16,9 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentHistory } from './entities/assignment-history.entity';
+import { FreezeRequest } from './entities/freeze-request.entity';
 import { Maintenance } from './entities/maintenance.entity';
+import { FreezeRequestStatus } from './enums/freeze-request-status.enum';
 import { Ticket } from './entities/ticket.entity';
 import { User } from '../users/entities/user.entity';
 import { TicketsService } from './tickets.service';
@@ -580,6 +582,127 @@ describe('TicketsService', () => {
       new ForbiddenException('El técnico no está asignado a este ticket'),
     );
     expect(historyService.record).not.toHaveBeenCalled();
+  });
+
+  it('creates a pending freeze request without releasing the assigned technician', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.IN_PROGRESS,
+      currentTechnicianId: 'actor-id',
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const assignmentQuery = createQueryBuilder(
+      jest.fn().mockResolvedValue({ technicianId: 'actor-id' }),
+    );
+    const freezes = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value) => value),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: jest.fn(),
+          };
+        }
+        if (entity === AssignmentHistory) {
+          return { createQueryBuilder: jest.fn(() => assignmentQuery) };
+        }
+        if (entity === FreezeRequest) return freezes;
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.requestFreeze(
+      'ticket-id',
+      { reasonType: 'OTHER', reasonDetail: 'Esperando proveedor' } as never,
+      actor(UserRole.TECHNICIAN),
+    );
+
+    expect(ticket.status).toBe(TicketStatus.FREEZE_REQUESTED);
+    expect(freezes.save).toHaveBeenCalledWith(
+      expect.objectContaining({ status: FreezeRequestStatus.PENDING }),
+    );
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({ action: 'FREEZE_REQUESTED' }),
+    );
+  });
+
+  it('approves a freeze request atomically and releases its active assignment', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.FREEZE_REQUESTED,
+      currentTechnicianId: 'technician-id',
+    } as Ticket;
+    const assignment = {
+      id: 'assignment-id',
+      technicianId: 'technician-id',
+      releasedAt: null,
+      releaseReason: null,
+    } as AssignmentHistory;
+    const freeze = {
+      id: 'freeze-id',
+      status: FreezeRequestStatus.PENDING,
+      reviewedById: null,
+      reviewedAt: null,
+      reviewNote: null,
+    } as FreezeRequest;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const assignmentQuery = createQueryBuilder(
+      jest.fn().mockResolvedValue(assignment),
+    );
+    const freezeQuery = createQueryBuilder(jest.fn().mockResolvedValue(freeze));
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket)
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: jest.fn(),
+          };
+        if (entity === AssignmentHistory)
+          return {
+            createQueryBuilder: jest.fn(() => assignmentQuery),
+            save: jest.fn(),
+          };
+        if (entity === FreezeRequest)
+          return {
+            createQueryBuilder: jest.fn(() => freezeQuery),
+            save: jest.fn(),
+          };
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.approveFreeze(
+      'ticket-id',
+      'freeze-id',
+      {},
+      actor(UserRole.ADMIN),
+    );
+
+    expect(ticket).toMatchObject({
+      status: TicketStatus.FROZEN,
+      currentTechnicianId: null,
+    });
+    expect(assignment).toMatchObject({
+      releaseReason: AssignmentReleaseReason.FREEZE_APPROVED,
+      releasedAt: expect.any(Date),
+    });
+    expect(freeze).toMatchObject({
+      status: FreezeRequestStatus.APPROVED,
+      reviewedById: 'actor-id',
+    });
   });
 
   it('lists only maintenance tickets released from the current technician', async () => {

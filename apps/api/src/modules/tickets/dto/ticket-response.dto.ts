@@ -5,6 +5,8 @@ import { TicketPriority } from '../enums/ticket-priority.enum';
 import { TicketStatus } from '../enums/ticket-status.enum';
 import { TicketHistoryAction } from '../../history/enums/ticket-history-action.enum';
 import { AssignmentReleaseReason } from '../enums/assignment-release-reason.enum';
+import { FreezeReasonType } from '../enums/freeze-reason-type.enum';
+import { FreezeRequestStatus } from '../enums/freeze-request-status.enum';
 
 export class TicketUserResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -89,6 +91,35 @@ export class AssignmentHistoryResponseDto {
   releaseReason!: AssignmentReleaseReason | null;
 }
 
+export class FreezeRequestResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: () => TicketUserResponseDto })
+  technician!: TicketUserResponseDto;
+
+  @ApiProperty({ enum: FreezeReasonType, enumName: 'FreezeReasonType' })
+  reasonType!: FreezeReasonType;
+
+  @ApiPropertyOptional({ nullable: true })
+  reasonDetail!: string | null;
+
+  @ApiProperty({ enum: FreezeRequestStatus, enumName: 'FreezeRequestStatus' })
+  status!: FreezeRequestStatus;
+
+  @ApiProperty({ format: 'date-time' })
+  requestedAt!: Date;
+
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  reviewedBy!: TicketUserResponseDto | null;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  reviewedAt!: Date | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  reviewNote!: string | null;
+}
+
 export class MaintenanceResponseDto {
   @ApiPropertyOptional({ nullable: true })
   diagnosis!: string | null;
@@ -150,6 +181,9 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
 
   @ApiProperty({ type: () => AssignmentHistoryResponseDto, isArray: true })
   assignments!: AssignmentHistoryResponseDto[];
+
+  @ApiProperty({ type: () => FreezeRequestResponseDto, isArray: true })
+  freezeRequests!: FreezeRequestResponseDto[];
 
   @ApiPropertyOptional({ type: () => MaintenanceResponseDto })
   maintenance!: MaintenanceResponseDto | null;

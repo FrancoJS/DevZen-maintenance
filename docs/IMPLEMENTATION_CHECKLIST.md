@@ -12,7 +12,7 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [ ] Implementar máquina de estados del ticket.
 - [x] Implementar asignación inicial `NEW -> ASSIGNED`, disponibilidad derivada y protección de capacidad para técnicos.
 - [x] Implementar historial automático para creación y edición de tickets.
-- [ ] Implementar flujo de congelamiento y liberación de asignación.
+- [x] Implementar flujo de congelamiento y liberación de asignación.
 - [x] Implementar visibilidad por rol, paginación y filtros mínimos de tickets.
 - [x] Implementar consulta administrativa paginada de técnicos y consulta de mantención actual del técnico.
 - [x] Implementar inicio `ASSIGNED -> IN_PROGRESS` y registro técnico parcial en `IN_PROGRESS`.

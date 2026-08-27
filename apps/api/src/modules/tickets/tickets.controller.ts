@@ -26,11 +26,14 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enums/user-role.enum';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { ApproveFreezeRequestDto } from './dto/approve-freeze-request.dto';
 import { CloseTicketDto } from './dto/close-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { ResolveTicketDto } from './dto/resolve-ticket.dto';
+import { RejectFreezeRequestDto } from './dto/reject-freeze-request.dto';
+import { RequestFreezeDto } from './dto/request-freeze.dto';
 import {
   PaginatedTicketsResponseDto,
   TicketDetailResponseDto,
@@ -133,6 +136,89 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<TicketDetailResponseDto> {
     return this.ticketsService.assign(id, assignTechnicianDto, currentUser);
+  }
+
+  @Post(':id/freeze-requests')
+  @Roles(UserRole.TECHNICIAN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Solicitar el congelamiento de una mantención' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({ description: 'Motivo o identificador inválido.' })
+  @ApiConflictResponse({
+    description: 'El ticket no permite solicitar congelamiento.',
+  })
+  @ApiForbiddenResponse({ description: 'El técnico no es el asignado.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  requestFreeze(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() requestFreezeDto: RequestFreezeDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.requestFreeze(id, requestFreezeDto, currentUser);
+  }
+
+  @Post(':id/freeze-requests/:freezeRequestId/approve')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Aprobar una solicitud de congelamiento' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiConflictResponse({ description: 'La solicitud no está pendiente.' })
+  @ApiForbiddenResponse({ description: 'Acción exclusiva de administración.' })
+  @ApiNotFoundResponse({ description: 'Ticket o solicitud no encontrados.' })
+  approveFreeze(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Param('freezeRequestId', new ParseUUIDPipe({ version: '4' }))
+    freezeRequestId: string,
+    @Body() approveFreezeRequestDto: ApproveFreezeRequestDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.approveFreeze(
+      id,
+      freezeRequestId,
+      approveFreezeRequestDto,
+      currentUser,
+    );
+  }
+
+  @Post(':id/freeze-requests/:freezeRequestId/reject')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Rechazar una solicitud de congelamiento' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({ description: 'Motivo o identificador inválido.' })
+  @ApiConflictResponse({ description: 'La solicitud no está pendiente.' })
+  @ApiForbiddenResponse({ description: 'Acción exclusiva de administración.' })
+  @ApiNotFoundResponse({ description: 'Ticket o solicitud no encontrados.' })
+  rejectFreeze(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Param('freezeRequestId', new ParseUUIDPipe({ version: '4' }))
+    freezeRequestId: string,
+    @Body() rejectFreezeRequestDto: RejectFreezeRequestDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.rejectFreeze(
+      id,
+      freezeRequestId,
+      rejectFreezeRequestDto,
+      currentUser,
+    );
+  }
+
+  @Post(':id/resolve-blocker')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({
+    summary: 'Marcar como resuelto el bloqueo de un ticket congelado',
+  })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiConflictResponse({ description: 'El ticket no está FROZEN.' })
+  @ApiForbiddenResponse({ description: 'Acción exclusiva de administración.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  resolveBlocker(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.resolveBlocker(id, currentUser);
   }
 
   @Post(':id/start')
