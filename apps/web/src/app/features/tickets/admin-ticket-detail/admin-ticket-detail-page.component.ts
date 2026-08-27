@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
+import { Component, computed, EventEmitter, inject, input, OnInit, Output, signal } from '@angular/core';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { finalize, forkJoin } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -32,7 +32,7 @@ const HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
   PRIORITY_OVERRIDDEN: 'Prioridad corregida',
   TECHNICIAN_ASSIGNED: 'Técnico asignado',
   MAINTENANCE_STARTED: 'Mantención iniciada',
-  MAINTENANCE_UPDATED: 'Información técnica actualizada',
+  MAINTENANCE_UPDATED: 'Información de la mantención actualizada',
   FREEZE_REQUESTED: 'Congelamiento solicitado',
   FREEZE_APPROVED: 'Congelamiento aprobado',
   FREEZE_REJECTED: 'Congelamiento rechazado',
@@ -61,11 +61,14 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
     { provide: ADMIN_TICKET_GATEWAY, useExisting: HttpTicketGateway },
   ],
   templateUrl: './admin-ticket-detail-page.component.html',
+  styleUrl: './admin-ticket-detail-page.component.css',
 })
 export class AdminTicketDetailPageComponent implements OnInit {
   private readonly gateway = inject<AdminTicketGateway>(ADMIN_TICKET_GATEWAY);
   private readonly route = inject(ActivatedRoute);
-  private readonly ticketId = this.route.snapshot.paramMap.get('id') ?? '';
+  readonly ticketId = input('');
+  readonly embedded = input(false);
+  @Output() readonly ticketUpdated = new EventEmitter<void>();
 
   readonly ticket = signal<TicketDetail | null>(null);
   readonly technicians = signal<Technician[]>([]);
@@ -91,7 +94,9 @@ export class AdminTicketDetailPageComponent implements OnInit {
     this.loadError.set(null);
 
     forkJoin({
-      ticket: this.gateway.getTicket(this.ticketId),
+      ticket: this.gateway.getTicket(
+        this.ticketId() || this.route.snapshot.paramMap.get('id') || ''
+      ),
       technicians: this.gateway.listTechnicians(),
     })
       .pipe(finalize(() => this.isLoading.set(false)))
@@ -150,6 +155,7 @@ export class AdminTicketDetailPageComponent implements OnInit {
             `${technician.name} fue asignado correctamente.`
           );
           this.refreshTechnicians();
+          this.ticketUpdated.emit();
         },
         error: (error: HttpErrorResponse) => {
           this.assignmentError.set(this.assignmentErrorMessage(error));
@@ -227,7 +233,7 @@ export class AdminTicketDetailPageComponent implements OnInit {
       next: ({ items }) => this.technicians.set(items),
       error: () =>
         this.availabilityWarning.set(
-          'La asignación fue guardada, pero no pudimos actualizar la disponibilidad.'
+          'La asignación se guardó, pero no pudimos actualizar el estado del equipo.'
         ),
     });
   }

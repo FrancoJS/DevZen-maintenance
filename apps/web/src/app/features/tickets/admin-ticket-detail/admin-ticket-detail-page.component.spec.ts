@@ -129,6 +129,29 @@ describe('AdminTicketDetailPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       '1 técnicos disponibles de 2'
     );
+    expect(fixture.nativeElement.textContent).not.toContain(
+      'Participación técnica'
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'Respuestas utilizadas por el sistema para calcular la prioridad'
+    );
+    expect(fixture.nativeElement.textContent).toContain(
+      'La disponibilidad se actualiza automáticamente'
+    );
+    expect(
+      fixture.nativeElement.querySelector('.ticket-history-content--embedded')
+    ).toBeNull();
+  });
+
+  it('aplica scroll independiente al historial solo en modo embebido', () => {
+    const fixture = createComponent();
+
+    fixture.componentRef.setInput('embedded', true);
+    fixture.detectChanges();
+
+    expect(
+      fixture.nativeElement.querySelector('.ticket-history-content--embedded')
+    ).not.toBeNull();
   });
 
   it('muestra técnicos ocupados pero impide seleccionarlos', () => {
@@ -174,6 +197,8 @@ describe('AdminTicketDetailPageComponent', () => {
     );
     const fixture = createComponent();
     const component = fixture.componentInstance;
+    const ticketUpdated = vi.fn();
+    component.ticketUpdated.subscribe(ticketUpdated);
 
     component.updateTechnician(availableTechnician.id);
     component.assignTechnician();
@@ -186,6 +211,7 @@ describe('AdminTicketDetailPageComponent', () => {
     expect(component.ticket()?.status).toBe('ASSIGNED');
     expect(component.assignmentSuccess()).toContain('Valentina Silva');
     expect(component.availableTechnicians()).toHaveLength(0);
+    expect(ticketUpdated).toHaveBeenCalledOnce();
     expect(fixture.nativeElement.textContent).not.toContain(
       'Confirmar asignación'
     );

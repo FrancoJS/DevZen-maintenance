@@ -1,9 +1,10 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { DOCUMENT } from '@angular/common';
+import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { finalize, forkJoin } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { AdminTicketDetailPageComponent } from '../admin-ticket-detail/admin-ticket-detail-page.component';
 import {
   ADMIN_TICKET_GATEWAY,
   AdminTicketGateway,
@@ -48,23 +49,38 @@ const TICKET_PRIORITIES: TicketPriority[] = [
 
 @Component({
   selector: 'app-admin-ticket-management-page',
-  imports: [RouterLink, HlmBadgeImports, HlmButtonImports, HlmCardImports],
+  imports: [
+    HlmBadgeImports,
+    HlmButtonImports,
+    HlmCardImports,
+    AdminTicketDetailPageComponent,
+  ],
   providers: [
     HttpTicketGateway,
     { provide: ADMIN_TICKET_GATEWAY, useExisting: HttpTicketGateway },
   ],
   templateUrl: './admin-ticket-management-page.component.html',
+  styleUrl: './admin-ticket-management-page.component.css',
 })
-export class AdminTicketManagementPageComponent implements OnInit {
+export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
   private readonly gateway = inject<AdminTicketGateway>(ADMIN_TICKET_GATEWAY);
+  private readonly document = inject(DOCUMENT);
+  private actionCloseTimer?: ReturnType<typeof setTimeout>;
+  private previousBodyOverflow = '';
 
   readonly tickets = signal<TicketSummary[]>([]);
   readonly technicians = signal<Technician[]>([]);
   readonly isLoading = signal(true);
+  readonly hasLoadedOnce = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly selectedStatus = signal<TicketStatus | ''>('');
   readonly selectedPriority = signal<TicketPriority | ''>('');
   readonly selectedAssignment = signal<AssignmentFilter>('');
+  readonly ticketsExpanded = signal(false);
+  readonly techniciansExpanded = signal(false);
+  readonly selectedActionTicket = signal<TicketSummary | null>(null);
+  readonly isActionsModalOpen = signal(false);
+  readonly isActionsModalClosing = signal(false);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
 
@@ -90,9 +106,36 @@ export class AdminTicketManagementPageComponent implements OnInit {
       return assignment === 'WITH_TECHNICIAN' ? hasTechnician : !hasTechnician;
     });
   });
+  readonly filteredTechnicians = computed(() => {
+    const status = this.selectedStatus();
+    const priority = this.selectedPriority();
+    const assignment = this.selectedAssignment();
+
+    return this.technicians().filter((technician) => {
+      const currentTicket = technician.currentTicket;
+      const hasCurrentTicket = currentTicket !== null;
+
+      if (
+        (assignment === 'WITH_TECHNICIAN' && !hasCurrentTicket) ||
+        (assignment === 'WITHOUT_TECHNICIAN' && hasCurrentTicket)
+      ) {
+        return false;
+      }
+
+      return (
+        (!status || currentTicket?.status === status) &&
+        (!priority || currentTicket?.priority === priority)
+      );
+    });
+  });
 
   ngOnInit(): void {
     this.loadData();
+  }
+
+  ngOnDestroy(): void {
+    if (this.actionCloseTimer) clearTimeout(this.actionCloseTimer);
+    this.restoreDocumentScroll();
   }
 
   loadData(): void {
@@ -113,10 +156,12 @@ export class AdminTicketManagementPageComponent implements OnInit {
         next: ({ tickets, technicians }) => {
           this.tickets.set(tickets.items);
           this.technicians.set(technicians.items);
+          this.hasLoadedOnce.set(true);
         },
         error: () => {
           this.tickets.set([]);
           this.technicians.set([]);
+          this.hasLoadedOnce.set(true);
           this.loadError.set(
             'No fue posible cargar los tickets y la disponibilidad del equipo.'
           );
@@ -138,6 +183,35 @@ export class AdminTicketManagementPageComponent implements OnInit {
     this.selectedAssignment.set(assignment);
   }
 
+  toggleTicketsSection(): void {
+    this.ticketsExpanded.update((expanded) => !expanded);
+  }
+
+  toggleTechniciansSection(): void {
+    this.techniciansExpanded.update((expanded) => !expanded);
+  }
+
+  openActions(ticket: TicketSummary): void {
+    if (this.actionCloseTimer) clearTimeout(this.actionCloseTimer);
+    this.selectedActionTicket.set(ticket);
+    this.isActionsModalClosing.set(false);
+    this.isActionsModalOpen.set(true);
+    this.previousBodyOverflow = this.document.body.style.overflow;
+    this.document.body.style.overflow = 'hidden';
+  }
+
+  closeActions(): void {
+    if (!this.isActionsModalOpen() || this.isActionsModalClosing()) return;
+    this.isActionsModalClosing.set(true);
+    this.actionCloseTimer = setTimeout(() => {
+      this.isActionsModalOpen.set(false);
+      this.isActionsModalClosing.set(false);
+      this.selectedActionTicket.set(null);
+      this.restoreDocumentScroll();
+    }, 220);
+  }
+
+
   clearFilters(): void {
     const requiresReload = Boolean(this.selectedStatus() || this.selectedPriority());
     this.selectedStatus.set('');
@@ -158,6 +232,10 @@ export class AdminTicketManagementPageComponent implements OnInit {
 
   hasCurrentTechnician(ticket: TicketSummary): boolean {
     return ACTIVE_ASSIGNMENT_STATUSES.includes(ticket.status);
+  }
+
+  private restoreDocumentScroll(): void {
+    this.document.body.style.overflow = this.previousBodyOverflow;
   }
 
   statusLabel(status: TicketStatus): string {

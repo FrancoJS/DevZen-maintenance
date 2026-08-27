@@ -1,12 +1,12 @@
 <section class="mx-auto max-w-6xl space-y-6" aria-labelledby="ticket-detail-title">
-  <a hlmBtn variant="ghost" routerLink="/gestion-tickets">← Volver a Gestión de tickets</a>
+  @if (!embedded()) { <a hlmBtn variant="ghost" routerLink="/gestion-tickets">← Volver a Gestión de tickets</a> }
 
   @if (isLoading()) {
     <article hlmCard aria-busy="true" aria-label="Cargando detalle del ticket">
       <div hlmCardContent class="space-y-4 py-8">
         <div class="h-8 w-64 animate-pulse rounded bg-muted"></div>
         <div class="h-40 animate-pulse rounded-lg bg-muted"></div>
-        <p class="text-sm text-muted-foreground">Cargando detalle y disponibilidad técnica…</p>
+        <p class="text-sm text-muted-foreground">Cargando detalle y estado del equipo…</p>
       </div>
     </article>
   } @else if (loadError(); as error) {
@@ -53,8 +53,8 @@
         </article>
 
         <article hlmCard>
-          <header hlmCardHeader><h3 hlmCardTitle>Evaluación de impacto</h3><p hlmCardDescription>Respuestas utilizadas por el backend para calcular la prioridad.</p></header>
-          <div hlmCardContent>
+          <header hlmCardHeader><h3 hlmCardTitle>Evaluación de impacto</h3><p hlmCardDescription>Respuestas utilizadas por el sistema para calcular la prioridad.</p></header>
+          <div hlmCardContent [class.ticket-history-content--embedded]="embedded()">
             <dl class="grid gap-4 sm:grid-cols-2">
               <div><dt class="text-sm text-muted-foreground">Riesgo para la seguridad</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.safetyRisk) }}</dd></div>
               <div><dt class="text-sm text-muted-foreground">Detención del equipo</dt><dd class="mt-1 font-medium">{{ equipmentStoppedLabel(currentTicket.impactAssessment.equipmentStopped) }}</dd></div>
@@ -67,7 +67,7 @@
         </article>
 
         <article hlmCard>
-          <header hlmCardHeader><h3 hlmCardTitle>Mantención y cierre</h3><p hlmCardDescription>Información técnica disponible en el ciclo actual.</p></header>
+          <header hlmCardHeader><h3 hlmCardTitle>Mantención y cierre</h3><p hlmCardDescription>Información disponible durante la mantención.</p></header>
           <div hlmCardContent class="space-y-5">
             @if (currentTicket.maintenance; as maintenance) {
               <dl class="grid gap-4">
@@ -111,7 +111,7 @@
 
       <aside class="space-y-6">
         <article hlmCard>
-          <header hlmCardHeader><h3 hlmCardTitle>Asignación actual</h3><p hlmCardDescription>La disponibilidad siempre es calculada por el backend.</p></header>
+          <header hlmCardHeader><h3 hlmCardTitle>Asignación actual</h3><p hlmCardDescription>La disponibilidad se actualiza automáticamente.</p></header>
           <div hlmCardContent class="space-y-4">
             @if (currentTicket.currentTechnician; as technician) {
               <div class="rounded-lg border bg-muted/30 p-4"><p class="font-semibold">{{ technician.name }}</p><p class="mt-1 text-sm text-muted-foreground">Técnico actualmente responsable</p></div>
@@ -138,20 +138,6 @@
           </div>
         </article>
 
-        <article hlmCard>
-          <header hlmCardHeader><h3 hlmCardTitle>Participación técnica</h3><p hlmCardDescription>Asignaciones conservadas para trazabilidad.</p></header>
-          <div hlmCardContent>
-            @if (currentTicket.assignments.length) {
-              <ul class="space-y-3">
-                @for (assignment of currentTicket.assignments; track assignment.id) {
-                  <li class="rounded-lg border p-4"><p class="font-medium">{{ assignment.technician.name }}</p><p class="mt-1 text-sm text-muted-foreground">Asignado por {{ assignment.assignedBy.name }}</p><p class="mt-1 text-xs text-muted-foreground">{{ formatDate(assignment.assignedAt) }}</p>@if (assignment.releasedAt) { <p class="mt-2 text-sm">Liberado: {{ formatDate(assignment.releasedAt) }}</p> }</li>
-                }
-              </ul>
-            } @else {
-              <p class="text-sm text-muted-foreground">Aún no hay asignaciones registradas.</p>
-            }
-          </div>
-        </article>
       </aside>
     </div>
   }

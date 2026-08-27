@@ -63,7 +63,7 @@ Este checklist organiza el frontend del MVP por dependencias. Una tarea se consi
 - [x] Filtros MVP por estado, prioridad y presencia de técnico actual.
 - [ ] Filtros por fecha, estado, prioridad, área, máquina y técnico.
 - [x] Detalle administrativo con solicitud, impacto, mantención, asignaciones, resolución, cierre e historial.
-- [x] Resumen integrado de técnicos Disponible/Ocupado y técnico actual por ticket.
+- [x] Resumen integrado y secciones desplegables animadas de tickets y técnicos, con filtros compartidos de estado, prioridad y disponibilidad/asignación.
 - [x] Asignar tickets `NEW` a técnicos disponibles.
 - [ ] Reasignar tickets `PENDING_REASSIGNMENT` a técnicos disponibles.
 - [x] Mostrar técnicos ocupados como no seleccionables o filtrarlos.

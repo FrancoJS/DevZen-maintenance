@@ -76,12 +76,16 @@ describe('AdminTicketManagementPageComponent', () => {
   let gateway: {
     listTickets: ReturnType<typeof vi.fn>;
     listTechnicians: ReturnType<typeof vi.fn>;
+    assignTechnician: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     gateway = {
       listTickets: vi.fn(() => of(ticketResponse())),
       listTechnicians: vi.fn(() => of(technicianResponse())),
+      assignTechnician: vi.fn(() =>
+        of({ ...tickets[1], status: 'ASSIGNED' })
+      ),
     };
 
     await TestBed.configureTestingModule({
@@ -116,8 +120,146 @@ describe('AdminTicketManagementPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Compresor C-12');
     expect(fixture.nativeElement.textContent).toContain('Camila Rojas');
     expect(
-      fixture.nativeElement.querySelector('a[href="/tickets/ticket-assigned"]')
-    ).not.toBeNull();
+      Array.from(
+        fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>
+      ).some((button) => button.textContent === 'Acciones')
+    ).toBe(true);
+  });
+
+  it('inicia ambas secciones cerradas y con controles accesibles', () => {
+    const fixture = createComponent();
+    const ticketsToggle = fixture.nativeElement.querySelector(
+      '[data-testid="tickets-toggle"]'
+    ) as HTMLButtonElement;
+    const techniciansToggle = fixture.nativeElement.querySelector(
+      '[data-testid="technicians-toggle"]'
+    ) as HTMLButtonElement;
+    const ticketsContent = fixture.nativeElement.querySelector(
+      '#tickets-section-content'
+    ) as HTMLElement;
+
+    expect(ticketsToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(ticketsToggle.getAttribute('aria-controls')).toBe(
+      'tickets-section-content'
+    );
+    expect(techniciansToggle.getAttribute('aria-expanded')).toBe('false');
+    expect(ticketsContent.classList).not.toContain(
+      'collapsible-content--expanded'
+    );
+  });
+
+  it('permite abrir ambas secciones con transición y muestra disponibilidad y ticket actual', () => {
+    const fixture = createComponent();
+    const ticketsToggle = fixture.nativeElement.querySelector(
+      '[data-testid="tickets-toggle"]'
+    ) as HTMLButtonElement;
+    const techniciansToggle = fixture.nativeElement.querySelector(
+      '[data-testid="technicians-toggle"]'
+    ) as HTMLButtonElement;
+    const techniciansSection = fixture.nativeElement.querySelector(
+      '[data-testid="technicians-section"]'
+    ) as HTMLElement;
+    const ticketsContent = fixture.nativeElement.querySelector(
+      '#tickets-section-content'
+    ) as HTMLElement;
+    const techniciansContent = fixture.nativeElement.querySelector(
+      '#technicians-section-content'
+    ) as HTMLElement;
+
+    ticketsToggle.click();
+    techniciansToggle.click();
+    fixture.detectChanges();
+
+    expect(ticketsToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(techniciansToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(ticketsContent.classList).toContain('collapsible-content--expanded');
+    expect(techniciansContent.classList).toContain(
+      'collapsible-content--expanded'
+    );
+    expect(techniciansSection.textContent).toContain('Diego Pérez');
+    expect(techniciansSection.textContent).toContain('Ocupado');
+    expect(techniciansSection.textContent).toContain('Compresor C-12');
+    expect(techniciansSection.textContent).toContain('En proceso');
+    expect(techniciansSection.textContent).toContain('Crítica');
+    expect(techniciansSection.textContent).toContain('Valentina Silva');
+    expect(techniciansSection.textContent).toContain('Disponible');
+    expect(techniciansSection.textContent).toContain('Sin ticket activo');
+  });
+
+  it('comparte los filtros de disponibilidad, estado y prioridad con técnicos', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.updateAssignment('WITH_TECHNICIAN');
+    expect(component.filteredTickets().map(({ id }) => id)).toEqual([
+      'ticket-assigned',
+    ]);
+    expect(component.filteredTechnicians().map(({ id }) => id)).toEqual([
+      'technician-busy',
+    ]);
+
+    component.updateAssignment('WITHOUT_TECHNICIAN');
+    expect(component.filteredTechnicians().map(({ id }) => id)).toEqual([
+      'technician-available',
+    ]);
+
+    component.updateAssignment('');
+    component.updateStatus('IN_PROGRESS');
+    component.updatePriority('CRITICAL');
+    expect(component.filteredTechnicians().map(({ id }) => id)).toEqual([
+      'technician-busy',
+    ]);
+    expect(gateway.listTickets).toHaveBeenLastCalledWith({
+      status: 'IN_PROGRESS',
+      priority: 'CRITICAL',
+    });
+  });
+
+  it('abre el panel de Acciones con acceso al detalle', () => {
+    const fixture = createComponent();
+    const ticketsToggle = fixture.nativeElement.querySelector(
+      '[data-testid="tickets-toggle"]'
+    ) as HTMLButtonElement;
+
+    ticketsToggle.click();
+    fixture.detectChanges();
+
+    const actionButton = Array.from(
+      fixture.nativeElement.querySelectorAll(
+        'button'
+      ) as NodeListOf<HTMLButtonElement>
+    ).find((button) => button.textContent === 'Acciones');
+
+    expect(actionButton).toBeDefined();
+    actionButton?.click();
+    fixture.detectChanges();
+
+    expect(document.body.textContent).toContain(
+      'Cargando detalle y estado del equipo'
+    );
+    expect(document.body.textContent).not.toContain(
+      '← Volver a Gestión de tickets'
+    );
+  });
+
+  it('mantiene el modal durante la animación de cierre y bloquea el scroll de fondo', () => {
+    vi.useFakeTimers();
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.openActions(tickets[0]);
+    expect(component.isActionsModalOpen()).toBe(true);
+    expect(document.body.style.overflow).toBe('hidden');
+
+    component.closeActions();
+    expect(component.isActionsModalClosing()).toBe(true);
+    expect(component.isActionsModalOpen()).toBe(true);
+
+    vi.advanceTimersByTime(220);
+    expect(component.isActionsModalOpen()).toBe(false);
+    expect(component.selectedActionTicket()).toBeNull();
+    expect(document.body.style.overflow).toBe('');
+    vi.useRealTimers();
   });
 
   it('deriva el filtro de asignación desde los estados activos', () => {
@@ -161,6 +303,37 @@ describe('AdminTicketManagementPageComponent', () => {
       status: 'IN_PROGRESS',
       priority: 'CRITICAL',
     } satisfies AdminTicketFilters);
+  });
+
+  it('conserva los valores seleccionados en los filtros durante la recarga', () => {
+    const fixture = createComponent();
+    const statusSelect = fixture.nativeElement.querySelector(
+      '#admin-ticket-status'
+    ) as HTMLSelectElement;
+    const prioritySelect = fixture.nativeElement.querySelector(
+      '#admin-ticket-priority'
+    ) as HTMLSelectElement;
+    const assignmentSelect = fixture.nativeElement.querySelector(
+      '#admin-ticket-assignment'
+    ) as HTMLSelectElement;
+
+    statusSelect.value = 'IN_PROGRESS';
+    statusSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    prioritySelect.value = 'CRITICAL';
+    prioritySelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+    assignmentSelect.value = 'WITH_TECHNICIAN';
+    assignmentSelect.dispatchEvent(new Event('change'));
+    fixture.detectChanges();
+
+    expect(statusSelect.value).toBe('IN_PROGRESS');
+    expect(prioritySelect.value).toBe('CRITICAL');
+    expect(assignmentSelect.value).toBe('WITH_TECHNICIAN');
+    expect(gateway.listTickets).toHaveBeenLastCalledWith({
+      status: 'IN_PROGRESS',
+      priority: 'CRITICAL',
+    });
   });
 
   it('diferencia el estado vacío de una consulta sin coincidencias', () => {

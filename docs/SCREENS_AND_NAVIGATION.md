@@ -104,7 +104,7 @@ Este documento describe propósito, información mínima, acciones y restriccion
 - **Propósito:** listar y gestionar todos los tickets y consultar la capacidad técnica necesaria para asignarlos.
 - **Información mínima:** estado, prioridad, máquina, solicitante, técnico actual cuando exista y resumen de técnicos `AVAILABLE`/`BUSY`.
 - **Acciones:** abrir detalle y acciones administrativas permitidas.
-- **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y presencia de técnico actual; filtros completos son valor adicional. La disponibilidad es derivada y no editable.
+- **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y disponibilidad/asignación; filtros completos son valor adicional. Se aplican a tickets y técnicos según el ticket activo de cada técnico. La disponibilidad es derivada y no editable. La vista se organiza en dos secciones desplegables independientes, inicialmente cerradas, con transición de apertura y cierre.
 
 ### Detalle completo
 
