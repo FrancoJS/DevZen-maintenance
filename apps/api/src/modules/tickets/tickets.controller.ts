@@ -60,7 +60,9 @@ export class TicketsController {
   }
 
   @Get()
-  @ApiOperation({ summary: 'Listar tickets visibles para el usuario' })
+  @ApiOperation({
+    summary: 'Listar las solicitudes creadas por el usuario autenticado',
+  })
   @ApiOkResponse({ type: PaginatedTicketsResponseDto })
   @ApiBadRequestResponse({ description: 'Filtros o paginación inválidos.' })
   findAll(

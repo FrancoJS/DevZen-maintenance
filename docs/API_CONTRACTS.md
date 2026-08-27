@@ -59,14 +59,16 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 - **Respuesta `201`:** detalle del ticket, evaluación e historial.
 - **Errores:** `400` para DTO inválido o propiedades no permitidas.
 
-### Listar tickets
+### Listar mis solicitudes
 
 `GET /api/tickets?page=1&limit=20&status?&priority?`
 
 - **Actor:** autenticado.
-- **Visibilidad:** `REQUESTER` y `TECHNICIAN` ven solo tickets creados por sí mismos; `ADMIN` ve todos. La visibilidad técnica por asignación pertenece a una fase posterior.
+- **Visibilidad:** todos los roles (`REQUESTER`, `TECHNICIAN` y `ADMIN`) ven únicamente tickets creados por sí mismos. El backend filtra por `requesterId` de la identidad autenticada antes de paginar y contar resultados.
 - **Consulta:** `page` desde 1, `limit` entre 1 y 100, filtros opcionales por estado y prioridad; orden `createdAt DESC, id DESC`.
 - **Respuesta `200`:** `{ items, page, limit, total, totalPages }`.
+
+Este endpoint corresponde a **Mis solicitudes**. El listado/historial global administrativo será una capacidad separada, todavía sin implementar ni contrato de ruta definido. El acceso administrativo al detalle de un ticket no cambia.
 
 ### Obtener detalle e historial
 

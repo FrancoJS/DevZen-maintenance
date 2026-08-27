@@ -118,7 +118,7 @@ describe('TicketsService', () => {
     expect(historyService.record).not.toHaveBeenCalled();
   });
 
-  it.each([UserRole.REQUESTER, UserRole.TECHNICIAN])(
+  it.each([UserRole.REQUESTER, UserRole.TECHNICIAN, UserRole.ADMIN])(
     'filters the list by requester for %s',
     async (role) => {
       const query = createQueryBuilder();
@@ -133,19 +133,6 @@ describe('TicketsService', () => {
       );
     },
   );
-
-  it('does not filter the administrator list by requester', async () => {
-    const query = createQueryBuilder();
-    query.getManyAndCount.mockResolvedValue([[], 0]);
-    ticketsRepository.createQueryBuilder.mockReturnValue(query);
-
-    await service.findAll(new ListTicketsQueryDto(), actor(UserRole.ADMIN));
-
-    expect(query.andWhere).not.toHaveBeenCalledWith(
-      'ticket.requesterId = :requesterId',
-      expect.anything(),
-    );
-  });
 
   it('does not reveal a ticket that is outside the actor visibility scope', async () => {
     const query = createQueryBuilder();

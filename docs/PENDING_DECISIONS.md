@@ -94,6 +94,14 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Límite:** Congelamientos permanece como apartado independiente y solo se implementan acciones respaldadas por el backend existente.
 - **Implementación frontend:** Gestión de tickets enlaza a `/tickets/:id`; el detalle permite la asignación inicial desde `NEW` y muestra técnicos ocupados como no seleccionables.
 
+## `PD-014` — Separación de Mis solicitudes y consulta global — Resuelta
+
+- **Decisión aprobada:** `GET /api/tickets` sirve a Mis solicitudes y devuelve únicamente tickets creados por el usuario autenticado, incluido `ADMIN`.
+- **Implementación:** el filtro por `requesterId` se aplica en backend antes de los filtros de estado/prioridad, la paginación y el conteo; no se acepta un solicitante alternativo desde el cliente.
+- **Sin cambios:** el administrador conserva acceso al detalle de cualquier ticket y las acciones administrativas existentes.
+- **Pendiente fuera de esta fase:** el listado/historial global exclusivo de administración tendrá un contrato separado. No se crea su endpoint en esta fase.
+- **Compatibilidad:** Gestión de tickets actualmente consume este listado; ahora verá solo solicitudes propias hasta conectarse al futuro contrato global. Esta decisión sustituye el alcance global anterior de ese endpoint, sin modificar el frontend en esta fase.
+
 ## Diferencias documentales ya resueltas por precedencia
 
 No requieren decisión pendiente:

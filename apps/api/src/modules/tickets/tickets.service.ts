@@ -773,7 +773,9 @@ export class TicketsService {
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester');
 
-    this.applyVisibility(ticketQuery, actor);
+    ticketQuery.andWhere('ticket.requesterId = :requesterId', {
+      requesterId: actor.id,
+    });
     if (query.status) {
       ticketQuery.andWhere('ticket.status = :status', { status: query.status });
     }
