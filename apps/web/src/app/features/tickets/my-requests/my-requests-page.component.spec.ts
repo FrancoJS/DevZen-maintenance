@@ -72,11 +72,15 @@ const createdTicket: TicketDetail = {
 };
 
 describe('MyRequestsPageComponent', () => {
-  let gateway: { listMyTickets: ReturnType<typeof vi.fn> };
+  let gateway: {
+    listMyTickets: ReturnType<typeof vi.fn>;
+    getTicket: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     gateway = {
       listMyTickets: vi.fn(() => of(response)),
+      getTicket: vi.fn(() => of(createdTicket)),
     };
 
     await TestBed.configureTestingModule({
@@ -230,5 +234,37 @@ describe('MyRequestsPageComponent', () => {
 
     refreshedList.next(response);
     refreshedList.complete();
+  });
+
+  it('obtiene y muestra el detalle del ticket seleccionado', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.openTicketDetail('TK-NEW');
+    fixture.detectChanges();
+
+    expect(gateway.getTicket).toHaveBeenCalledWith('TK-NEW');
+    expect(fixture.nativeElement.textContent).toContain('Detalle de la solicitud');
+    expect(fixture.nativeElement.textContent).toContain('Solicitud creada desde el modal');
+    expect(fixture.nativeElement.textContent).toContain('Historial');
+  });
+
+  it('muestra un error de detalle recuperable y permite reintentar', () => {
+    gateway.getTicket.mockReturnValueOnce(
+      throwError(() => new Error('Sin conexión')) as Observable<TicketDetail>
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.openTicketDetail('TK-NEW');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('No pudimos mostrar el detalle');
+    gateway.getTicket.mockReturnValueOnce(of(createdTicket));
+    component.loadTicketDetail('TK-NEW');
+    fixture.detectChanges();
+
+    expect(gateway.getTicket).toHaveBeenCalledTimes(2);
+    expect(fixture.nativeElement.textContent).toContain('Solicitud creada desde el modal');
   });
 });

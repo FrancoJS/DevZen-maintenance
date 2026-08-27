@@ -8,6 +8,7 @@ import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gate
 import { TicketDetail, TicketPriority, TicketStatus, TicketSummary } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
 import { CreateTicketPageComponent } from '../create-ticket/create-ticket-page.component';
+import { TicketDetailModalComponent } from '../ticket-detail/ticket-detail-modal.component';
 
 const TICKET_STATUSES: TicketStatus[] = [
   'NEW',
@@ -24,7 +25,7 @@ const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
 
 @Component({
   selector: 'app-my-requests-page',
-  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports],
+  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, TicketDetailModalComponent],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './my-requests-page.component.html',
 })
@@ -45,6 +46,11 @@ export class MyRequestsPageComponent implements OnInit {
   readonly total = signal(0);
   readonly totalPages = signal(0);
   readonly isCreateModalOpen = signal(false);
+  readonly isDetailOpen = signal(false);
+  readonly isDetailLoading = signal(false);
+  readonly detailError = signal<string | null>(null);
+  readonly ticketDetail = signal<TicketDetail | null>(null);
+  readonly detailTicketId = signal<string | null>(null);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
   readonly filteredTickets = computed(() => {
@@ -156,6 +162,37 @@ export class MyRequestsPageComponent implements OnInit {
     this.totalPages.set(Math.ceil(nextTotal / this.pageSize));
     this.closeCreateModal();
     this.loadTickets();
+  }
+
+  openTicketDetail(id: string): void {
+    this.isDetailOpen.set(true);
+    this.detailTicketId.set(id);
+    this.ticketDetail.set(null);
+    this.detailError.set(null);
+    this.loadTicketDetail(id);
+  }
+
+  closeTicketDetail(): void {
+    this.isDetailOpen.set(false);
+    this.isDetailLoading.set(false);
+    this.detailError.set(null);
+    this.detailTicketId.set(null);
+  }
+
+  loadTicketDetail(id: string): void {
+    this.isDetailLoading.set(true);
+    this.detailError.set(null);
+
+    this.ticketGateway
+      .getTicket(id)
+      .pipe(finalize(() => this.isDetailLoading.set(false)))
+      .subscribe({
+        next: (ticket) => this.ticketDetail.set(ticket),
+        error: () =>
+          this.detailError.set(
+            'No fue posible cargar el detalle de esta solicitud. Inténtalo nuevamente.'
+          ),
+      });
   }
 
   statusLabel(status: TicketSummary['status']): string {

@@ -175,7 +175,7 @@ describe('CreateTicketPageComponent', () => {
     expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('abre el detalle del ticket y lo desvanece antes de cerrarlo', async () => {
+  it('abre el detalle reutilizable del ticket creado y permite cerrarlo', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     fillValidForm(component);
@@ -190,13 +190,9 @@ describe('CreateTicketPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No inicia el sistema hidráulico.');
     expect(fixture.nativeElement.textContent).toContain('No, continúa funcionando');
     expect(fixture.nativeElement.textContent).toContain('No afecta la producción');
-    expect(fixture.nativeElement.querySelector('section[hlmCard]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-ticket-detail-modal')).not.toBeNull();
 
     (fixture.nativeElement.querySelector('button[aria-label="Cerrar detalle del ticket"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.ticket-modal--closing')).not.toBeNull();
-
-    await new Promise((resolve) => setTimeout(resolve, 230));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });

@@ -1,5 +1,5 @@
 import { inject, Injectable } from '@angular/core';
-import { Observable, of } from 'rxjs';
+import { Observable, of, throwError } from 'rxjs';
 import { PreviewSessionService } from '../preview-session.service';
 import { TicketGateway } from './ticket.gateway';
 import {
@@ -77,6 +77,10 @@ export class MockTicketGateway implements TicketGateway {
       total: tickets.length,
       totalPages: Math.ceil(tickets.length / query.limit),
     });
+  }
+
+  getTicket(_id: string): Observable<TicketDetail> {
+    return throwError(() => new Error('El detalle no está disponible en el adaptador mock.'));
   }
 }
 

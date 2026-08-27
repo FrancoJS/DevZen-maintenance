@@ -19,6 +19,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
+import { TicketDetailModalComponent } from '../ticket-detail/ticket-detail-modal.component';
 
 const requiredBooleanResponse = (control: AbstractControl): ValidationErrors | null =>
   control.value === null || control.value === undefined ? { required: true } : null;
@@ -44,6 +45,7 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
     HlmButtonImports,
     HlmCardImports,
     HlmInputImports,
+    TicketDetailModalComponent,
   ],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './create-ticket-page.component.html',
@@ -55,9 +57,7 @@ export class CreateTicketPageComponent {
 
   readonly isSubmitting = signal(false);
   readonly createdTicket = signal<TicketDetail | null>(null);
-  readonly createdTicketRequest = signal<CreateTicketRequest | null>(null);
   readonly isDetailOpen = signal(false);
-  readonly isDetailClosing = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly showValidationErrors = signal(false);
 
@@ -99,9 +99,7 @@ export class CreateTicketPageComponent {
       .subscribe({
         next: (ticket) => {
           this.createdTicket.set(ticket);
-          this.createdTicketRequest.set(request);
           this.isDetailOpen.set(false);
-          this.isDetailClosing.set(false);
           this.form.disable({ emitEvent: false });
           toast.success('Solicitud creada', {
             description: `El ticket ${ticket.id} fue registrado correctamente.`,
@@ -126,28 +124,17 @@ export class CreateTicketPageComponent {
 
   openTicketDetail(): void {
     if (this.createdTicket()) {
-      this.isDetailClosing.set(false);
       this.isDetailOpen.set(true);
     }
   }
 
   closeTicketDetail(): void {
-    if (!this.isDetailOpen() || this.isDetailClosing()) {
-      return;
-    }
-
-    this.isDetailClosing.set(true);
-    setTimeout(() => {
-      this.isDetailOpen.set(false);
-      this.isDetailClosing.set(false);
-    }, 220);
+    this.isDetailOpen.set(false);
   }
 
   startNewTicket(): void {
     this.isDetailOpen.set(false);
-    this.isDetailClosing.set(false);
     this.createdTicket.set(null);
-    this.createdTicketRequest.set(null);
     this.submitError.set(null);
     this.showValidationErrors.set(false);
     this.form.enable({ emitEvent: false });

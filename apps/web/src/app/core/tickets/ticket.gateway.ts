@@ -16,6 +16,7 @@ import {
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
   listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse>;
+  getTicket(id: string): Observable<TicketDetail>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
