@@ -67,15 +67,26 @@ export const appRoutes: Route[] = [
           },
         ],
       },
-      { path: 'mi-mantencion', component: PlaceholderPage, title: 'Mi mantención | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Mi mantención', roles: ['TECHNICIAN'] } },
+      {
+        path: 'mi-mantencion',
+        title: 'Mi mantención | DevZen Maintenance',
+        canActivate: [roleGuard],
+        data: { roles: ['TECHNICIAN'] },
+        loadComponent: () =>
+          import(
+            './features/tickets/current-maintenance/current-maintenance-page.component'
+          ).then((module) => module.CurrentMaintenancePageComponent),
+      },
       {
         path: 'historial-mantenciones',
         title: 'Historial de mantenciones | DevZen Maintenance',
         canActivate: [roleGuard],
-        data: { historyScope: 'personal', roles: ['TECHNICIAN'] },
+        data: { roles: ['TECHNICIAN'] },
         loadComponent: () =>
-          import('./features/tickets/maintenance-history/maintenance-history-page.component').then(
-            (module) => module.MaintenanceHistoryPageComponent
+          import(
+            './features/tickets/technician-maintenance-history/technician-maintenance-history-page.component'
+          ).then(
+            (module) => module.TechnicianMaintenanceHistoryPageComponent
           ),
       },
       {

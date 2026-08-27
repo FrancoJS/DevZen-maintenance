@@ -110,6 +110,26 @@ describe('App', () => {
     expect(navigationRoutes).not.toContain('/tecnicos');
   });
 
+  it('protects Mi mantención as a technician-only lazy route', () => {
+    const maintenanceRoute = appRoutes
+      .flatMap((route) => route.children ?? [])
+      .find((route) => route.path === 'mi-mantencion');
+
+    expect(maintenanceRoute?.data?.['roles']).toEqual(['TECHNICIAN']);
+    expect(maintenanceRoute?.loadComponent).toBeDefined();
+    expect(maintenanceRoute?.component).toBeUndefined();
+  });
+
+  it('protects the real maintenance history as a technician-only lazy route', () => {
+    const historyRoute = appRoutes
+      .flatMap((route) => route.children ?? [])
+      .find((route) => route.path === 'historial-mantenciones');
+
+    expect(historyRoute?.data?.['roles']).toEqual(['TECHNICIAN']);
+    expect(historyRoute?.data?.['historyScope']).toBeUndefined();
+    expect(historyRoute?.loadComponent).toBeDefined();
+  });
+
   it.each([
     ['camila.rojas@devzen.test', 'Solicitante123!', 'Bomba hidráulica B-07', 'Torno CNC T-05'],
     ['diego.perez@devzen.test', 'Tecnico123!', 'Torno CNC T-05', 'Horno industrial H-01'],

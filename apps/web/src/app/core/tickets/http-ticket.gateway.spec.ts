@@ -47,6 +47,7 @@ const response: TicketDetail = {
   closedBy: null,
   closedAt: null,
   assignments: [],
+  freezeRequests: [],
   maintenance: null,
   history: [],
 };
@@ -156,6 +157,112 @@ describe('HttpTicketGateway', () => {
       ...response,
       status: 'ASSIGNED',
       currentTechnician: { id: 'technician-id', name: 'Diego Pérez' },
+    });
+  });
+
+  it('gets the current maintenance for the authenticated technician', () => {
+    gateway.getCurrentMaintenance().subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/my-maintenance`
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush({ ticket: response });
+  });
+
+  it('starts the selected maintenance without sending derived fields', () => {
+    gateway.startMaintenance(response.id).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/start`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({});
+    pendingRequest.flush({ ...response, status: 'IN_PROGRESS' });
+  });
+
+  it('updates only the supplied maintenance fields', () => {
+    gateway
+      .updateMaintenance(response.id, {
+        diagnosis: 'Válvula de descarga bloqueada',
+        notes: null,
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/maintenance`
+    );
+    expect(pendingRequest.request.method).toBe('PATCH');
+    expect(pendingRequest.request.body).toEqual({
+      diagnosis: 'Válvula de descarga bloqueada',
+      notes: null,
+    });
+    expect(pendingRequest.request.body).not.toHaveProperty('workPerformed');
+    pendingRequest.flush({ ...response, status: 'IN_PROGRESS' });
+  });
+
+  it('requests a freeze using the documented reason payload', () => {
+    gateway
+      .requestFreeze(response.id, {
+        reasonType: 'OTHER',
+        reasonDetail: 'Se requiere inspección externa',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/freeze-requests`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({
+      reasonType: 'OTHER',
+      reasonDetail: 'Se requiere inspección externa',
+    });
+    pendingRequest.flush({ ...response, status: 'FREEZE_REQUESTED' });
+  });
+
+  it('resolves a maintenance with only the final work performed', () => {
+    gateway
+      .resolveMaintenance(response.id, {
+        workPerformed: 'Se reemplazó la válvula de descarga',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/resolve`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({
+      workPerformed: 'Se reemplazó la válvula de descarga',
+    });
+    pendingRequest.flush({ ...response, status: 'RESOLVED' });
+  });
+
+  it('lists the authenticated technician maintenance history with backend filters', () => {
+    gateway
+      .listMaintenanceHistory({
+        page: 2,
+        limit: 20,
+        status: 'FROZEN',
+        priority: 'HIGH',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url ===
+          `${API_BASE_URL}/tickets/my-maintenance-history` &&
+        candidate.params.get('page') === '2' &&
+        candidate.params.get('limit') === '20' &&
+        candidate.params.get('status') === 'FROZEN' &&
+        candidate.params.get('priority') === 'HIGH'
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush({
+      items: [],
+      page: 2,
+      limit: 20,
+      total: 0,
+      totalPages: 0,
     });
   });
 });

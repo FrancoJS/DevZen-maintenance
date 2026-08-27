@@ -36,6 +36,7 @@ describe('CreateTicketPageComponent', () => {
           closedBy: null,
           closedAt: null,
           assignments: [],
+          freezeRequests: [],
           maintenance: null,
           history: [],
         } satisfies TicketDetail)
@@ -233,6 +234,7 @@ describe('CreateTicketPageComponent', () => {
       closedBy: null,
       closedAt: null,
       assignments: [],
+      freezeRequests: [],
       maintenance: null,
       history: [],
     });

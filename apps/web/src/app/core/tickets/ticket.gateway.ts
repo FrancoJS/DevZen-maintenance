@@ -2,12 +2,16 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
+  CurrentMaintenanceResponse,
   ListMyTicketsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
+  RequestFreezeRequest,
+  ResolveMaintenanceRequest,
   TicketDetail,
   TicketPriority,
   TicketStatus,
+  UpdateMaintenanceRequest,
 } from './ticket.models';
 
 /**
@@ -36,3 +40,36 @@ export interface AdminTicketGateway {
 export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(
   'ADMIN_TICKET_GATEWAY'
 );
+
+export interface MaintenanceHistoryFilters {
+  page: number;
+  limit: number;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+}
+
+export interface TechnicianMaintenanceGateway {
+  getCurrentMaintenance(): Observable<CurrentMaintenanceResponse>;
+  startMaintenance(id: string): Observable<TicketDetail>;
+  updateMaintenance(
+    id: string,
+    request: UpdateMaintenanceRequest
+  ): Observable<TicketDetail>;
+  requestFreeze(
+    id: string,
+    request: RequestFreezeRequest
+  ): Observable<TicketDetail>;
+  resolveMaintenance(
+    id: string,
+    request: ResolveMaintenanceRequest
+  ): Observable<TicketDetail>;
+  listMaintenanceHistory(
+    filters: MaintenanceHistoryFilters
+  ): Observable<PaginatedTicketsResponse>;
+  getTicket(id: string): Observable<TicketDetail>;
+}
+
+export const TECHNICIAN_MAINTENANCE_GATEWAY =
+  new InjectionToken<TechnicianMaintenanceGateway>(
+    'TECHNICIAN_MAINTENANCE_GATEWAY'
+  );

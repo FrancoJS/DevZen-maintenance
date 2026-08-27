@@ -80,6 +80,42 @@ export interface TicketMaintenance {
   notes: string | null;
 }
 
+export interface UpdateMaintenanceRequest {
+  diagnosis?: string | null;
+  workPerformed?: string | null;
+  notes?: string | null;
+}
+
+export type FreezeReasonType =
+  | 'SPARE_PART_UNAVAILABLE'
+  | 'AWAITING_AUTHORIZATION'
+  | 'SPECIALIST_UNAVAILABLE'
+  | 'EQUIPMENT_OR_AREA_UNAVAILABLE'
+  | 'OTHER';
+
+export type FreezeRequestStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface TicketFreezeRequest {
+  id: string;
+  technician: TicketUser;
+  reasonType: FreezeReasonType;
+  reasonDetail: string | null;
+  status: FreezeRequestStatus;
+  requestedAt: string;
+  reviewedBy: TicketUser | null;
+  reviewedAt: string | null;
+  reviewNote: string | null;
+}
+
+export interface RequestFreezeRequest {
+  reasonType: FreezeReasonType;
+  reasonDetail?: string | null;
+}
+
+export interface ResolveMaintenanceRequest {
+  workPerformed: string;
+}
+
 export interface TicketDetail {
   id: string;
   description: string;
@@ -99,8 +135,13 @@ export interface TicketDetail {
   closedBy: TicketUser | null;
   closedAt: string | null;
   assignments: TicketAssignment[];
+  freezeRequests: TicketFreezeRequest[];
   maintenance: TicketMaintenance | null;
   history: TicketHistoryEntry[];
+}
+
+export interface CurrentMaintenanceResponse {
+  ticket: TicketDetail | null;
 }
 
 export interface TicketSummary {
