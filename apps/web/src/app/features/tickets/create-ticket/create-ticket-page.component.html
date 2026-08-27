@@ -1,4 +1,5 @@
-<section class="mx-auto max-w-5xl space-y-6" aria-labelledby="create-ticket-title">
+<section class="space-y-6" [class.mx-auto]="!embedded" [class.max-w-5xl]="!embedded" aria-labelledby="create-ticket-title">
+  @if (!embedded) {
   <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
@@ -7,8 +8,9 @@
     </div>
     <span hlmBadge variant="secondary" class="w-fit">Prioridad automática</span>
   </header>
+  }
 
-  <form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <form class="space-y-6" [class.pt-6]="embedded" [class.px-4]="embedded" [class.pb-6]="embedded" [class.sm:px-6]="embedded" [class.sm:pb-8]="embedded" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <article hlmCard>
       <header hlmCardHeader>
         <h3 hlmCardTitle>Datos de la falla</h3>
@@ -47,7 +49,7 @@
     <article hlmCard formGroupName="impactAssessment">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Evaluación de impacto</h3>
-        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
+        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad. No necesitas elegirla manualmente.</p>
       </header>
       <div hlmCardContent class="grid gap-3">
 
@@ -104,7 +106,7 @@
       <p class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{{ error }}</p>
     }
 
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center justify-end gap-3 pt-5">
       <button hlmBtn type="submit" size="lg" [disabled]="isSubmitting() || !!createdTicket()">
         {{ isSubmitting() ? 'Creando solicitud…' : createdTicket() ? 'Solicitud creada' : 'Crear solicitud' }}
       </button>

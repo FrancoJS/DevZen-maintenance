@@ -16,7 +16,6 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
   { label: 'Menú principal', items: [
     { label: 'Inicio', route: '/inicio', icon: '⌂', roles: ['REQUESTER', 'TECHNICIAN'] },
     { label: 'Mis solicitudes', route: '/mis-solicitudes', icon: '▤', roles: ['REQUESTER', 'TECHNICIAN', 'ADMIN'] },
-    { label: 'Crear solicitud', route: '/crear-solicitud', icon: '+', roles: ['REQUESTER', 'TECHNICIAN', 'ADMIN'] },
     { label: 'Mi mantención', route: '/mi-mantencion', icon: '⚒', roles: ['TECHNICIAN'] },
     { label: 'Historial', route: '/historial-mantenciones', icon: '◷', roles: ['TECHNICIAN'] },
   ] },

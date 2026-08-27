@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { ActivatedRoute, convertToParamMap, ParamMap, provideRouter } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TICKET_GATEWAY } from '../../../core/tickets/ticket.gateway';
@@ -39,9 +39,9 @@ const tickets: TicketSummary[] = [
 const response: PaginatedTicketsResponse = {
   items: tickets,
   page: 1,
-  limit: 20,
+  limit: 10,
   total: 22,
-  totalPages: 2,
+  totalPages: 3,
 };
 
 const createdTicket: TicketDetail = {
@@ -86,8 +86,10 @@ describe('MyRequestsPageComponent', () => {
     getTicket: ReturnType<typeof vi.fn>;
     updateTicket: ReturnType<typeof vi.fn>;
   };
+  let queryParamMap$: Subject<ParamMap>;
 
   beforeEach(async () => {
+    queryParamMap$ = new Subject<ParamMap>();
     gateway = {
       listMyTickets: vi.fn(() => of(response)),
       getTicket: vi.fn(() => of(createdTicket)),
@@ -96,7 +98,10 @@ describe('MyRequestsPageComponent', () => {
 
     await TestBed.configureTestingModule({
       imports: [MyRequestsPageComponent],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: ActivatedRoute, useValue: { queryParamMap: queryParamMap$.asObservable() } },
+      ],
     })
       .overrideComponent(MyRequestsPageComponent, {
         set: {
@@ -118,13 +123,15 @@ describe('MyRequestsPageComponent', () => {
 
     expect(gateway.listMyTickets).toHaveBeenCalledWith({
       page: 1,
-      limit: 20,
+      limit: 10,
       status: undefined,
       priority: undefined,
     });
     expect(component.tickets().map((ticket) => ticket.id)).toEqual(['TK-NEW', 'TK-OLD']);
     expect(component.total()).toBe(22);
-    expect(fixture.nativeElement.textContent).toContain('Página 1 de 2');
+    expect(fixture.nativeElement.textContent).toContain('Página 1 de 3');
+    expect(fixture.nativeElement.querySelector('nav[aria-label="Paginación de solicitudes"]')).not.toBeNull();
+    expect(fixture.nativeElement.textContent).toContain('Siguiente');
     expect(fixture.nativeElement.textContent).toContain('Compresor nuevo');
     expect(fixture.nativeElement.textContent).toContain('En proceso');
   });
@@ -179,12 +186,13 @@ describe('MyRequestsPageComponent', () => {
 
     expect(gateway.listMyTickets).toHaveBeenLastCalledWith({
       page: 1,
-      limit: 20,
+      limit: 10,
       status: 'IN_PROGRESS',
       priority: 'CRITICAL',
     });
     expect(component.filteredTickets().map((ticket) => ticket.id)).toEqual(['TK-NEW']);
-    expect(fixture.nativeElement.textContent).toContain('1 resultado en esta página de 22 solicitudes registradas');
+    expect(fixture.nativeElement.textContent).toContain('Mostrando 1–10 de 22');
+    expect(fixture.nativeElement.textContent).toContain('1 resultado visible en esta página');
   });
 
   it('restablece filtros, vuelve a la primera página y recarga', () => {
@@ -199,7 +207,7 @@ describe('MyRequestsPageComponent', () => {
     expect(component.hasActiveFilters()).toBe(false);
     expect(gateway.listMyTickets).toHaveBeenLastCalledWith({
       page: 1,
-      limit: 20,
+      limit: 10,
       status: undefined,
       priority: undefined,
     });
@@ -213,13 +221,29 @@ describe('MyRequestsPageComponent', () => {
     expect(component.page()).toBe(2);
     expect(gateway.listMyTickets).toHaveBeenLastCalledWith({
       page: 2,
-      limit: 20,
+      limit: 10,
       status: undefined,
       priority: undefined,
     });
 
     component.previousPage();
     expect(component.page()).toBe(1);
+  });
+
+  it('permite seleccionar una página numerada desde la paginación Spartan', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.pageLinks()).toEqual([1, 2, 3]);
+    component.goToPage(2);
+
+    expect(component.page()).toBe(2);
+    expect(gateway.listMyTickets).toHaveBeenLastCalledWith({
+      page: 2,
+      limit: 10,
+      status: undefined,
+      priority: undefined,
+    });
   });
 
   it('abre el modal de creación y lista de inmediato el ticket creado', () => {
@@ -245,6 +269,49 @@ describe('MyRequestsPageComponent', () => {
 
     refreshedList.next(response);
     refreshedList.complete();
+  });
+
+  it('cierra el modal cuando llega la confirmación de creación aunque el finalize siga pendiente', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.openCreateModal();
+    fixture.detectChanges();
+    component.createTicketPage?.isSubmitting.set(true);
+
+    component.onTicketCreated(createdTicket);
+
+    expect(component.isCreateModalOpen()).toBe(false);
+  });
+
+  it('abre el modal al recibir el parámetro create de una ruta histórica', () => {
+    const fixture = createComponent();
+
+    queryParamMap$.next(convertToParamMap({ create: '1' }));
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.isCreateModalOpen()).toBe(true);
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+  });
+
+  it('protege los datos ingresados antes de cerrar el modal de creación', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.openCreateModal();
+    fixture.detectChanges();
+    component.createTicketPage?.form.controls.description.setValue('Falla en el motor');
+    component.createTicketPage?.form.markAsDirty();
+
+    component.closeCreateModal();
+    fixture.detectChanges();
+
+    expect(component.isCreateModalOpen()).toBe(true);
+    expect(component.isDiscardConfirmationOpen()).toBe(true);
+    expect(fixture.nativeElement.textContent).toContain('¿Descartar esta solicitud?');
+
+    component.cancelDiscardCreateForm();
+    expect(component.isCreateModalOpen()).toBe(true);
+    component.discardCreateForm();
+    expect(component.isCreateModalOpen()).toBe(false);
   });
 
   it('obtiene y muestra el detalle del ticket seleccionado', () => {

@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, EventEmitter, inject, Output, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -49,11 +49,12 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
   ],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './create-ticket-page.component.html',
-  styleUrl: './create-ticket-page.component.css',
 })
 export class CreateTicketPageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
+
+  @Input() embedded = false;
 
   readonly isSubmitting = signal(false);
   readonly createdTicket = signal<TicketDetail | null>(null);

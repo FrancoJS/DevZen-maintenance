@@ -33,15 +33,19 @@
       </header>
       <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
         <div class="grid gap-2">
-          <label for="my-requests-search" class="text-sm font-medium">Buscar por ticket o equipo</label>
+          <label for="my-requests-search" class="text-sm font-medium">Buscar en esta página por ticket o equipo</label>
           <input id="my-requests-search" type="search" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Ej.: TK-1024 o Bomba" [value]="query()" (input)="updateQuery($any($event.target).value)" />
         </div>
         <div class="grid gap-2">
           <label for="my-requests-status" class="text-sm font-medium">Estado</label>
           <select id="my-requests-status" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedStatus()" (change)="updateStatus($any($event.target).value)">
             <option value="">Todos los estados</option>
-            @for (status of statuses; track status) {
-              <option [value]="status">{{ statusLabel(status) }}</option>
+            @for (group of statusGroups; track group.label) {
+              <optgroup [label]="group.label">
+                @for (status of group.statuses; track status) {
+                  <option [value]="status">{{ statusLabel(status) }}</option>
+                }
+              </optgroup>
             }
           </select>
         </div>
@@ -63,7 +67,7 @@
     <article hlmCard>
       <header hlmCardHeader class="border-b">
         <h3 hlmCardTitle>Tickets creados</h3>
-        <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} en esta página de {{ total() }} {{ total() === 1 ? 'solicitud registrada' : 'solicitudes registradas' }}</p>
+        <p hlmCardDescription aria-live="polite">Mostrando {{ pageStart() }}–{{ pageEnd() }} de {{ total() }} · {{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado visible' : 'resultados visibles' }} en esta página</p>
       </header>
       @if (filteredTickets().length) {
         <div hlmCardContent class="p-0">
@@ -110,15 +114,36 @@
         <div hlmCardContent class="py-12 text-center">
           <p class="font-semibold">No encontramos solicitudes con esos criterios</p>
           <p class="mt-1 text-sm text-muted-foreground">Ajusta la búsqueda o vuelve a mostrar todas tus solicitudes.</p>
-          <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
+          <button hlmBtn type="button" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
         </div>
       }
       @if (totalPages() > 1) {
-        <footer hlmCardContent class="flex items-center justify-between border-t py-4">
-          <p class="text-sm text-muted-foreground">Página {{ page() }} de {{ totalPages() }}</p>
-          <div class="flex gap-2">
-            <button hlmBtn type="button" variant="outline" [disabled]="page() === 1 || isLoading()" (click)="previousPage()">Anterior</button>
-            <button hlmBtn type="button" variant="outline" [disabled]="page() === totalPages() || isLoading()" (click)="nextPage()">Siguiente</button>
+        <footer hlmCardContent class="border-t px-4 py-5 sm:px-6" aria-label="Paginación de solicitudes">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p class="shrink-0 whitespace-nowrap text-sm text-muted-foreground" aria-live="polite">Página {{ page() }} de {{ totalPages() }}</p>
+            <nav hlmPagination aria-label="Paginación de solicitudes">
+              <ul hlmPaginationContent class="flex-wrap justify-center">
+                @if (page() > 1) {
+                  <li hlmPaginationItem>
+                    <hlm-pagination-previous [text]="'Anterior'" [aria-label]="'Ir a la página anterior'" (click)="previousPage()" />
+                  </li>
+                }
+                @for (pageLink of pageLinks(); track $index) {
+                  <li hlmPaginationItem>
+                    @if (pageLink === '...') {
+                      <hlm-pagination-ellipsis />
+                    } @else {
+                      <a hlmPaginationLink [isActive]="page() === pageLink" [attr.aria-label]="'Ir a la página ' + pageLink" (click)="goToPage(pageLink)">{{ pageLink }}</a>
+                    }
+                  </li>
+                }
+                @if (page() < totalPages()) {
+                  <li hlmPaginationItem>
+                    <hlm-pagination-next [text]="'Siguiente'" [aria-label]="'Ir a la página siguiente'" (click)="nextPage()" />
+                  </li>
+                }
+              </ul>
+            </nav>
           </div>
         </footer>
       }
@@ -135,8 +160,8 @@
 
   @if (isCreateModalOpen()) {
     <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeCreateModal()">
-      <article hlmCard role="dialog" aria-modal="true" aria-labelledby="create-request-modal-title" class="max-h-[90vh] w-full max-w-4xl overflow-y-auto" (click)="$event.stopPropagation()" (keydown.escape)="closeCreateModal()" tabindex="-1">
-        <header hlmCardHeader class="sticky top-0 z-10 border-b bg-card">
+      <article hlmCard cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="dialog" aria-modal="true" aria-labelledby="create-request-modal-title" class="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden" (click)="$event.stopPropagation()" (keydown.escape)="closeCreateModal()" tabindex="-1">
+        <header hlmCardHeader class="shrink-0 bg-card">
           <div class="flex items-start justify-between gap-4">
             <div>
               <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
@@ -145,9 +170,17 @@
             <button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar formulario de solicitud" [disabled]="!!createTicketPage?.isSubmitting()" (click)="closeCreateModal()">×</button>
           </div>
         </header>
-        <div hlmCardContent class="p-0">
-          <app-create-ticket-page (created)="onTicketCreated($event)" />
+        <div hlmCardContent class="min-h-0 flex-1 overflow-y-auto p-0">
+          <app-create-ticket-page [embedded]="true" (created)="onTicketCreated($event)" />
         </div>
+        @if (isDiscardConfirmationOpen()) {
+          <div class="absolute inset-0 z-20 grid place-items-center bg-slate-950/45 p-4" role="presentation">
+            <article hlmCard cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="alertdialog" aria-modal="true" aria-labelledby="discard-create-title" class="w-full max-w-md" (click)="$event.stopPropagation()" (keydown.escape)="cancelDiscardCreateForm()" tabindex="-1">
+              <div hlmCardHeader><h4 hlmCardTitle id="discard-create-title">¿Descartar esta solicitud?</h4><p hlmCardDescription>Ya ingresaste algunos datos. Si sales ahora, se perderán.</p></div>
+              <footer hlmCardFooter class="justify-end gap-2"><button hlmBtn type="button" variant="outline" (click)="cancelDiscardCreateForm()">Seguir editando</button><button hlmBtn type="button" variant="destructive" (click)="discardCreateForm()">Descartar solicitud</button></footer>
+            </article>
+          </div>
+        }
       </article>
     </div>
   }

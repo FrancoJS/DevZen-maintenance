@@ -110,4 +110,22 @@ describe('App', () => {
     expect(navigationRoutes).not.toContain('/tecnicos');
   });
 
+  it('consolidates request creation into Mis solicitudes', () => {
+    const privateRoutes = appRoutes.flatMap((route) => route.children ?? []);
+    const navigationRoutes = NAVIGATION_GROUPS.flatMap((group) =>
+      group.items.map((item) => item.route)
+    );
+    const legacyCreateRoute = privateRoutes.find((route) => route.path === 'crear-solicitud');
+    const ticketsRoute = privateRoutes.find((route) => route.path === 'tickets');
+    const legacyNewRoute = ticketsRoute?.children?.find((route) => route.path === 'new');
+
+    expect(navigationRoutes).not.toContain('/crear-solicitud');
+    expect((legacyCreateRoute?.redirectTo as (route: unknown) => string)({})).toBe(
+      '/mis-solicitudes?create=1'
+    );
+    expect((legacyNewRoute?.redirectTo as (route: unknown) => string)({})).toBe(
+      '/mis-solicitudes?create=1'
+    );
+  });
+
 });

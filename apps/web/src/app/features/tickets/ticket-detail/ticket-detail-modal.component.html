@@ -1,5 +1,5 @@
 <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="close()">
-  <article hlmCard role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title" class="max-h-[90vh] w-full max-w-4xl overflow-y-auto" (click)="$event.stopPropagation()" (keydown.escape)="close()" tabindex="-1">
+  <article hlmCard cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title" class="max-h-[90vh] w-full max-w-4xl overflow-y-auto" (click)="$event.stopPropagation()" (keydown.escape)="close()" tabindex="-1">
     <header hlmCardHeader class="sticky top-0 z-10 border-b bg-card">
       <div class="flex items-start justify-between gap-4">
         <div>
@@ -12,7 +12,7 @@
 
     <div hlmCardContent class="grid gap-6">
       <dl class="grid gap-4 sm:grid-cols-3">
-        <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado</dt><dd class="mt-1 font-semibold">{{ statusLabel(ticket.status) }}</dd></div>
+        <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></dd></div>
         <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></dd></div>
         <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creado</dt><dd class="mt-1 font-semibold">{{ formatDate(ticket.createdAt) }}</dd></div>
       </dl>

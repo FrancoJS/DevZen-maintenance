@@ -152,15 +152,3 @@ export interface PaginatedTechniciansResponse {
   total: number;
   totalPages: number;
 }
-
-export interface TicketListItem {
-  id: string;
-  asset: string;
-  status: TicketStatus;
-  priority: TicketPriority;
-  createdAt: string;
-}
-
-export interface ListMyTicketsResponse {
-  tickets: TicketListItem[];
-}

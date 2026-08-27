@@ -1,9 +1,14 @@
-import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { CdkTrapFocus } from '@angular/cdk/a11y';
+import { HttpErrorResponse } from '@angular/common/http';
+import { Component, computed, DestroyRef, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { createPageArray, HlmPaginationImports } from '@spartan-ng/helm/pagination';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import { PreviewSessionService } from '../../../core/preview-session.service';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
@@ -25,10 +30,15 @@ const TICKET_STATUSES: TicketStatus[] = [
 ];
 
 const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+const STATUS_GROUPS: ReadonlyArray<{ label: string; statuses: TicketStatus[] }> = [
+  { label: 'Solicitud y asignación', statuses: ['NEW', 'ASSIGNED'] },
+  { label: 'Trabajo y bloqueo', statuses: ['IN_PROGRESS', 'FREEZE_REQUESTED', 'FROZEN', 'PENDING_REASSIGNMENT'] },
+  { label: 'Cierre', statuses: ['RESOLVED', 'CLOSED'] },
+];
 
 @Component({
   selector: 'app-my-requests-page',
-  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, ReactiveFormsModule, TicketDetailModalComponent],
+  imports: [CdkTrapFocus, CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmPaginationImports, ReactiveFormsModule, TicketDetailModalComponent],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './my-requests-page.component.html',
 })
@@ -36,6 +46,8 @@ export class MyRequestsPageComponent implements OnInit {
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
   private readonly formBuilder = inject(FormBuilder);
   private readonly session = inject(PreviewSessionService);
+  private readonly route = inject(ActivatedRoute);
+  private readonly destroyRef = inject(DestroyRef);
 
   @ViewChild(CreateTicketPageComponent)
   readonly createTicketPage?: CreateTicketPageComponent;
@@ -47,10 +59,11 @@ export class MyRequestsPageComponent implements OnInit {
   readonly selectedStatus = signal<TicketStatus | ''>('');
   readonly selectedPriority = signal<TicketPriority | ''>('');
   readonly page = signal(1);
-  readonly pageSize = 20;
+  readonly pageSize = 10;
   readonly total = signal(0);
   readonly totalPages = signal(0);
   readonly isCreateModalOpen = signal(false);
+  readonly isDiscardConfirmationOpen = signal(false);
   readonly isDetailOpen = signal(false);
   readonly isDetailLoading = signal(false);
   readonly detailError = signal<string | null>(null);
@@ -65,7 +78,11 @@ export class MyRequestsPageComponent implements OnInit {
     description: ['', [Validators.required, Validators.maxLength(1000)]],
   });
   readonly statuses = TICKET_STATUSES;
+  readonly statusGroups = STATUS_GROUPS;
   readonly priorities = TICKET_PRIORITIES;
+  readonly pageStart = computed(() => (this.total() ? (this.page() - 1) * this.pageSize + 1 : 0));
+  readonly pageEnd = computed(() => Math.min(this.page() * this.pageSize, this.total()));
+  readonly pageLinks = computed(() => createPageArray(this.page(), this.pageSize, this.total(), 7));
   readonly filteredTickets = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('es-CL');
 
@@ -81,6 +98,11 @@ export class MyRequestsPageComponent implements OnInit {
 
   ngOnInit(): void {
     this.loadTickets();
+    this.route.queryParamMap.pipe(takeUntilDestroyed(this.destroyRef)).subscribe((params) => {
+      if (params.get('create') === '1') {
+        this.openCreateModal(true);
+      }
+    });
   }
 
   loadTickets(): void {
@@ -141,26 +163,50 @@ export class MyRequestsPageComponent implements OnInit {
   }
 
   previousPage(): void {
-    if (this.page() <= 1) return;
+    if (this.page() <= 1 || this.isLoading()) return;
     this.page.update((page) => page - 1);
     this.loadTickets();
   }
 
+  goToPage(page: number | '...'): void {
+    if (page === '...') return;
+    if (page < 1 || page > this.totalPages() || page === this.page() || this.isLoading()) return;
+    this.page.set(page);
+    this.loadTickets();
+  }
+
   nextPage(): void {
-    if (this.page() >= this.totalPages()) return;
+    if (this.page() >= this.totalPages() || this.isLoading()) return;
     this.page.update((page) => page + 1);
     this.loadTickets();
   }
 
-  openCreateModal(): void {
+  openCreateModal(fromQuery = false): void {
+    this.captureFocus('create');
     this.isCreateModalOpen.set(true);
+    this.isDiscardConfirmationOpen.set(false);
+    if (fromQuery) this.consumeCreateQueryParam();
   }
 
-  closeCreateModal(): void {
-    if (this.createTicketPage?.isSubmitting()) return;
+  closeCreateModal(force = false): void {
+    if (!force && this.createTicketPage?.isSubmitting()) return;
+    if (!force && this.createTicketPage?.form.dirty && !this.createTicketPage.createdTicket()) {
+      this.isDiscardConfirmationOpen.set(true);
+      return;
+    }
 
     this.createTicketPage?.startNewTicket();
+    this.isDiscardConfirmationOpen.set(false);
     this.isCreateModalOpen.set(false);
+    this.restoreFocus('create');
+  }
+
+  cancelDiscardCreateForm(): void {
+    this.isDiscardConfirmationOpen.set(false);
+  }
+
+  discardCreateForm(): void {
+    this.closeCreateModal(true);
   }
 
   onTicketCreated(ticket: TicketDetail): void {
@@ -173,11 +219,12 @@ export class MyRequestsPageComponent implements OnInit {
     this.tickets.update((tickets) => [this.toSummary(ticket), ...tickets].slice(0, this.pageSize));
     this.total.set(nextTotal);
     this.totalPages.set(Math.ceil(nextTotal / this.pageSize));
-    this.closeCreateModal();
+    this.closeCreateModal(true);
     this.loadTickets();
   }
 
   openTicketDetail(id: string): void {
+    this.captureFocus('detail');
     this.isDetailOpen.set(true);
     this.detailTicketId.set(id);
     this.ticketDetail.set(null);
@@ -190,6 +237,7 @@ export class MyRequestsPageComponent implements OnInit {
     this.isDetailLoading.set(false);
     this.detailError.set(null);
     this.detailTicketId.set(null);
+    this.restoreFocus('detail');
   }
 
   loadTicketDetail(id: string): void {
@@ -216,6 +264,7 @@ export class MyRequestsPageComponent implements OnInit {
     if (!this.canEdit(ticket)) return;
 
     this.editingTicket.set(ticket);
+    this.captureFocus('edit');
     this.editError.set(null);
     this.showEditValidation.set(false);
     this.editForm.reset({ description: ticket.description });
@@ -230,6 +279,7 @@ export class MyRequestsPageComponent implements OnInit {
     this.editError.set(null);
     this.showEditValidation.set(false);
     this.editForm.reset({ description: '' });
+    this.restoreFocus('edit');
   }
 
   submitEdit(): void {
@@ -263,9 +313,8 @@ export class MyRequestsPageComponent implements OnInit {
           this.isSavingEdit.set(false);
           this.closeEditModal();
         },
-        error: () => {
-          const message =
-            'No fue posible actualizar la solicitud. Puede que ya no esté disponible para edición.';
+        error: (error: unknown) => {
+          const message = this.editErrorMessage(error);
           this.editError.set(message);
           toast.error('No pudimos actualizar la solicitud', {
             description: message,
@@ -329,5 +378,40 @@ export class MyRequestsPageComponent implements OnInit {
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
     };
+  }
+
+  private editErrorMessage(error: unknown): string {
+    if (error instanceof HttpErrorResponse && error.status === 409) {
+      return 'La solicitud cambió de estado y ya no puede editarse. Recargamos la lista para mostrar la información actual.';
+    }
+    if (error instanceof HttpErrorResponse && error.status === 0) {
+      return 'No pudimos contactar al servidor. Conservamos tu texto; revisa la conexión e inténtalo nuevamente.';
+    }
+    return 'No fue posible actualizar la solicitud. Conservamos tu texto y recargamos la lista para mostrar la información actual.';
+  }
+
+  private readonly focusTargets: Record<'create' | 'detail' | 'edit', HTMLElement | null> = {
+    create: null,
+    detail: null,
+    edit: null,
+  };
+
+  private captureFocus(target: 'create' | 'detail' | 'edit'): void {
+    const active = document.activeElement;
+    this.focusTargets[target] = active instanceof HTMLElement ? active : null;
+  }
+
+  private restoreFocus(target: 'create' | 'detail' | 'edit'): void {
+    const element = this.focusTargets[target];
+    this.focusTargets[target] = null;
+    queueMicrotask(() => element?.focus());
+  }
+
+  private consumeCreateQueryParam(): void {
+    const url = new URL(window.location.href);
+    if (!url.searchParams.has('create')) return;
+
+    url.searchParams.delete('create');
+    window.history.replaceState(window.history.state, '', `${url.pathname}${url.search}${url.hash}`);
   }
 }

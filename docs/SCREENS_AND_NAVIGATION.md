@@ -14,6 +14,7 @@ Este documento describe propósito, información mínima, acciones y restriccion
 ### Crear solicitud
 
 - **Propósito:** reportar una falla.
+- **Acceso:** modal desde **Mis solicitudes**. Las rutas históricas de creación redirigen a esa pantalla con el modal abierto.
 - **Información mínima:** descripción, área si aplica, ubicación, máquina/equipo y cinco respuestas de impacto; evidencia inicial opcional.
 - **Acciones:** enviar solicitud y visualizar prioridad calculada por backend.
 - **Restricciones:** usuario autenticado; no elige requester ni prioridad.
@@ -45,15 +46,15 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 - **Propósito:** listar tickets propios.
 - **Información mínima:** estado, prioridad, máquina y fecha.
-- **Acciones:** abrir detalle; búsqueda/filtros básicos aparecen en la pantalla del Word, pero los filtros completos son valor adicional.
+- **Acciones:** crear desde un modal, abrir detalle y editar la descripción cuando el ticket propio esté en estado `NEW`; búsqueda/filtros básicos aparecen en la pantalla del Word, pero los filtros completos son valor adicional.
 - **Restricciones:** filtrado efectivo en backend.
 
 ### Editar solicitud
 
-- **Propósito:** corregir datos permitidos de una solicitud propia.
-- **Información mínima:** campos editables, todavía pendientes de definición exacta.
+- **Propósito:** corregir la descripción de una solicitud propia.
+- **Información mínima:** descripción actual, obligatoria y de hasta 1.000 caracteres.
 - **Acciones:** guardar cambios.
-- **Restricciones:** solo creador y estado `NEW`.
+- **Restricciones:** solo creador y estado `NEW`; no modifica equipo, ubicación, impacto, prioridad, estado ni requester.
 
 ## Técnico
 
@@ -105,6 +106,11 @@ Este documento describe propósito, información mínima, acciones y restriccion
 - **Información mínima:** estado, prioridad, máquina, solicitante, técnico actual cuando exista y resumen de técnicos `AVAILABLE`/`BUSY`.
 - **Acciones:** abrir detalle y acciones administrativas permitidas.
 - **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y disponibilidad/asignación; filtros completos son valor adicional. Se aplican a tickets y técnicos según el ticket activo de cada técnico. La disponibilidad es derivada y no editable. La vista se organiza en dos secciones desplegables independientes, inicialmente cerradas, con transición de apertura y cierre.
+
+### Mis solicitudes
+
+- **Propósito:** consultar y gestionar los tickets creados por el administrador como solicitante.
+- **Información/acciones/restricciones:** las mismas reglas del rol `REQUESTER`; esta pantalla no reemplaza Gestión de tickets ni el historial global.
 
 ### Detalle completo
 

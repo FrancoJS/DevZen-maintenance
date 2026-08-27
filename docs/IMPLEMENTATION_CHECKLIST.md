@@ -22,15 +22,15 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 ## Frontend
 
 - [ ] Crear layout y navegación por rol.
-- [ ] Crear formulario de solicitud con cinco preguntas de impacto.
-- [ ] Mostrar prioridad calculada retornada por backend.
-- [ ] Crear listados y detalle reutilizable del ticket.
+- [x] Crear formulario de solicitud con cinco preguntas de impacto.
+- [x] Mostrar prioridad calculada retornada por backend.
+- [x] Crear listados y detalle reutilizable del ticket.
 - [ ] Crear vistas/acciones específicas de técnico.
 - [x] Crear gestión administrativa con listado, filtros MVP y disponibilidad técnica integrada.
 - [x] Crear detalle administrativo y selector de técnicos disponibles para asignación inicial.
 - [ ] Crear flujo de aprobación de congelamiento.
-- [ ] Mostrar historial cronológico.
-- [ ] Ocultar/deshabilitar acciones inválidas sin depender de ello como única seguridad.
+- [x] Mostrar historial cronológico.
+- [x] Ocultar/deshabilitar acciones inválidas sin depender de ello como única seguridad.
 
 El componente gráfico del dashboard es valor adicional. La gestión administrativa y la selección de técnicos sí forman parte de las capacidades obligatorias.
 
@@ -49,7 +49,7 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 - `apps/api` incorpora configuración TypeORM, entidades, migración inicial y seed de usuarios.
 - La autenticación JWT, el guard global, la autorización gruesa por roles, `/api/auth/login`, `/api/auth/me` y la documentación OpenAPI de desarrollo están implementados.
 - Los tickets implementan creación, listado, detalle, edición propia `NEW`, asignación inicial, inicio, registro técnico, resolución y cierre administrativo. Solo el flujo de congelamiento permanece pendiente.
-- El frontend incorpora gestión administrativa, filtros MVP, disponibilidad técnica, detalle completo y asignación inicial desde `NEW`; el cierre administrativo visual continúa pendiente.
+- El frontend incorpora Mis solicitudes para los tickets propios de cualquier rol, con creación en modal, detalle, historial y edición de la descripción en `NEW`; las rutas históricas de creación redirigen al mismo modal. También incorpora gestión administrativa, filtros MVP, disponibilidad técnica, detalle completo y asignación inicial desde `NEW`; el cierre administrativo visual continúa pendiente.
 - TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; el ciclo normal está completo.
 
 ## Flujo de trabajo por fases
