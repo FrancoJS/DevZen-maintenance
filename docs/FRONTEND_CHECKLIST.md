@@ -37,8 +37,8 @@ Este checklist organiza el frontend del MVP por dependencias. Una tarea se consi
 ## 2. Solicitante (P0)
 
 - [ ] Inicio con resumen de tickets propios y acceso rápido a Crear solicitud.
-- [ ] Mis solicitudes con estado, prioridad, máquina y fecha.
-- [ ] Búsqueda y filtros básicos.
+- [x] Mis solicitudes con estado, prioridad, máquina y fecha.
+- [x] Búsqueda y filtros básicos.
 - [ ] Detalle de una solicitud propia.
 - [ ] Editar una solicitud propia solo cuando está en estado `NEW`.
 - [ ] Ocultar o deshabilitar acciones no permitidas para el rol.

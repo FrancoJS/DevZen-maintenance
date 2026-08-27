@@ -1,6 +1,8 @@
+import { TestBed } from '@angular/core/testing';
 import { firstValueFrom } from 'rxjs';
-import { describe, expect, it } from 'vitest';
-import { MockTicketGateway } from './mock-ticket.gateway';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { PreviewSessionService } from '../preview-session.service';
+import { calculatePriority, MockTicketGateway } from './mock-ticket.gateway';
 import { CreateTicketRequest, ImpactAssessment, TicketPriority } from './ticket.models';
 
 const baseRequest: CreateTicketRequest = {
@@ -24,6 +26,12 @@ describe('MockTicketGateway', () => {
     ['Media por producción reducida', { productionImpact: 'REDUCED' }, 'MEDIUM'],
     ['Alta por equipo detenido', { equipmentStopped: 'YES' }, 'HIGH'],
     ['Alta por producción detenida', { productionImpact: 'STOPPED' }, 'HIGH'],
+    [
+      'Alta por producción reducida sin alternativa',
+      { productionImpact: 'REDUCED', workaroundAvailable: false },
+      'HIGH',
+    ],
+    ['Alta por afectar otras áreas', { affectsOtherAreas: true }, 'HIGH'],
     ['Crítica por riesgo de seguridad', { safetyRisk: true }, 'CRITICAL'],
     [
       'Crítica por producción detenida y sin alternativa',
@@ -32,8 +40,11 @@ describe('MockTicketGateway', () => {
     ],
   ];
 
-  it.each(scenarios)('calcula prioridad %s', async (_name, impactOverrides, expectedPriority) => {
-    const gateway = new MockTicketGateway();
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it.each(scenarios)('calcula prioridad %s', (_name, impactOverrides, expectedPriority) => {
     const request: CreateTicketRequest = {
       ...baseRequest,
       impactAssessment: {
@@ -42,10 +53,31 @@ describe('MockTicketGateway', () => {
       },
     };
 
-    const response = await firstValueFrom(gateway.createTicket(request));
+    expect(calculatePriority(request)).toBe(expectedPriority);
+  });
 
-    expect(response.ticket.priority).toBe(expectedPriority);
-    expect(response.ticket.status).toBe('NEW');
-    expect(response.ticket.id).toBe('TK-MOCK-0001');
+  it('lista solo los tickets del usuario activo e incorpora los creados en la sesión', async () => {
+    TestBed.configureTestingModule({ providers: [MockTicketGateway] });
+    const session = TestBed.inject(PreviewSessionService);
+    const gateway = TestBed.inject(MockTicketGateway);
+
+    session.login('camila.rojas@devzen.test', 'Solicitante123!');
+    const requesterBefore = await firstValueFrom(gateway.listMyTickets());
+    expect(requesterBefore.tickets.map((ticket) => ticket.id)).toContain('TK-1024');
+    expect(requesterBefore.tickets.map((ticket) => ticket.id)).not.toContain('TK-1031');
+
+    const created = await firstValueFrom(gateway.createTicket(baseRequest));
+    const requesterAfter = await firstValueFrom(gateway.listMyTickets());
+    expect(requesterAfter.tickets.map((ticket) => ticket.id)).toContain(created.ticket.id);
+
+    session.login('diego.perez@devzen.test', 'Tecnico123!');
+    const technicianTickets = await firstValueFrom(gateway.listMyTickets());
+    expect(technicianTickets.tickets.map((ticket) => ticket.id)).toContain('TK-1031');
+    expect(technicianTickets.tickets.map((ticket) => ticket.id)).not.toContain(created.ticket.id);
+
+    session.login('ana.gonzalez@devzen.test', 'Admin123!');
+    const adminTickets = await firstValueFrom(gateway.listMyTickets());
+    expect(adminTickets.tickets.map((ticket) => ticket.id)).toContain('TK-1028');
+    expect(adminTickets.tickets.map((ticket) => ticket.id)).not.toContain('TK-1031');
   });
 });

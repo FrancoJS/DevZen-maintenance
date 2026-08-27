@@ -41,3 +41,15 @@ export interface CreatedTicket {
 export interface CreateTicketResponse {
   ticket: CreatedTicket;
 }
+
+export interface TicketListItem {
+  id: string;
+  asset: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdAt: string;
+}
+
+export interface ListMyTicketsResponse {
+  tickets: TicketListItem[];
+}

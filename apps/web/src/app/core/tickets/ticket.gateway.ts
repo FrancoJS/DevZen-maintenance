@@ -1,6 +1,10 @@
 import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
-import { CreateTicketRequest, CreateTicketResponse } from './ticket.models';
+import {
+  CreateTicketRequest,
+  CreateTicketResponse,
+  ListMyTicketsResponse,
+} from './ticket.models';
 
 /**
  * Boundary between ticket screens and the data source. The production adapter
@@ -8,6 +12,7 @@ import { CreateTicketRequest, CreateTicketResponse } from './ticket.models';
  */
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<CreateTicketResponse>;
+  listMyTickets(): Observable<ListMyTicketsResponse>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
