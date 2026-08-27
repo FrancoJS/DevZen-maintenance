@@ -9,8 +9,10 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { HistoryService } from '../history/history.service';
 import { UserRole } from '../users/enums/user-role.enum';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Maintenance } from './entities/maintenance.entity';
@@ -465,6 +467,133 @@ describe('TicketsService', () => {
           },
         },
       }),
+    );
+  });
+
+  it('resolves a maintenance, releases the technician, and records the transition atomically', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.IN_PROGRESS,
+      currentTechnicianId: 'actor-id',
+      resolvedById: null,
+      resolvedAt: null,
+    } as Ticket;
+    const assignment = {
+      ticketId: 'ticket-id',
+      technicianId: 'actor-id',
+      releasedAt: null,
+      releaseReason: null,
+    } as AssignmentHistory;
+    const maintenance = {
+      ticketId: 'ticket-id',
+      workPerformed: 'Trabajo preliminar',
+    } as Maintenance;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const assignmentQuery = createQueryBuilder(
+      jest.fn().mockResolvedValue(assignment),
+    );
+    const saveTicket = jest.fn();
+    const assignments = {
+      createQueryBuilder: jest.fn(() => assignmentQuery),
+      save: jest.fn(),
+    };
+    const maintenances = {
+      findOne: jest.fn().mockResolvedValue(maintenance),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: saveTicket,
+          };
+        }
+        if (entity === AssignmentHistory) {
+          return assignments;
+        }
+        if (entity === Maintenance) {
+          return maintenances;
+        }
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.resolve(
+      'ticket-id',
+      { workPerformed: 'Trabajo final realizado' } as ResolveTicketDto,
+      actor(UserRole.TECHNICIAN),
+    );
+
+    expect(maintenance.workPerformed).toBe('Trabajo final realizado');
+    expect(assignment).toMatchObject({
+      releaseReason: AssignmentReleaseReason.RESOLVED,
+      releasedAt: expect.any(Date),
+    });
+    expect(ticket).toMatchObject({
+      status: TicketStatus.RESOLVED,
+      currentTechnicianId: null,
+      resolvedById: 'actor-id',
+      resolvedAt: expect.any(Date),
+    });
+    expect(maintenances.save).toHaveBeenCalledWith(maintenance);
+    expect(assignments.save).toHaveBeenCalledWith(assignment);
+    expect(saveTicket).toHaveBeenCalledWith(ticket);
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'TICKET_RESOLVED',
+        previousStatus: TicketStatus.IN_PROGRESS,
+        newStatus: TicketStatus.RESOLVED,
+      }),
+    );
+  });
+
+  it('does not allow another technician to resolve a maintenance', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.IN_PROGRESS,
+      currentTechnicianId: 'other-technician-id',
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const manager = {
+      getRepository: jest.fn(() => ({
+        createQueryBuilder: jest.fn(() => ticketQuery),
+      })),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+
+    await expect(
+      service.resolve(
+        'ticket-id',
+        { workPerformed: 'Trabajo final realizado' } as ResolveTicketDto,
+        actor(UserRole.TECHNICIAN),
+      ),
+    ).rejects.toEqual(
+      new ForbiddenException('El técnico no está asignado a este ticket'),
+    );
+    expect(historyService.record).not.toHaveBeenCalled();
+  });
+
+  it('lists only maintenance tickets released from the current technician', async () => {
+    const query = createQueryBuilder();
+    query.getManyAndCount.mockResolvedValue([[], 0]);
+    ticketsRepository.createQueryBuilder.mockReturnValue(query);
+
+    await service.findMaintenanceHistory(
+      new ListTicketsQueryDto(),
+      actor(UserRole.TECHNICIAN),
+    );
+
+    expect(query.where).toHaveBeenCalledWith(
+      expect.stringContaining('assignment_history.released_at IS NOT NULL'),
+      { technicianId: 'actor-id' },
     );
   });
 });

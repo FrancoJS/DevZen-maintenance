@@ -21,7 +21,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Parte resuelta (OpenAPI):** durante desarrollo se exponen `/api/docs` y `/api/docs-json` con el esquema Bearer `access-token`.
 - **Parte resuelta (núcleo de tickets):** `POST /api/tickets`, `GET /api/tickets`, `GET /api/tickets/:id` y `PATCH /api/tickets/:id`, con DTOs, respuestas, filtros mínimos y errores, se definen en `API_CONTRACTS.md`.
 - **Parte resuelta (asignación inicial):** `GET /api/technicians`, `POST /api/tickets/:id/assign` y `GET /api/tickets/my-maintenance` se definen en `API_CONTRACTS.md`. La asignación inicial solo permite `NEW -> ASSIGNED`.
-- **Parte pendiente:** contratos de inicio/edición/resolución de mantención, reasignación, historial global y dashboard.
+- **Parte resuelta (mantención normal):** `POST /api/tickets/:id/start`, `PATCH /api/tickets/:id/maintenance`, `POST /api/tickets/:id/resolve` y `GET /api/tickets/my-maintenance-history` se definen en `API_CONTRACTS.md`.
+- **Parte pendiente:** contratos de reasignación, historial global y dashboard.
 - **Fuentes:** Word 13.1; [API_CONTRACTS.md](API_CONTRACTS.md).
 
 ## `PD-004` — Campos editables del ticket `NEW` — Resuelta
@@ -31,13 +32,13 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión aprobada:** esta fase permite editar exclusivamente `description` en un ticket propio `NEW`.
 - **Consecuencia:** la evaluación de impacto queda inmutable y no se recalcula prioridad durante `PATCH`; la edición registra `TICKET_UPDATED`.
 
-## `PD-005` — Contrato de edición de información técnica — Parcialmente resuelta
+## `PD-005` — Contrato de edición de información técnica — Resuelta
 
 - **Contexto:** el técnico puede registrar diagnóstico/trabajo/observaciones, pero el Word no determina todos los estados permitidos para guardados parciales. Solo fija `IN_PROGRESS` para resolver/congelar y `workPerformed` obligatorio al resolver.
 - **Fuentes:** Word 3.2, 9.3, `RN-08` y 13.1; `AGENTS.md`, Resolution.
 - **Decisión aprobada para edición parcial:** solo el técnico actual puede guardar `diagnosis`, `workPerformed` y `notes` desde `IN_PROGRESS`; los tres campos son opcionales y se pueden limpiar con `null`.
 - **Implementación:** `PATCH /api/tickets/:id/maintenance` exige al menos un campo, conserva los omitidos y registra los cambios en historial.
-- **Pendiente:** la resolución exigirá `workPerformed` en su propio contrato; `diagnosis` no será obligatorio.
+- **Resolución aprobada:** `POST /api/tickets/:id/resolve` exige `workPerformed` no vacío; `diagnosis` y `notes` continúan siendo opcionales. La resolución guarda el trabajo final, libera la asignación y registra la transición atómicamente.
 
 ## `PD-006` — Campo área — Resuelta
 
@@ -78,7 +79,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Contexto:** se requieren listados e historial, pero no se definen paginación, orden, límites ni formato de eventos.
 - **Fuentes:** Word 10 y 13.1; `AGENTS.md`, Performance y History.
 - **Decisión aprobada para núcleo:** listado con `page`, `limit`, `total` y `totalPages`, orden descendente por creación; detalle incluye cronología ascendente con actor, acción, estados/prioridades y detalle relevante.
-- **Pendiente:** contratos de historial global y técnico, incluido su control de volumen.
+- **Parte resuelta (historial técnico):** `GET /api/tickets/my-maintenance-history` utiliza la misma paginación y filtros mínimos, y devuelve tickets con participación técnica ya liberada.
+- **Pendiente:** contrato de historial global, incluido su control de volumen.
 
 ## `PD-012` — Exposición de documentación OpenAPI — Resuelta
 

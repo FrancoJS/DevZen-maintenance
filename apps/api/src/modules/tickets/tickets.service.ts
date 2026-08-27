@@ -16,6 +16,7 @@ import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import {
   PaginatedTicketsResponseDto,
@@ -30,6 +31,7 @@ import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
+import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { calculateTicketPriority } from './priority/ticket-priority-calculator';
 
 @Injectable()
@@ -365,6 +367,120 @@ export class TicketsService {
     return this.findOne(id, actor);
   }
 
+  async resolve(
+    id: string,
+    resolveTicketDto: ResolveTicketDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await manager
+        .getRepository(Ticket)
+        .createQueryBuilder('ticket')
+        .setLock('pessimistic_write')
+        .where('ticket.id = :id', { id })
+        .getOne();
+
+      if (!ticket) {
+        throw new NotFoundException('Ticket no encontrado');
+      }
+      this.assertCurrentTechnician(ticket, actor);
+      if (ticket.status !== TicketStatus.IN_PROGRESS) {
+        throw new ConflictException(
+          'Solo se pueden resolver tickets en estado IN_PROGRESS',
+        );
+      }
+
+      const assignments = manager.getRepository(AssignmentHistory);
+      const assignment = await assignments
+        .createQueryBuilder('assignment')
+        .setLock('pessimistic_write')
+        .where('assignment.ticketId = :ticketId', { ticketId: ticket.id })
+        .andWhere('assignment.releasedAt IS NULL')
+        .getOne();
+      if (!assignment || assignment.technicianId !== actor.id) {
+        throw new ConflictException('No existe una asignación activa válida');
+      }
+
+      const maintenances = manager.getRepository(Maintenance);
+      const maintenance = await maintenances.findOne({
+        where: { ticketId: ticket.id },
+      });
+      if (!maintenance) {
+        throw new ConflictException('Información de mantención no encontrada');
+      }
+
+      const resolvedAt = new Date();
+      maintenance.workPerformed = resolveTicketDto.workPerformed;
+      assignment.releasedAt = resolvedAt;
+      assignment.releaseReason = AssignmentReleaseReason.RESOLVED;
+      ticket.status = TicketStatus.RESOLVED;
+      ticket.currentTechnicianId = null;
+      ticket.resolvedById = actor.id;
+      ticket.resolvedAt = resolvedAt;
+
+      await maintenances.save(maintenance);
+      await assignments.save(assignment);
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.TICKET_RESOLVED,
+        previousStatus: TicketStatus.IN_PROGRESS,
+        newStatus: TicketStatus.RESOLVED,
+        details: { workPerformedRecorded: true },
+      });
+    });
+
+    return this.findOne(id, actor);
+  }
+
+  async findMaintenanceHistory(
+    query: ListTicketsQueryDto,
+    actor: AuthenticatedUser,
+  ): Promise<PaginatedTicketsResponseDto> {
+    this.assertTechnician(actor);
+
+    const ticketQuery = this.tickets
+      .createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.requester', 'requester')
+      .where(
+        `EXISTS (
+          SELECT 1
+          FROM assignment_histories assignment_history
+          WHERE assignment_history.ticket_id = ticket.id
+            AND assignment_history.technician_id = :technicianId
+            AND assignment_history.released_at IS NOT NULL
+        )`,
+        { technicianId: actor.id },
+      );
+
+    if (query.status) {
+      ticketQuery.andWhere('ticket.status = :status', { status: query.status });
+    }
+    if (query.priority) {
+      ticketQuery.andWhere('ticket.priority = :priority', {
+        priority: query.priority,
+      });
+    }
+
+    const [tickets, total] = await ticketQuery
+      .orderBy('ticket.createdAt', 'DESC')
+      .addOrderBy('ticket.id', 'DESC')
+      .skip((query.page - 1) * query.limit)
+      .take(query.limit)
+      .getManyAndCount();
+
+    return {
+      items: tickets.map((ticket) => this.toSummary(ticket)),
+      page: query.page,
+      limit: query.limit,
+      total,
+      totalPages: Math.ceil(total / query.limit),
+    };
+  }
+
   async findAll(
     query: ListTicketsQueryDto,
     actor: AuthenticatedUser,
@@ -407,6 +523,7 @@ export class TicketsService {
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester')
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
+      .leftJoinAndSelect('ticket.resolvedBy', 'resolvedBy')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.maintenance', 'maintenance')
       .leftJoinAndSelect('ticket.history', 'history')
@@ -434,8 +551,20 @@ export class TicketsService {
   ): void {
     if (actor.role === UserRole.TECHNICIAN && includeCurrentMaintenance) {
       query.andWhere(
-        '(ticket.requesterId = :requesterId OR ticket.currentTechnicianId = :currentTechnicianId)',
-        { requesterId: actor.id, currentTechnicianId: actor.id },
+        `(ticket.requesterId = :requesterId
+          OR ticket.currentTechnicianId = :currentTechnicianId
+          OR EXISTS (
+            SELECT 1
+            FROM assignment_histories assignment_history
+            WHERE assignment_history.ticket_id = ticket.id
+              AND assignment_history.technician_id = :technicianId
+              AND assignment_history.released_at IS NOT NULL
+          ))`,
+        {
+          requesterId: actor.id,
+          currentTechnicianId: actor.id,
+          technicianId: actor.id,
+        },
       );
       return;
     }
@@ -480,6 +609,13 @@ export class TicketsService {
             name: ticket.currentTechnician.name,
           }
         : null,
+      resolvedBy: ticket.resolvedBy
+        ? {
+            id: ticket.resolvedBy.id,
+            name: ticket.resolvedBy.name,
+          }
+        : null,
+      resolvedAt: ticket.resolvedAt,
       impactAssessment: {
         safetyRisk: ticket.impactAssessment.safetyRisk,
         equipmentStopped: ticket.impactAssessment.equipmentStopped,

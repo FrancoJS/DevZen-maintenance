@@ -133,6 +133,12 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
   @ApiPropertyOptional({ type: () => TicketUserResponseDto })
   currentTechnician!: TicketUserResponseDto | null;
 
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  resolvedBy!: TicketUserResponseDto | null;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  resolvedAt!: Date | null;
+
   @ApiProperty({ type: () => ImpactAssessmentResponseDto })
   impactAssessment!: ImpactAssessmentResponseDto;
 

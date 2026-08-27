@@ -29,6 +29,7 @@ import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import {
   PaginatedTicketsResponseDto,
   TicketDetailResponseDto,
@@ -73,6 +74,18 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<CurrentMaintenanceResponseDto> {
     return this.ticketsService.findCurrentMaintenance(currentUser);
+  }
+
+  @Get('my-maintenance-history')
+  @Roles(UserRole.TECHNICIAN)
+  @ApiOperation({ summary: 'Listar mantenciones anteriores del técnico' })
+  @ApiOkResponse({ type: PaginatedTicketsResponseDto })
+  @ApiBadRequestResponse({ description: 'Filtros o paginación inválidos.' })
+  maintenanceHistory(
+    @Query() query: ListTicketsQueryDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<PaginatedTicketsResponseDto> {
+    return this.ticketsService.findMaintenanceHistory(query, currentUser);
   }
 
   @Get(':id')
@@ -157,5 +170,24 @@ export class TicketsController {
       updateMaintenanceDto,
       currentUser,
     );
+  }
+
+  @Post(':id/resolve')
+  @Roles(UserRole.TECHNICIAN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Resolver una mantención en progreso' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({
+    description: 'Trabajo realizado o identificador inválido.',
+  })
+  @ApiConflictResponse({ description: 'El ticket no está IN_PROGRESS.' })
+  @ApiForbiddenResponse({ description: 'El técnico no es el asignado.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  resolve(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() resolveTicketDto: ResolveTicketDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.resolve(id, resolveTicketDto, currentUser);
   }
 }

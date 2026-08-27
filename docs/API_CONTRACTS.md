@@ -149,12 +149,15 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 
 ### Resolver
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/resolve`
 
 - **Actor:** técnico actual.
-- **Precondición:** ticket `IN_PROGRESS`; `workPerformed` obligatorio.
-- **Efecto:** registrar resolución, liberar asignación, limpiar `currentTechnicianId`, dejar técnico disponible e historial intacto.
+- **Entrada:** `{ workPerformed }`, texto obligatorio y no vacío después de normalizar espacios.
+- **Precondición:** ticket `IN_PROGRESS`, técnico autenticado igual a `currentTechnicianId`, asignación activa coherente e información técnica existente.
+- **Efecto:** guarda el trabajo final, registra `resolvedAt` y `resolvedById`, libera la asignación con motivo `RESOLVED`, limpia `currentTechnicianId` y agrega `TICKET_RESOLVED` al historial.
 - **Cambio:** `IN_PROGRESS -> RESOLVED`.
+- **Respuesta `200`:** detalle actualizado, incluyendo los datos de resolución y la participación liberada.
+- **Errores:** `400` para cuerpo/identificador inválido, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado o asignación/mantención incompatibles.
 
 ### Cerrar administrativamente
 
@@ -212,13 +215,22 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 - **Efecto:** devuelve `{ ticket }`, con el detalle de la asignación actual o `ticket: null` si no existe.
 - **Visibilidad:** no cambia el listado general de solicitudes propias; únicamente habilita el detalle del ticket donde el técnico es el responsable actual.
 
+### Historial de mantenciones del técnico
+
+`GET /api/tickets/my-maintenance-history?page=1&limit=20&status?&priority?`
+
+- **Actor:** `TECHNICIAN`.
+- **Efecto:** devuelve `{ items, page, limit, total, totalPages }` con tickets donde el técnico participó y cuya asignación ya fue liberada.
+- **Orden y filtros:** paginación y filtros mínimos equivalentes al listado de tickets; orden `createdAt DESC, id DESC`.
+- **Visibilidad:** habilita el detalle de cada ticket de participación histórica, pero no devuelve permisos de escritura.
+
 ## Historial
 
-### Consultar por ticket, historial técnico o global
+### Consultar historial global
 
 **Contrato pendiente de definición.**
 
-- **Actor:** propietario/autorizado para el ticket, técnico participante para su historial o `ADMIN` para global.
+- **Actor:** `ADMIN`.
 - **Efecto:** devolver cronología con actor, timestamp, acción, estados y detalle relevante.
 - **Validaciones:** alcance por rol y control de volumen/paginación por definir.
 

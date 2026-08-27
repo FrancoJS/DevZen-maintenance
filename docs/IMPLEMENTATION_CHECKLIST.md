@@ -16,6 +16,7 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Implementar visibilidad por rol, paginación y filtros mínimos de tickets.
 - [x] Implementar consulta administrativa paginada de técnicos y consulta de mantención actual del técnico.
 - [x] Implementar inicio `ASSIGNED -> IN_PROGRESS` y registro técnico parcial en `IN_PROGRESS`.
+- [x] Implementar resolución `IN_PROGRESS -> RESOLVED`, liberación del técnico e historial de mantenciones anteriores.
 
 ## Frontend
 
@@ -45,8 +46,8 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 - `apps/web` contiene la bienvenida de Nx y rutas vacías.
 - `apps/api` incorpora configuración TypeORM, entidades, migración inicial y seed de usuarios.
 - La autenticación JWT, el guard global, la autorización gruesa por roles, `/api/auth/login`, `/api/auth/me` y la documentación OpenAPI de desarrollo están implementados.
-- Los servicios/controladores y contratos funcionales de tickets todavía no están implementados; sus ítems permanecen pendientes.
-- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; los flujos de tickets siguen pendientes.
+- Los tickets implementan creación, listado, detalle, edición propia `NEW`, asignación inicial, inicio, registro técnico y resolución. Cierre y congelamiento permanecen pendientes.
+- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; el ciclo normal queda pendiente solo de cierre administrativo.
 
 ## Flujo de trabajo por fases
 
