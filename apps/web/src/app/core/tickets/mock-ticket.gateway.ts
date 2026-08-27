@@ -4,8 +4,8 @@ import { PreviewSessionService } from '../preview-session.service';
 import { TicketGateway } from './ticket.gateway';
 import {
   CreateTicketRequest,
-  CreateTicketResponse,
   ListMyTicketsResponse,
+  TicketDetail,
   TicketPriority,
 } from './ticket.models';
 import { MockTicketStore } from './mock-ticket.store';
@@ -19,13 +19,29 @@ export class MockTicketGateway implements TicketGateway {
   private readonly session = inject(PreviewSessionService);
   private readonly store = inject(MockTicketStore);
 
-  createTicket(request: CreateTicketRequest): Observable<CreateTicketResponse> {
+  createTicket(request: CreateTicketRequest): Observable<TicketDetail> {
+    const priority = calculatePriority(request);
+    const createdTicket = this.store.createForRequester(
+      this.session.user().email,
+      request,
+      priority,
+    );
+
     return of({
-      ticket: this.store.createForRequester(
-        this.session.user().email,
-        request,
-        calculatePriority(request)
-      ),
+      ...createdTicket,
+      description: request.description,
+      location: request.location,
+      asset: request.asset,
+      requester: {
+        id: this.session.user().email,
+        name: this.session.user().name,
+      },
+      updatedAt: createdTicket.createdAt,
+      impactAssessment: {
+        ...request.impactAssessment,
+        calculatedPriority: priority,
+      },
+      history: [],
     });
   }
 

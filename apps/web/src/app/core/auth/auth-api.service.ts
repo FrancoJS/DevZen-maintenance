@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
+import { API_BASE_URL } from '../api.config';
 
 export interface LoginResponse {
   accessToken: string;
@@ -16,11 +17,10 @@ export interface LoginResponse {
 })
 export class AuthApiService {
   private readonly http = inject(HttpClient);
-  private readonly apiUrl = 'http://localhost:3000/api';
 
   login(email: string, password: string) {
     return this.http.post<LoginResponse>(
-      `${this.apiUrl}/auth/login`,
+      `${API_BASE_URL}/auth/login`,
       { email, password },
     );
   }

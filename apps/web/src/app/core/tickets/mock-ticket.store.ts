@@ -1,10 +1,17 @@
 import { Injectable } from '@angular/core';
 import {
   CreateTicketRequest,
-  CreatedTicket,
   TicketListItem,
   TicketPriority,
+  TicketStatus,
 } from './ticket.models';
+
+interface StoredCreatedTicket {
+  id: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  createdAt: string;
+}
 
 interface OwnedTicket extends TicketListItem {
   requesterEmail: string;
@@ -90,7 +97,7 @@ export class MockTicketStore {
     requesterEmail: string,
     request: CreateTicketRequest,
     priority: TicketPriority
-  ): CreatedTicket {
+  ): StoredCreatedTicket {
     const ticket: OwnedTicket = {
       id: `TK-MOCK-${String(this.nextTicketNumber++).padStart(4, '0')}`,
       asset: request.asset,

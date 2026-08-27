@@ -1,16 +1,30 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
+import { HttpErrorResponse } from '@angular/common/http';
+import { of, throwError } from 'rxjs';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { AuthApiService, LoginResponse } from '../../../core/auth/auth-api.service';
+import { ACCESS_TOKEN_STORAGE_KEY } from '../../../core/api.config';
 import { LoginPageComponent } from './login-page.component';
 import { PreviewSessionService } from '../../../core/preview-session.service';
 
 describe('LoginPageComponent', () => {
+  let authApi: { login: ReturnType<typeof vi.fn> };
+
   beforeEach(async () => {
+    authApi = {
+      login: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [LoginPageComponent],
-      providers: [provideRouter([])],
+      providers: [
+        provideRouter([]),
+        { provide: AuthApiService, useValue: authApi },
+      ],
     }).compileComponents();
     localStorage.removeItem('devzen-preview-role');
     localStorage.removeItem('devzen-mock-session');
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
   });
 
   it('renders the login form', () => {
@@ -38,6 +52,15 @@ describe('LoginPageComponent', () => {
   });
 
   it('shows an error for invalid credentials', () => {
+    authApi.login.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 401,
+            statusText: 'Unauthorized',
+          }),
+      ),
+    );
     const fixture = TestBed.createComponent(LoginPageComponent);
     fixture.componentInstance.form.setValue({
       email: 'ana.gonzalez@devzen.test',
@@ -53,6 +76,17 @@ describe('LoginPageComponent', () => {
   });
 
   it('stores the demo user and redirects after valid credentials', () => {
+    authApi.login.mockReturnValue(
+      of({
+        accessToken: 'token-de-prueba',
+        user: {
+          id: 'technician-id',
+          name: 'Diego Pérez',
+          email: 'diego.perez@devzen.test',
+          role: 'TECHNICIAN',
+        },
+      } satisfies LoginResponse),
+    );
     const fixture = TestBed.createComponent(LoginPageComponent);
     const router = TestBed.inject(Router);
     const navigateByUrl = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
@@ -64,6 +98,9 @@ describe('LoginPageComponent', () => {
     fixture.componentInstance.submit();
 
     expect(TestBed.inject(PreviewSessionService).role()).toBe('TECHNICIAN');
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBe(
+      'token-de-prueba',
+    );
     expect(navigateByUrl).toHaveBeenCalledWith('/inicio');
   });
 });

@@ -1,3 +1,4 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
@@ -35,6 +36,13 @@ export class LoginPageComponent {
       next: ({ accessToken, user }) => {
         this.session.loginFromApi(user.email, user.role, accessToken);
         void this.router.navigateByUrl('/inicio');
+      },
+      error: (error: HttpErrorResponse) => {
+        this.submitError.set(
+          error.status === 401
+            ? 'El correo o la contraseña no son correctos.'
+            : 'No fue posible iniciar sesión. Inténtalo nuevamente.',
+        );
       },
     });
   }

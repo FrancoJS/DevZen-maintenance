@@ -1,5 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { UserRole } from '../shared/navigation/navigation.model';
+import { ACCESS_TOKEN_STORAGE_KEY } from './api.config';
 
 export interface PreviewUser { name: string; initials: string; roleLabel: string; }
 export interface DemoUser extends PreviewUser { email: string; password: string; role: UserRole; }
@@ -68,7 +69,7 @@ export class PreviewSessionService {
       SESSION_STORAGE_KEY,
       JSON.stringify({ email, role }),
     );
-    localStorage.setItem('devzen-access-token', accessToken);
+    localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
   }
 
   logout(): void {
@@ -78,6 +79,7 @@ export class PreviewSessionService {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(ROLE_STORAGE_KEY);
       localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
     }
   }
 

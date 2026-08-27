@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { PreviewSessionService } from './preview-session.service';
+import { ACCESS_TOKEN_STORAGE_KEY } from './api.config';
 
 describe('PreviewSessionService', () => {
   beforeEach(() => {
     localStorage.removeItem('devzen-preview-role');
     localStorage.removeItem('devzen-mock-session');
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
     TestBed.configureTestingModule({ providers: [PreviewSessionService] });
   });
 
@@ -40,7 +42,11 @@ describe('PreviewSessionService', () => {
 
   it('clears the active session on logout', () => {
     const service = TestBed.inject(PreviewSessionService);
-    service.login('ana.gonzalez@devzen.test', 'Admin123!');
+    service.loginFromApi(
+      'ana.gonzalez@devzen.test',
+      'ADMIN',
+      'token-de-prueba',
+    );
 
     service.logout();
 
@@ -48,5 +54,6 @@ describe('PreviewSessionService', () => {
     expect(service.role()).toBe('ADMIN');
     expect(localStorage.getItem('devzen-mock-session')).toBeNull();
     expect(localStorage.getItem('devzen-preview-role')).toBeNull();
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBeNull();
   });
 });
