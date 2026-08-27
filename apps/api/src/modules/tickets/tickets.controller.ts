@@ -26,6 +26,7 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { Roles } from '../auth/decorators/roles.decorator';
 import { UserRole } from '../users/enums/user-role.enum';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { CloseTicketDto } from './dto/close-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
@@ -189,5 +190,24 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<TicketDetailResponseDto> {
     return this.ticketsService.resolve(id, resolveTicketDto, currentUser);
+  }
+
+  @Post(':id/close')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Cerrar administrativamente un ticket resuelto' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({
+    description: 'Observación o identificador inválido.',
+  })
+  @ApiConflictResponse({ description: 'El ticket no está RESOLVED.' })
+  @ApiForbiddenResponse({ description: 'Acción exclusiva de administración.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  close(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() closeTicketDto: CloseTicketDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.close(id, closeTicketDto, currentUser);
   }
 }

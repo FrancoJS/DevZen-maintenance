@@ -139,6 +139,12 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
   @ApiPropertyOptional({ format: 'date-time' })
   resolvedAt!: Date | null;
 
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  closedBy!: TicketUserResponseDto | null;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  closedAt!: Date | null;
+
   @ApiProperty({ type: () => ImpactAssessmentResponseDto })
   impactAssessment!: ImpactAssessmentResponseDto;
 

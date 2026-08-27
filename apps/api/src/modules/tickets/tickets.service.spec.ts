@@ -9,6 +9,7 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { HistoryService } from '../history/history.service';
 import { UserRole } from '../users/enums/user-role.enum';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { CloseTicketDto } from './dto/close-ticket.dto';
 import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
@@ -595,5 +596,84 @@ describe('TicketsService', () => {
       expect.stringContaining('assignment_history.released_at IS NOT NULL'),
       { technicianId: 'actor-id' },
     );
+  });
+
+  it('closes a resolved ticket and records the optional administrative note atomically', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.RESOLVED,
+      closedById: null,
+      closedAt: null,
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const saveTicket = jest.fn();
+    const manager = {
+      getRepository: jest.fn(() => ({
+        createQueryBuilder: jest.fn(() => ticketQuery),
+        save: saveTicket,
+      })),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.close(
+      'ticket-id',
+      { note: 'Cierre administrativo confirmado' } as CloseTicketDto,
+      actor(UserRole.ADMIN),
+    );
+
+    expect(ticket).toMatchObject({
+      status: TicketStatus.CLOSED,
+      closedById: 'actor-id',
+      closedAt: expect.any(Date),
+    });
+    expect(saveTicket).toHaveBeenCalledWith(ticket);
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'TICKET_CLOSED',
+        previousStatus: TicketStatus.RESOLVED,
+        newStatus: TicketStatus.CLOSED,
+        details: { note: 'Cierre administrativo confirmado' },
+      }),
+    );
+  });
+
+  it('rejects closing a ticket outside RESOLVED without recording history', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.CLOSED,
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const manager = {
+      getRepository: jest.fn(() => ({
+        createQueryBuilder: jest.fn(() => ticketQuery),
+      })),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+
+    await expect(
+      service.close('ticket-id', {} as CloseTicketDto, actor(UserRole.ADMIN)),
+    ).rejects.toEqual(
+      new ConflictException('Solo se pueden cerrar tickets en estado RESOLVED'),
+    );
+    expect(historyService.record).not.toHaveBeenCalled();
+  });
+
+  it('does not allow a non-administrator to close a ticket', async () => {
+    await expect(
+      service.close(
+        'ticket-id',
+        {} as CloseTicketDto,
+        actor(UserRole.TECHNICIAN),
+      ),
+    ).rejects.toEqual(
+      new ForbiddenException('Solo un administrador puede cerrar tickets'),
+    );
+    expect(dataSource.transaction).not.toHaveBeenCalled();
   });
 });

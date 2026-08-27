@@ -161,12 +161,15 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 
 ### Cerrar administrativamente
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/close`
 
 - **Actor:** `ADMIN`.
+- **Entrada:** `{ note? }`; observación opcional, anulable y normalizada. Una observación vacía no se conserva.
 - **Precondición:** ticket `RESOLVED`.
-- **Efecto:** registrar administrador, timestamp y observación final opcional; volver inmutable.
+- **Efecto:** registra `closedAt` y `closedById`; si existe observación, la conserva en `TicketHistory.details`; agrega `TICKET_CLOSED` y vuelve el ticket inmutable.
 - **Cambio:** `RESOLVED -> CLOSED`.
+- **Respuesta `200`:** detalle actualizado, incluyendo los datos de cierre.
+- **Errores:** `400` para cuerpo/identificador inválido, `403` para actor no administrador, `404` para ticket inexistente y `409` para cualquier estado distinto de `RESOLVED`.
 
 ## Congelamiento
 

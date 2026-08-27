@@ -13,6 +13,7 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { CloseTicketDto } from './dto/close-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
@@ -436,6 +437,51 @@ export class TicketsService {
     return this.findOne(id, actor);
   }
 
+  async close(
+    id: string,
+    closeTicketDto: CloseTicketDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Solo un administrador puede cerrar tickets',
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await manager
+        .getRepository(Ticket)
+        .createQueryBuilder('ticket')
+        .setLock('pessimistic_write')
+        .where('ticket.id = :id', { id })
+        .getOne();
+
+      if (!ticket) {
+        throw new NotFoundException('Ticket no encontrado');
+      }
+      if (ticket.status !== TicketStatus.RESOLVED) {
+        throw new ConflictException(
+          'Solo se pueden cerrar tickets en estado RESOLVED',
+        );
+      }
+
+      ticket.status = TicketStatus.CLOSED;
+      ticket.closedById = actor.id;
+      ticket.closedAt = new Date();
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.TICKET_CLOSED,
+        previousStatus: TicketStatus.RESOLVED,
+        newStatus: TicketStatus.CLOSED,
+        details: closeTicketDto.note ? { note: closeTicketDto.note } : null,
+      });
+    });
+
+    return this.findOne(id, actor);
+  }
+
   async findMaintenanceHistory(
     query: ListTicketsQueryDto,
     actor: AuthenticatedUser,
@@ -524,6 +570,7 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.requester', 'requester')
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.resolvedBy', 'resolvedBy')
+      .leftJoinAndSelect('ticket.closedBy', 'closedBy')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.maintenance', 'maintenance')
       .leftJoinAndSelect('ticket.history', 'history')
@@ -616,6 +663,13 @@ export class TicketsService {
           }
         : null,
       resolvedAt: ticket.resolvedAt,
+      closedBy: ticket.closedBy
+        ? {
+            id: ticket.closedBy.id,
+            name: ticket.closedBy.name,
+          }
+        : null,
+      closedAt: ticket.closedAt,
       impactAssessment: {
         safetyRisk: ticket.impactAssessment.safetyRisk,
         equipmentStopped: ticket.impactAssessment.equipmentStopped,
