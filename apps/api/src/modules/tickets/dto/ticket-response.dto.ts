@@ -89,6 +89,17 @@ export class AssignmentHistoryResponseDto {
   releaseReason!: AssignmentReleaseReason | null;
 }
 
+export class MaintenanceResponseDto {
+  @ApiPropertyOptional({ nullable: true })
+  diagnosis!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  workPerformed!: string | null;
+
+  @ApiPropertyOptional({ nullable: true })
+  notes!: string | null;
+}
+
 export class TicketSummaryResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -127,6 +138,9 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
 
   @ApiProperty({ type: () => AssignmentHistoryResponseDto, isArray: true })
   assignments!: AssignmentHistoryResponseDto[];
+
+  @ApiPropertyOptional({ type: () => MaintenanceResponseDto })
+  maintenance!: MaintenanceResponseDto | null;
 
   @ApiProperty({ type: () => TicketHistoryResponseDto, isArray: true })
   history!: TicketHistoryResponseDto[];

@@ -16,6 +16,7 @@ import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import {
   PaginatedTicketsResponseDto,
   AssignmentHistoryResponseDto,
@@ -26,6 +27,7 @@ import {
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { ImpactAssessment } from './entities/impact-assessment.entity';
 import { AssignmentHistory } from './entities/assignment-history.entity';
+import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { calculateTicketPriority } from './priority/ticket-priority-calculator';
@@ -225,6 +227,144 @@ export class TicketsService {
     return { ticket: ticket ? await this.findOne(ticket.id, actor) : null };
   }
 
+  async start(
+    id: string,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await manager
+        .getRepository(Ticket)
+        .createQueryBuilder('ticket')
+        .setLock('pessimistic_write')
+        .where('ticket.id = :id', { id })
+        .getOne();
+
+      if (!ticket) {
+        throw new NotFoundException('Ticket no encontrado');
+      }
+      this.assertCurrentTechnician(ticket, actor);
+      if (ticket.status !== TicketStatus.ASSIGNED) {
+        throw new ConflictException(
+          'Solo se pueden iniciar tickets en estado ASSIGNED',
+        );
+      }
+
+      const assignments = manager.getRepository(AssignmentHistory);
+      const assignment = await assignments
+        .createQueryBuilder('assignment')
+        .setLock('pessimistic_write')
+        .where('assignment.ticketId = :ticketId', { ticketId: ticket.id })
+        .andWhere('assignment.releasedAt IS NULL')
+        .getOne();
+      if (!assignment || assignment.technicianId !== actor.id) {
+        throw new ConflictException('No existe una asignación activa válida');
+      }
+      if (assignment.startedAt) {
+        throw new ConflictException('La mantención ya fue iniciada');
+      }
+
+      const maintenances = manager.getRepository(Maintenance);
+      const existingMaintenance = await maintenances.findOne({
+        where: { ticketId: ticket.id },
+      });
+      if (!existingMaintenance) {
+        await maintenances.save(
+          maintenances.create({
+            ticketId: ticket.id,
+            diagnosis: null,
+            workPerformed: null,
+            notes: null,
+            finalEvidenceUrl: null,
+          }),
+        );
+      }
+
+      assignment.startedAt = new Date();
+      await assignments.save(assignment);
+      ticket.status = TicketStatus.IN_PROGRESS;
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.MAINTENANCE_STARTED,
+        previousStatus: TicketStatus.ASSIGNED,
+        newStatus: TicketStatus.IN_PROGRESS,
+      });
+    });
+
+    return this.findOne(id, actor);
+  }
+
+  async updateMaintenance(
+    id: string,
+    updateMaintenanceDto: UpdateMaintenanceDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+    const fields = this.maintenanceFieldsProvided(updateMaintenanceDto);
+    if (fields.length === 0) {
+      throw new BadRequestException(
+        'Se debe proporcionar al menos un campo de mantención',
+      );
+    }
+
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await manager
+        .getRepository(Ticket)
+        .createQueryBuilder('ticket')
+        .setLock('pessimistic_write')
+        .where('ticket.id = :id', { id })
+        .getOne();
+
+      if (!ticket) {
+        throw new NotFoundException('Ticket no encontrado');
+      }
+      this.assertCurrentTechnician(ticket, actor);
+      if (ticket.status !== TicketStatus.IN_PROGRESS) {
+        throw new ConflictException(
+          'Solo se puede registrar información en estado IN_PROGRESS',
+        );
+      }
+
+      const maintenances = manager.getRepository(Maintenance);
+      const maintenance = await maintenances.findOne({
+        where: { ticketId: ticket.id },
+      });
+      if (!maintenance) {
+        throw new ConflictException('Información de mantención no encontrada');
+      }
+
+      const changes: Record<
+        string,
+        { previous: string | null; newValue: string | null }
+      > = {};
+      for (const field of fields) {
+        const nextValue = updateMaintenanceDto[field] ?? null;
+        if (maintenance[field] !== nextValue) {
+          changes[field] = {
+            previous: maintenance[field],
+            newValue: nextValue,
+          };
+          maintenance[field] = nextValue;
+        }
+      }
+
+      if (Object.keys(changes).length > 0) {
+        await maintenances.save(maintenance);
+        await this.historyService.record(manager, {
+          ticketId: ticket.id,
+          actorId: actor.id,
+          action: TicketHistoryAction.MAINTENANCE_UPDATED,
+          details: { changes },
+        });
+      }
+    });
+
+    return this.findOne(id, actor);
+  }
+
   async findAll(
     query: ListTicketsQueryDto,
     actor: AuthenticatedUser,
@@ -268,6 +408,7 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.requester', 'requester')
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
+      .leftJoinAndSelect('ticket.maintenance', 'maintenance')
       .leftJoinAndSelect('ticket.history', 'history')
       .leftJoinAndSelect('history.actor', 'historyActor')
       .where('ticket.id = :id', { id });
@@ -350,6 +491,13 @@ export class TicketsService {
       assignments: assignments.map((assignment) =>
         this.toAssignmentHistory(assignment),
       ),
+      maintenance: ticket.maintenance
+        ? {
+            diagnosis: ticket.maintenance.diagnosis,
+            workPerformed: ticket.maintenance.workPerformed,
+            notes: ticket.maintenance.notes,
+          }
+        : null,
       history: ticket.history.map((entry) => this.toHistoryEntry(entry)),
     };
   }
@@ -409,6 +557,32 @@ export class TicketsService {
       (databaseError.constraint === 'uq_assignment_histories_active_ticket' ||
         databaseError.constraint ===
           'uq_assignment_histories_active_technician')
+    );
+  }
+
+  private assertTechnician(actor: AuthenticatedUser): void {
+    if (actor.role !== UserRole.TECHNICIAN) {
+      throw new ForbiddenException(
+        'Solo un técnico puede realizar acciones de mantención',
+      );
+    }
+  }
+
+  private assertCurrentTechnician(
+    ticket: Ticket,
+    actor: AuthenticatedUser,
+  ): void {
+    if (ticket.currentTechnicianId !== actor.id) {
+      throw new ForbiddenException('El técnico no está asignado a este ticket');
+    }
+  }
+
+  private maintenanceFieldsProvided(
+    updateMaintenanceDto: UpdateMaintenanceDto,
+  ): Array<'diagnosis' | 'workPerformed' | 'notes'> {
+    const fields = ['diagnosis', 'workPerformed', 'notes'] as const;
+    return fields.filter((field) =>
+      Object.prototype.hasOwnProperty.call(updateMaintenanceDto, field),
     );
   }
 }

@@ -34,6 +34,7 @@ import {
   TicketDetailResponseDto,
 } from './dto/ticket-response.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { TicketsService } from './tickets.service';
 
 @ApiTags('Tickets')
@@ -118,5 +119,43 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<TicketDetailResponseDto> {
     return this.ticketsService.assign(id, assignTechnicianDto, currentUser);
+  }
+
+  @Post(':id/start')
+  @Roles(UserRole.TECHNICIAN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Iniciar una mantención asignada' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiConflictResponse({ description: 'El ticket no está ASSIGNED.' })
+  @ApiForbiddenResponse({ description: 'El técnico no es el asignado.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  start(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.start(id, currentUser);
+  }
+
+  @Patch(':id/maintenance')
+  @Roles(UserRole.TECHNICIAN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Actualizar información técnica de una mantención' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({
+    description: 'No se proporcionaron campos técnicos.',
+  })
+  @ApiConflictResponse({ description: 'El ticket no está IN_PROGRESS.' })
+  @ApiForbiddenResponse({ description: 'El técnico no es el asignado.' })
+  @ApiNotFoundResponse({ description: 'Ticket no encontrado.' })
+  updateMaintenance(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() updateMaintenanceDto: UpdateMaintenanceDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.updateMaintenance(
+      id,
+      updateMaintenanceDto,
+      currentUser,
+    );
   }
 }

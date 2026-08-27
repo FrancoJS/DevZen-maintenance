@@ -19,6 +19,30 @@ These instructions apply to the entire repository unless a more specific `AGENTS
 - If a required decision is missing or contradictory, stop at the reversible boundary and report it instead of guessing.
 - Backend business rules are authoritative; frontend visibility is UX, not security.
 
+## Mandatory implementation protocol
+
+This protocol is mandatory for every request that changes code, configuration, schemas, tests, or documentation.
+
+1. Inspect the relevant repository code, documentation, rules, and acceptance criteria before editing.
+2. If the user has not supplied an implementation plan, prepare a decision-complete plan before modifying files.
+3. If the user supplies a plan with multiple phases and asks to implement it, implement only the first phase unless the user explicitly authorizes all phases.
+4. Before editing, state the exact authorized phase, scope, acceptance criteria, and proportional validation to be run.
+5. Implement only the authorized scope, including the focused tests and documentation required by that phase.
+6. Review the complete diff and run proportional validation before reporting completion.
+7. At the end of each phase, report the outcome, affected rules, changed files, validation results, database impact, assumptions, blockers, follow-up work, and a suggested commit message.
+8. Stop after the authorized phase and wait for explicit approval before starting another phase.
+
+### Phase authorization
+
+A phase is authorized only when:
+
+- the user explicitly names that phase; or
+- the user explicitly says to implement all phases.
+
+Do not infer authorization for later phases merely because they appear in a plan. A plan describes intended work; it does not authorize every phase automatically.
+
+If the user explicitly authorizes all phases, they may be implemented in one turn, but they must remain logically separated in scope, validation, and reporting. Do not create commits or push changes unless the user explicitly requests it.
+
 ## Sources of truth
 
 Use this precedence when product behavior conflicts:
@@ -329,16 +353,16 @@ If required validation fails, fix phase-owned failures within scope, report unre
 
 ## Phased implementation and Git
 
-When work is divided into phases:
+The mandatory implementation protocol above governs all phased work. When a phase is authorized:
 
 1. Inspect relevant code, documents, rules, and acceptance criteria.
-2. Restate the authorized phase scope.
-3. Implement only that phase; do not prepare later phases.
+2. Restate the authorized phase scope and acceptance criteria.
+3. Implement only that phase, unless the user explicitly authorized all phases.
 4. Keep behavior and protecting tests in the same phase.
 5. Review the complete diff for scope, correctness, sensitive data, and generated noise.
 6. Run proportional validation.
 7. Report outcome, files, validation, database impact, assumptions, blockers, and out-of-scope follow-up.
-8. Stop and wait for approval before the next phase.
+8. Stop and wait for approval before the next phase when all phases were not explicitly authorized.
 
 Do not stage or commit unless explicitly authorized. Do not amend, rebase, squash, push, open a pull request, merge, delete branches, or discard user work unless explicitly requested.
 

@@ -31,13 +31,13 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión aprobada:** esta fase permite editar exclusivamente `description` en un ticket propio `NEW`.
 - **Consecuencia:** la evaluación de impacto queda inmutable y no se recalcula prioridad durante `PATCH`; la edición registra `TICKET_UPDATED`.
 
-## `PD-005` — Contrato de edición de información técnica
+## `PD-005` — Contrato de edición de información técnica — Parcialmente resuelta
 
 - **Contexto:** el técnico puede registrar diagnóstico/trabajo/observaciones, pero el Word no determina todos los estados permitidos para guardados parciales. Solo fija `IN_PROGRESS` para resolver/congelar y `workPerformed` obligatorio al resolver.
 - **Fuentes:** Word 3.2, 9.3, `RN-08` y 13.1; `AGENTS.md`, Resolution.
-- **Decisión requerida:** definir cuándo puede guardar cada campo y si `diagnosis` es obligatorio antes de resolver.
-- **Impacto:** DTOs, validación, UX y pruebas.
-- **Opciones conocidas:** no especificadas.
+- **Decisión aprobada para edición parcial:** solo el técnico actual puede guardar `diagnosis`, `workPerformed` y `notes` desde `IN_PROGRESS`; los tres campos son opcionales y se pueden limpiar con `null`.
+- **Implementación:** `PATCH /api/tickets/:id/maintenance` exige al menos un campo, conserva los omitidos y registra los cambios en historial.
+- **Pendiente:** la resolución exigirá `workPerformed` en su propio contrato; `diagnosis` no será obligatorio.
 
 ## `PD-006` — Campo área — Resuelta
 

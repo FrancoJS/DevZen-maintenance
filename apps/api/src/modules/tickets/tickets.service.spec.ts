@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   ForbiddenException,
   NotFoundException,
@@ -8,9 +9,11 @@ import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interfa
 import { HistoryService } from '../history/history.service';
 import { UserRole } from '../users/enums/user-role.enum';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
+import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentHistory } from './entities/assignment-history.entity';
+import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
 import { User } from '../users/entities/user.entity';
 import { TicketsService } from './tickets.service';
@@ -290,6 +293,177 @@ describe('TicketsService', () => {
         action: 'TECHNICIAN_ASSIGNED',
         previousStatus: TicketStatus.NEW,
         newStatus: TicketStatus.ASSIGNED,
+      }),
+    );
+  });
+
+  it('starts an assigned maintenance with the active assignment and history', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.ASSIGNED,
+      currentTechnicianId: 'actor-id',
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const assignment = {
+      technicianId: 'actor-id',
+      startedAt: null,
+    } as AssignmentHistory;
+    const assignmentQuery = createQueryBuilder(
+      jest.fn().mockResolvedValue(assignment),
+    );
+    const saveTicket = jest.fn();
+    const assignments = {
+      createQueryBuilder: jest.fn(() => assignmentQuery),
+      save: jest.fn(),
+    };
+    const maintenances = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value) => value),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: saveTicket,
+          };
+        }
+        if (entity === AssignmentHistory) {
+          return assignments;
+        }
+        if (entity === Maintenance) {
+          return maintenances;
+        }
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.start('ticket-id', actor(UserRole.TECHNICIAN));
+
+    expect(ticket.status).toBe(TicketStatus.IN_PROGRESS);
+    expect(assignment.startedAt).toBeInstanceOf(Date);
+    expect(maintenances.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ticketId: 'ticket-id',
+        diagnosis: null,
+        workPerformed: null,
+        notes: null,
+      }),
+    );
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'MAINTENANCE_STARTED',
+        previousStatus: TicketStatus.ASSIGNED,
+        newStatus: TicketStatus.IN_PROGRESS,
+      }),
+    );
+  });
+
+  it('does not allow another technician to start an assigned ticket', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.ASSIGNED,
+      currentTechnicianId: 'other-technician-id',
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const manager = {
+      getRepository: jest.fn(() => ({
+        createQueryBuilder: jest.fn(() => ticketQuery),
+      })),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+
+    await expect(
+      service.start('ticket-id', actor(UserRole.TECHNICIAN)),
+    ).rejects.toEqual(
+      new ForbiddenException('El técnico no está asignado a este ticket'),
+    );
+    expect(historyService.record).not.toHaveBeenCalled();
+  });
+
+  it('rejects an empty technical update before opening a transaction', async () => {
+    await expect(
+      service.updateMaintenance(
+        'ticket-id',
+        {} as UpdateMaintenanceDto,
+        actor(UserRole.TECHNICIAN),
+      ),
+    ).rejects.toEqual(
+      new BadRequestException(
+        'Se debe proporcionar al menos un campo de mantención',
+      ),
+    );
+    expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  it('updates only submitted technical fields and records their before and after values', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.IN_PROGRESS,
+      currentTechnicianId: 'actor-id',
+    } as Ticket;
+    const maintenance = {
+      ticketId: 'ticket-id',
+      diagnosis: 'Diagnóstico inicial',
+      workPerformed: null,
+      notes: 'Nota inicial',
+    } as Maintenance;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const maintenances = {
+      findOne: jest.fn().mockResolvedValue(maintenance),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return { createQueryBuilder: jest.fn(() => ticketQuery) };
+        }
+        if (entity === Maintenance) {
+          return maintenances;
+        }
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.updateMaintenance(
+      'ticket-id',
+      {
+        diagnosis: 'Diagnóstico confirmado',
+        notes: null,
+      },
+      actor(UserRole.TECHNICIAN),
+    );
+
+    expect(maintenance).toMatchObject({
+      diagnosis: 'Diagnóstico confirmado',
+      workPerformed: null,
+      notes: null,
+    });
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'MAINTENANCE_UPDATED',
+        details: {
+          changes: {
+            diagnosis: {
+              previous: 'Diagnóstico inicial',
+              newValue: 'Diagnóstico confirmado',
+            },
+            notes: { previous: 'Nota inicial', newValue: null },
+          },
+        },
       }),
     );
   });

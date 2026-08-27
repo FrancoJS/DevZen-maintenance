@@ -127,21 +127,25 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 
 ### Iniciar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/start`
 
 - **Actor:** técnico actual.
-- **Precondición:** ticket `ASSIGNED`.
-- **Efecto:** registrar inicio.
+- **Precondición:** ticket `ASSIGNED` y una asignación activa del técnico autenticado.
+- **Efecto:** registra `startedAt`, crea el registro de mantención vacío cuando no existe y agrega `MAINTENANCE_STARTED` al historial.
 - **Cambio:** `ASSIGNED -> IN_PROGRESS`.
-- **Validaciones:** identidad igual a `currentTechnicianId` y transición.
+- **Validaciones:** identidad igual a `currentTechnicianId`, transición y asignación activa coherente.
+- **Errores:** `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado/asignación incompatibles.
 
 ### Actualizar información técnica
 
-**Contrato pendiente de definición.**
+`PATCH /api/tickets/:id/maintenance`
 
 - **Actor:** técnico actual.
-- **Datos:** diagnóstico, trabajo realizado, observaciones; evidencia solo si se incluye.
-- **Precondición/estados exactos para edición parcial:** contrato pendiente de definición. La resolución sí exige `IN_PROGRESS`.
+- **Datos:** `diagnosis`, `workPerformed`, `notes`; todos opcionales y anulables de forma individual. Debe enviarse al menos un campo.
+- **Precondición:** técnico actual y ticket `IN_PROGRESS`.
+- **Efecto:** actualiza únicamente los campos enviados y registra `MAINTENANCE_UPDATED` con los valores anterior/nuevo. Una solicitud sin cambios no genera evento ficticio.
+- **Límites:** no incluye evidencia final ni permite registrar información antes de iniciar.
+- **Errores:** `400` para cuerpo sin campos, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado/mantención incompatibles.
 
 ### Resolver
 
