@@ -1,0 +1,256 @@
+<section class="mx-auto max-w-6xl space-y-6" aria-labelledby="current-maintenance-title">
+  @if (resolutionSuccess(); as success) {
+    <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</div>
+  }
+  @if (resolutionError(); as error) {
+    <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ error }}</div>
+  }
+  @if (isLoading()) {
+    <article hlmCard aria-busy="true" aria-label="Cargando mantención actual">
+      <div hlmCardContent class="space-y-4 py-10">
+        <div class="h-8 w-64 animate-pulse rounded bg-muted"></div>
+        <div class="h-40 animate-pulse rounded-lg bg-muted"></div>
+        <p class="text-sm text-muted-foreground">Consultando tu asignación actual…</p>
+      </div>
+    </article>
+  } @else if (loadError(); as error) {
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos cargar tu mantención</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadCurrentMaintenance()">Reintentar</button>
+      </div>
+    </article>
+  } @else if (ticket(); as currentTicket) {
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <p class="text-sm text-muted-foreground">Técnico / Mi mantención</p>
+        <h2 id="current-maintenance-title" class="mt-1 truncate text-2xl font-bold tracking-tight sm:text-3xl">{{ currentTicket.asset }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">Ticket {{ currentTicket.id }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span hlmBadge variant="outline" [class]="statusClass(currentTicket.status)">{{ statusLabel(currentTicket.status) }}</span>
+        <span hlmBadge variant="outline" [class]="priorityClass(currentTicket.priority)">Prioridad {{ priorityLabel(currentTicket.priority) }}</span>
+        <span hlmBadge variant="outline">Disponibilidad: Ocupado</span>
+      </div>
+    </header>
+
+    @if (startSuccess(); as success) {
+      <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</div>
+    }
+    @if (startError(); as error) {
+      <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ error }}</div>
+    }
+    @if (maintenanceSuccess(); as success) {
+      <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</div>
+    }
+    @if (maintenanceError(); as error) {
+      <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ error }}</div>
+    }
+    @if (freezeSuccess(); as success) {
+      <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</div>
+    }
+    @if (freezeError(); as error) {
+      <div class="rounded-lg border border-red-300 bg-red-50 p-4 text-sm text-red-900 dark:border-red-800 dark:bg-red-950 dark:text-red-100" role="alert">{{ error }}</div>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.35fr)_minmax(18rem,0.75fr)]">
+      <div class="space-y-6">
+        <article hlmCard>
+          <header hlmCardHeader>
+            <h3 hlmCardTitle>Solicitud original</h3>
+            <p hlmCardDescription>Información reportada por {{ currentTicket.requester.name }}.</p>
+          </header>
+          <div hlmCardContent class="space-y-5">
+            <div>
+              <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción de la falla</p>
+              <p class="mt-2 whitespace-pre-wrap">{{ currentTicket.description }}</p>
+            </div>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ currentTicket.location }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Equipo</dt><dd class="mt-1">{{ currentTicket.asset }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1">{{ currentTicket.requester.name }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creación</dt><dd class="mt-1">{{ formatDate(currentTicket.createdAt) }}</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        @if (currentTicket.status === 'IN_PROGRESS') {
+          <article hlmCard>
+            <header hlmCardHeader>
+              <h3 hlmCardTitle>Solicitar congelamiento</h3>
+              <p hlmCardDescription>Informa un bloqueo que impida continuar la mantención.</p>
+            </header>
+            <div hlmCardContent>
+              <form class="grid gap-4" [formGroup]="freezeForm" (ngSubmit)="requestFreeze()">
+                <div class="grid gap-2">
+                  <label for="freeze-reason" class="text-sm font-medium">Motivo</label>
+                  <select id="freeze-reason" formControlName="reasonType" class="h-10 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50">
+                    <option value="">Selecciona un motivo</option>
+                    <option value="SPARE_PART_UNAVAILABLE">Falta de repuesto</option>
+                    <option value="AWAITING_AUTHORIZATION">Esperando autorización</option>
+                    <option value="SPECIALIST_UNAVAILABLE">Falta de personal especializado</option>
+                    <option value="EQUIPMENT_OR_AREA_UNAVAILABLE">Equipo o área no disponible</option>
+                    <option value="OTHER">Otro</option>
+                  </select>
+                </div>
+                @if (freezeDetailRequired()) {
+                  <div class="grid gap-2">
+                    <label for="freeze-detail" class="text-sm font-medium">Detalle del motivo</label>
+                    <textarea id="freeze-detail" formControlName="reasonDetail" rows="3" class="min-h-20 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Describe el bloqueo" aria-describedby="freeze-detail-help"></textarea>
+                    <p id="freeze-detail-help" class="text-xs text-muted-foreground">El detalle es obligatorio para el motivo “Otro”.</p>
+                  </div>
+                }
+                <p class="text-xs text-muted-foreground">Seguirás asignado y ocupado hasta que administración apruebe el congelamiento.</p>
+                <button hlmBtn type="submit" variant="outline" class="w-full" [disabled]="!canRequestFreeze() || isRequestingFreeze()">{{ isRequestingFreeze() ? 'Enviando…' : 'Solicitar congelamiento' }}</button>
+              </form>
+            </div>
+          </article>
+        }
+
+        <article hlmCard>
+          <header hlmCardHeader>
+            <h3 hlmCardTitle>Evaluación de impacto</h3>
+            <p hlmCardDescription>Antecedentes que determinaron la prioridad automática.</p>
+          </header>
+          <div hlmCardContent>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div><dt class="text-sm text-muted-foreground">Riesgo para la seguridad</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.safetyRisk) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Detención del equipo</dt><dd class="mt-1 font-medium">{{ equipmentStoppedLabel(currentTicket.impactAssessment.equipmentStopped) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Impacto productivo</dt><dd class="mt-1 font-medium">{{ productionImpactLabel(currentTicket.impactAssessment.productionImpact) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Alternativa temporal</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.workaroundAvailable) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Afecta otras áreas</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.affectsOtherAreas) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Prioridad calculada</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="priorityClass(currentTicket.impactAssessment.calculatedPriority)">{{ priorityLabel(currentTicket.impactAssessment.calculatedPriority) }}</span></dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article hlmCard>
+          <header hlmCardHeader>
+            <h3 hlmCardTitle>Información técnica</h3>
+            <p hlmCardDescription>Datos registrados durante la intervención.</p>
+          </header>
+          <div hlmCardContent class="space-y-4">
+            @if (currentTicket.status === 'IN_PROGRESS') {
+              <form class="grid gap-5" [formGroup]="maintenanceForm" (ngSubmit)="saveMaintenance()">
+                <div class="grid gap-2">
+                  <label for="maintenance-diagnosis" class="text-sm font-medium">Diagnóstico</label>
+                  <textarea id="maintenance-diagnosis" formControlName="diagnosis" rows="4" class="min-h-24 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Describe la causa identificada"></textarea>
+                </div>
+                <div class="grid gap-2">
+                  <label for="maintenance-work" class="text-sm font-medium">Trabajo realizado</label>
+                  <textarea id="maintenance-work" formControlName="workPerformed" rows="4" class="min-h-24 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Registra las tareas ejecutadas"></textarea>
+                </div>
+                <div class="grid gap-2">
+                  <label for="maintenance-notes" class="text-sm font-medium">Observaciones</label>
+                  <textarea id="maintenance-notes" formControlName="notes" rows="3" class="min-h-20 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Agrega información complementaria"></textarea>
+                </div>
+                <p class="text-xs text-muted-foreground">Solo se enviarán los campos que hayan cambiado.</p>
+                <button hlmBtn type="submit" class="w-full sm:w-fit" [disabled]="!hasMaintenanceChanges() || isSavingMaintenance()">{{ isSavingMaintenance() ? 'Guardando…' : 'Guardar información técnica' }}</button>
+              </form>
+            } @else if (currentTicket.maintenance; as maintenance) {
+              <dl class="grid gap-4">
+                <div><dt class="text-sm text-muted-foreground">Diagnóstico</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.diagnosis || 'Sin diagnóstico registrado' }}</dd></div>
+                <div><dt class="text-sm text-muted-foreground">Trabajo realizado</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.workPerformed || 'Sin trabajo registrado' }}</dd></div>
+                <div><dt class="text-sm text-muted-foreground">Observaciones</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.notes || 'Sin observaciones' }}</dd></div>
+              </dl>
+            } @else {
+              <p class="text-sm text-muted-foreground">La mantención aún no ha sido iniciada.</p>
+            }
+          </div>
+        </article>
+
+        @if (currentTicket.freezeRequests.length) {
+          <article hlmCard>
+            <header hlmCardHeader><h3 hlmCardTitle>Solicitudes de congelamiento</h3><p hlmCardDescription>Registro de bloqueos informados para este trabajo.</p></header>
+            <div hlmCardContent>
+              <ul class="space-y-3">
+                @for (request of currentTicket.freezeRequests; track request.id) {
+                  <li class="rounded-lg border p-4">
+                    <div class="flex flex-wrap items-start justify-between gap-2"><p class="font-medium">{{ freezeReasonLabel(request.reasonType) }}</p><time class="text-xs text-muted-foreground">{{ formatDate(request.requestedAt) }}</time></div>
+                    @if (request.reasonDetail) { <p class="mt-2 text-sm">{{ request.reasonDetail }}</p> }
+                    <p class="mt-2 text-xs text-muted-foreground">Estado: {{ request.status === 'PENDING' ? 'Pendiente' : request.status === 'APPROVED' ? 'Aprobada' : 'Rechazada' }}</p>
+                  </li>
+                }
+              </ul>
+            </div>
+          </article>
+        }
+      </div>
+
+      <aside class="space-y-6">
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Trabajo actual</h3><p hlmCardDescription>Las acciones dependen del estado confirmado por el sistema.</p></header>
+          <div hlmCardContent class="space-y-4">
+            <div class="rounded-lg border bg-muted/30 p-4">
+              <p class="font-semibold">{{ currentTicket.currentTechnician?.name || 'Sin técnico actual' }}</p>
+              <p class="mt-1 text-sm text-muted-foreground">Técnico responsable</p>
+            </div>
+            @if (currentTicket.status === 'ASSIGNED') {
+              <p class="text-sm text-muted-foreground">La asignación está lista. Inicia la mantención cuando comiences el trabajo en terreno.</p>
+              <button hlmBtn type="button" class="w-full" [disabled]="isStarting()" (click)="startMaintenance()">{{ isStarting() ? 'Iniciando…' : 'Iniciar mantención' }}</button>
+            } @else if (currentTicket.status === 'IN_PROGRESS') {
+              <p class="rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100">La mantención está en proceso. Registra el diagnóstico, trabajo y observaciones en el formulario de información técnica.</p>
+            } @else if (currentTicket.status === 'FREEZE_REQUESTED') {
+              <p class="rounded-lg border border-cyan-200 bg-cyan-50 p-3 text-sm text-cyan-900 dark:border-cyan-800 dark:bg-cyan-950 dark:text-cyan-100">La solicitud de congelamiento está pendiente. Continúas asignado y ocupado hasta la decisión administrativa.</p>
+            }
+          </div>
+        </article>
+
+        @if (currentTicket.status === 'IN_PROGRESS') {
+          <article hlmCard>
+            <header hlmCardHeader>
+              <h3 hlmCardTitle>Resolver mantención</h3>
+              <p hlmCardDescription>Confirma el trabajo final para liberar tu asignación.</p>
+            </header>
+            <div hlmCardContent>
+              <form class="grid gap-4" [formGroup]="resolutionForm" (ngSubmit)="resolveMaintenance()">
+                <div class="grid gap-2">
+                  <label for="resolution-work" class="text-sm font-medium">Trabajo realizado</label>
+                  <textarea id="resolution-work" formControlName="workPerformed" rows="4" class="min-h-24 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Describe el trabajo final ejecutado"></textarea>
+                  <p class="text-xs text-muted-foreground">Este campo es obligatorio y quedará registrado como trabajo final.</p>
+                </div>
+                <button hlmBtn type="submit" class="w-full" [disabled]="!canResolve() || isResolving()">{{ isResolving() ? 'Resolviendo…' : 'Resolver mantención' }}</button>
+              </form>
+            </div>
+          </article>
+        }
+
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Historial relevante</h3><p hlmCardDescription>Cronología del ticket y sus cambios de estado.</p></header>
+          <div
+            hlmCardContent
+            class="relevant-history-scroll"
+            role="region"
+            aria-label="Historial relevante del ticket"
+            tabindex="0"
+          >
+            @if (currentTicket.history.length) {
+              <ol class="space-y-4">
+                @for (entry of currentTicket.history; track entry.id) {
+                  <li class="relative border-l-2 border-border pl-5">
+                    <span class="absolute -left-[0.42rem] top-1 size-3 rounded-full border-2 border-primary bg-card"></span>
+                    <div class="flex flex-wrap items-start justify-between gap-2"><p class="font-medium">{{ historyActionLabel(entry.action) }}</p><time class="text-xs text-muted-foreground">{{ formatDate(entry.createdAt) }}</time></div>
+                    <p class="mt-1 text-sm text-muted-foreground">{{ entry.actor.name }}</p>
+                    @if (entry.previousStatus && entry.newStatus) { <p class="mt-2 text-sm">{{ statusLabel(entry.previousStatus) }} → {{ statusLabel(entry.newStatus) }}</p> }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="text-sm text-muted-foreground">No hay eventos registrados.</p>
+            }
+          </div>
+        </article>
+      </aside>
+    </div>
+  } @else {
+    <article hlmCard>
+      <div hlmCardContent class="py-12 text-center">
+        <span hlmBadge variant="outline" class="border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200">Disponibilidad: Disponible</span>
+        <h2 id="current-maintenance-title" class="mt-5 text-2xl font-bold">No tienes una mantención asignada</h2>
+        <p class="mx-auto mt-2 max-w-xl text-sm text-muted-foreground">Cuando administración te asigne un ticket, aparecerá aquí con toda la información necesaria para iniciar el trabajo.</p>
+        <a hlmBtn routerLink="/historial-mantenciones" variant="outline" class="mt-5">Ver historial de mantenciones</a>
+      </div>
+    </article>
+  }
+</section>

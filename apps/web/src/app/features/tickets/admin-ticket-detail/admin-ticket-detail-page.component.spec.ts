@@ -57,6 +57,7 @@ const ticket: TicketDetail = {
   closedBy: null,
   closedAt: null,
   assignments: [],
+  freezeRequests: [],
   maintenance: null,
   history: [
     {

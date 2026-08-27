@@ -47,6 +47,7 @@ export class MockTicketGateway implements TicketGateway {
       closedBy: null,
       closedAt: null,
       assignments: [],
+      freezeRequests: [],
       maintenance: null,
       history: [],
     });

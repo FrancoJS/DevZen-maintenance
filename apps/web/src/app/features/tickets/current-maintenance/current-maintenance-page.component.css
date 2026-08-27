@@ -1,0 +1,10 @@
+:host {
+  display: block;
+}
+
+.relevant-history-scroll {
+  max-height: min(45vh, 28rem);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
