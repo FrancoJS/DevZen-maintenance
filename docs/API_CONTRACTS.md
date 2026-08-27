@@ -198,6 +198,17 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 - **Entrada de aprobación:** `{ reviewNote? }`. **Entrada de rechazo:**
   `{ reviewNote }`, obligatorio y no vacío.
 
+### Bandeja administrativa de solicitudes
+
+`GET /api/freeze-requests`
+
+- **Actor:** `ADMIN`.
+- **Efecto:** devuelve todas las solicitudes sin paginación ni filtros, como
+  `{ items, total }`.
+- **Cada elemento:** datos de la solicitud, técnico solicitante, revisor cuando
+  exista y ticket asociado `{ id, description, asset, priority, status }`.
+- **Visibilidad:** no está disponible para `REQUESTER` ni `TECHNICIAN`.
+
 ### Marcar bloqueo resuelto
 
 `POST /api/tickets/:id/resolve-blocker` sin cuerpo.
@@ -245,10 +256,20 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 
 ## Dashboard
 
-### Obtener agregaciones
+### Obtener agregaciones administrativas
 
-**Contrato pendiente de definición y funcionalidad opcional.**
+`GET /api/dashboard/admin`
 
 - **Actor:** `ADMIN`.
-- **Datos posibles respaldados:** totales por estado/prioridad, críticos, sin asignar y tiempo promedio si se autoriza.
-- **Validaciones:** el tiempo activo suma solo períodos `IN_PROGRESS`, excluyendo `FROZEN` y `PENDING_REASSIGNMENT`.
+- **Efecto:** devuelve agregaciones calculadas en backend, sin listas completas:
+  - `tickets`: `total`, `new`, `critical`, `inProgress`, `frozen`;
+  - `technicians`: `total`, `available`, `busy`;
+  - `requiresAttention`: `pendingAssignment`, `pendingFreezeApproval`,
+    `pendingReassignment`, `pendingClosure`.
+- **Críticos:** incluye tickets `CRITICAL` salvo los estados `RESOLVED` y
+  `CLOSED`.
+- **Pendiente de asignación:** ticket `NEW` sin técnico actual ni asignación
+  activa.
+- **Tiempo promedio de resolución:** no se devuelve. Si se incorpora, debe
+  sumar solo intervalos `IN_PROGRESS`, excluyendo espera de congelamiento,
+  `FROZEN` y `PENDING_REASSIGNMENT`.

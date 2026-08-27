@@ -18,6 +18,7 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Implementar inicio `ASSIGNED -> IN_PROGRESS` y registro técnico parcial en `IN_PROGRESS`.
 - [x] Implementar resolución `IN_PROGRESS -> RESOLVED`, liberación del técnico e historial de mantenciones anteriores.
 - [x] Implementar cierre administrativo `RESOLVED -> CLOSED` e inmutabilidad de tickets cerrados.
+- [x] Exponer bandeja administrativa de solicitudes de congelamiento y agregaciones administrativas de dashboard.
 
 ## Frontend
 
@@ -48,7 +49,11 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 - `apps/web` contiene la bienvenida de Nx y rutas vacías.
 - `apps/api` incorpora configuración TypeORM, entidades, migración inicial y seed de usuarios.
 - La autenticación JWT, el guard global, la autorización gruesa por roles, `/api/auth/login`, `/api/auth/me` y la documentación OpenAPI de desarrollo están implementados.
-- Los tickets implementan creación, listado, detalle, edición propia `NEW`, asignación inicial, inicio, registro técnico, resolución y cierre administrativo. Solo el flujo de congelamiento permanece pendiente.
+- Los tickets implementan creación, listado, detalle, edición propia `NEW`,
+  asignación, congelamiento, inicio, registro técnico, resolución y cierre
+  administrativo. Administración dispone de bandeja de congelamientos y
+  agregaciones de dashboard; la interfaz de esas capacidades continúa fuera de
+  esta fase.
 - El frontend incorpora gestión administrativa, filtros MVP, disponibilidad técnica, detalle completo y asignación inicial desde `NEW`; el cierre administrativo visual continúa pendiente.
 - TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; el ciclo normal está completo.
 

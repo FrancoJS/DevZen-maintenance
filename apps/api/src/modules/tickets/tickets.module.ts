@@ -7,6 +7,7 @@ import { ImpactAssessment } from './entities/impact-assessment.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
 import { TicketsController } from './tickets.controller';
+import { FreezeRequestsController } from './freeze-requests.controller';
 import { TicketsService } from './tickets.service';
 
 @Module({
@@ -20,7 +21,7 @@ import { TicketsService } from './tickets.service';
       AssignmentHistory,
     ]),
   ],
-  controllers: [TicketsController],
+  controllers: [TicketsController, FreezeRequestsController],
   providers: [TicketsService],
 })
 export class TicketsModule {}

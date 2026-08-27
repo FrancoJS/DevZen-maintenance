@@ -22,7 +22,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Parte resuelta (núcleo de tickets):** `POST /api/tickets`, `GET /api/tickets`, `GET /api/tickets/:id` y `PATCH /api/tickets/:id`, con DTOs, respuestas, filtros mínimos y errores, se definen en `API_CONTRACTS.md`.
 - **Parte resuelta (asignación inicial):** `GET /api/technicians`, `POST /api/tickets/:id/assign` y `GET /api/tickets/my-maintenance` se definen en `API_CONTRACTS.md`. La asignación inicial solo permite `NEW -> ASSIGNED`.
 - **Parte resuelta (mantención normal):** `POST /api/tickets/:id/start`, `PATCH /api/tickets/:id/maintenance`, `POST /api/tickets/:id/resolve`, `POST /api/tickets/:id/close` y `GET /api/tickets/my-maintenance-history` se definen en `API_CONTRACTS.md`.
-- **Parte pendiente:** contratos de reasignación, historial global y dashboard.
+- **Parte pendiente:** contratos de historial global. La reasignación y el
+  dashboard administrativo ya tienen contratos implementados.
 - **Fuentes:** Word 13.1; [API_CONTRACTS.md](API_CONTRACTS.md).
 
 ## `PD-004` — Campos editables del ticket `NEW` — Resuelta
@@ -52,13 +53,13 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión aprobada:** el rechazo exige `reviewNote` no vacío, normalizado en el backend y registrado en la solicitud y el historial.
 - **Impacto:** DTO, historial, pantalla administrativa y pruebas.
 
-## `PD-008` — Límite entre dashboard obligatorio y opcional
+## `PD-008` — Límite entre dashboard obligatorio y opcional — Resuelta
 
-- **Contexto:** el Word lista Dashboard como pantalla administrativa requerida, mientras 13.1 y 14.2 dejan agregaciones, gráficos y tiempo promedio condicionados al tiempo disponible.
-- **Fuentes:** Word 10.4, 13.1 y 14.2; `AGENTS.md`, Minimum screens y Optional.
-- **Decisión requerida:** confirmar si el MVP necesita una pantalla resumen mínima sin gráficos o si todo el dashboard se posterga.
-- **Impacto:** navegación, alcance frontend/backend y demo.
-- **Opciones conocidas:** resumen administrativo mínimo; dashboard completo opcional; postergación total.
+- **Decisión aprobada:** exponer el resumen administrativo mínimo mediante
+  `GET /api/dashboard/admin`; no incluye gráficos ni tiempo promedio de
+  resolución.
+- **Alcance pendiente:** la pantalla frontend, gráficos y KPI de tiempo siguen
+  siendo valor adicional y requieren una fase autorizada.
 
 ## `PD-009` — Alcance de filtros básicos frente a completos — Parcialmente resuelta
 
@@ -101,6 +102,16 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Sin cambios:** el administrador conserva acceso al detalle de cualquier ticket y las acciones administrativas existentes.
 - **Pendiente fuera de esta fase:** el listado/historial global exclusivo de administración tendrá un contrato separado. No se crea su endpoint en esta fase.
 - **Compatibilidad:** Gestión de tickets actualmente consume este listado; ahora verá solo solicitudes propias hasta conectarse al futuro contrato global. Esta decisión sustituye el alcance global anterior de ese endpoint, sin modificar el frontend en esta fase.
+
+## `PD-015` — Tiempo promedio de resolución — Pendiente
+
+- **Decisión aprobada:** no incluir el KPI en el dashboard administrativo de
+  esta fase.
+- **Motivo:** una implementación correcta debe reconstruir y sumar solamente
+  intervalos `IN_PROGRESS`; no se acepta calcularlo como diferencia entre
+  creación, inicio o resolución porque incluiría períodos no activos.
+- **Seguimiento:** definir el contrato, unidad de medida y pruebas de
+  congelamientos/reasignaciones antes de exponerlo.
 
 ## Diferencias documentales ya resueltas por precedencia
 
