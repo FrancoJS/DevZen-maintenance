@@ -5,7 +5,7 @@ import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 import { PreviewSessionService } from '../core/preview-session.service';
 import { ThemeService } from '../core/theme.service';
-import { NAVIGATION_GROUPS, UserRole } from '../shared/navigation/navigation.model';
+import { NAVIGATION_GROUPS } from '../shared/navigation/navigation.model';
 
 @Component({
   selector: 'app-shell',
@@ -25,16 +25,6 @@ export class AppShellComponent {
     ...group,
     items: group.items.filter((item) => item.roles.includes(this.role())),
   })));
-
-  protected changeRole(event: Event): void {
-    const role = (event.target as HTMLSelectElement).value as UserRole;
-    this.session.setRole(role);
-    this.mobileSidebarOpen = false;
-    const allowed = NAVIGATION_GROUPS.some((group) =>
-      group.items.some((item) => item.route === this.router.url && item.roles.includes(role))
-    );
-    if (!allowed) void this.router.navigateByUrl('/inicio');
-  }
 
   protected toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;

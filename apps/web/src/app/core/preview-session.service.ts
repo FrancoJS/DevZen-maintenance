@@ -1,13 +1,35 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { UserRole } from '../shared/navigation/navigation.model';
 
-export interface PreviewUser { name: string; initials: string; roleLabel: string; }
-export interface DemoUser extends PreviewUser { email: string; password: string; role: UserRole; }
+export interface AuthenticatedUser {
+  id: string;
+  name: string;
+  email: string;
+  role: UserRole;
+}
 
-const ROLE_STORAGE_KEY = 'devzen-preview-role';
+export interface PreviewUser extends AuthenticatedUser {
+  initials: string;
+  roleLabel: string;
+}
+
+export interface DemoUser extends PreviewUser {
+  password: string;
+}
+
 const SESSION_STORAGE_KEY = 'devzen-mock-session';
+const ACCESS_TOKEN_STORAGE_KEY = 'devzen-access-token';
+const LEGACY_ROLE_STORAGE_KEY = 'devzen-preview-role';
+
+const ROLE_LABELS: Record<UserRole, string> = {
+  REQUESTER: 'Solicitante',
+  TECHNICIAN: 'Técnico',
+  ADMIN: 'Administrador',
+};
+
 export const DEMO_USERS: Record<UserRole, DemoUser> = {
   REQUESTER: {
+    id: 'demo-camila-rojas',
     name: 'Camila Rojas',
     initials: 'CR',
     roleLabel: 'Solicitante',
@@ -16,6 +38,7 @@ export const DEMO_USERS: Record<UserRole, DemoUser> = {
     role: 'REQUESTER',
   },
   TECHNICIAN: {
+    id: 'demo-diego-perez',
     name: 'Diego Pérez',
     initials: 'DP',
     roleLabel: 'Técnico',
@@ -24,6 +47,7 @@ export const DEMO_USERS: Record<UserRole, DemoUser> = {
     role: 'TECHNICIAN',
   },
   ADMIN: {
+    id: 'demo-ana-gonzalez',
     name: 'Ana González',
     initials: 'AG',
     roleLabel: 'Administrador',
@@ -33,13 +57,18 @@ export const DEMO_USERS: Record<UserRole, DemoUser> = {
   },
 };
 
-interface StoredSession { email: string; role: UserRole; }
+interface StoredSession {
+  user: AuthenticatedUser;
+}
 
 @Injectable({ providedIn: 'root' })
 export class PreviewSessionService {
-  readonly isAuthenticated = signal(this.readStoredSession() !== null);
-  readonly role = signal<UserRole>(this.readStoredRole());
-  readonly user = computed(() => DEMO_USERS[this.role()]);
+  private readonly storedSession = this.readStoredSession();
+  readonly isAuthenticated = signal(this.storedSession !== null);
+  readonly user = signal<PreviewUser>(
+    this.storedSession ? this.toPreviewUser(this.storedSession.user) : DEMO_USERS.ADMIN,
+  );
+  readonly role = computed(() => this.user().role);
 
   login(email: string, password: string): boolean {
     const normalizedEmail = email.trim().toLowerCase();
@@ -49,56 +78,41 @@ export class PreviewSessionService {
 
     if (!user) return false;
 
-    this.setRole(user.role);
-    this.writeStoredSession({ email: user.email, role: user.role });
-    this.isAuthenticated.set(true);
+    this.startSession(user);
     return true;
   }
 
   loginFromApi(
-    email: string,
-    role: UserRole,
+    user: AuthenticatedUser,
     accessToken: string,
   ): void {
-    this.role.set(role);
-    this.isAuthenticated.set(true);
-
-    localStorage.setItem(ROLE_STORAGE_KEY, role);
-    localStorage.setItem(
-      SESSION_STORAGE_KEY,
-      JSON.stringify({ email, role }),
-    );
-    localStorage.setItem('devzen-access-token', accessToken);
+    this.startSession(user, accessToken);
   }
 
   logout(): void {
     this.isAuthenticated.set(false);
-    this.role.set('ADMIN');
+    this.user.set(DEMO_USERS.ADMIN);
 
     if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem(ROLE_STORAGE_KEY);
       localStorage.removeItem(SESSION_STORAGE_KEY);
+      localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
+      localStorage.removeItem(LEGACY_ROLE_STORAGE_KEY);
     }
   }
 
-  setRole(role: UserRole): void {
-    this.role.set(role);
-    if (typeof localStorage === 'undefined') return;
+  private startSession(user: AuthenticatedUser, accessToken?: string): void {
+    const previewUser = this.toPreviewUser(user);
+    this.user.set(previewUser);
+    this.writeStoredSession({ user: this.toAuthenticatedUser(previewUser) });
+    this.isAuthenticated.set(true);
 
-    localStorage.setItem(ROLE_STORAGE_KEY, role);
-    if (this.readStoredSession()) {
-      this.writeStoredSession({ email: DEMO_USERS[role].email, role });
+    if (accessToken && typeof localStorage !== 'undefined') {
+      localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, accessToken);
     }
-  }
 
-  private readStoredRole(): UserRole {
-    if (typeof localStorage === 'undefined') return 'ADMIN';
-
-    const storedSession = this.readStoredSession();
-    if (storedSession) return storedSession.role;
-
-    const stored = localStorage.getItem(ROLE_STORAGE_KEY);
-    return stored === 'REQUESTER' || stored === 'TECHNICIAN' || stored === 'ADMIN' ? stored : 'ADMIN';
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem(LEGACY_ROLE_STORAGE_KEY);
+    }
   }
 
   private readStoredSession(): StoredSession | null {
@@ -109,8 +123,7 @@ export class PreviewSessionService {
 
     try {
       const session = JSON.parse(stored) as Partial<StoredSession>;
-      const user = Object.values(DEMO_USERS).find((candidate) => candidate.email === session.email);
-      return user && session.role === user.role ? { email: user.email, role: user.role } : null;
+      return this.isAuthenticatedUser(session.user) ? { user: session.user } : null;
     } catch {
       return null;
     }
@@ -120,5 +133,46 @@ export class PreviewSessionService {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(session));
     }
+  }
+
+  private toPreviewUser(user: AuthenticatedUser): PreviewUser {
+    return {
+      ...user,
+      initials: this.getInitials(user.name),
+      roleLabel: ROLE_LABELS[user.role],
+    };
+  }
+
+  private toAuthenticatedUser(user: PreviewUser): AuthenticatedUser {
+    return {
+      id: user.id,
+      name: user.name,
+      email: user.email,
+      role: user.role,
+    };
+  }
+
+  private getInitials(name: string): string {
+    return name
+      .trim()
+      .split(/\s+/)
+      .map((part) => part[0])
+      .join('')
+      .slice(0, 2)
+      .toUpperCase();
+  }
+
+  private isAuthenticatedUser(user: unknown): user is AuthenticatedUser {
+    if (!user || typeof user !== 'object') return false;
+
+    const candidate = user as Partial<AuthenticatedUser>;
+    return (
+      typeof candidate.id === 'string' &&
+      typeof candidate.name === 'string' &&
+      typeof candidate.email === 'string' &&
+      (candidate.role === 'REQUESTER' ||
+        candidate.role === 'TECHNICIAN' ||
+        candidate.role === 'ADMIN')
+    );
   }
 }

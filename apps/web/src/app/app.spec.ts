@@ -76,6 +76,27 @@ describe('App', () => {
     expect(TestBed.inject(Router).url).toBe('/login');
   });
 
+  it('should show the authenticated identity and read-only role in the shell', async () => {
+    TestBed.inject(PreviewSessionService).loginFromApi(
+      {
+        id: 'matias-vega-id',
+        name: 'Matías Vega',
+        email: 'administrador@luxnova.demo',
+        role: 'ADMIN',
+      },
+      'access-token',
+    );
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/inicio', AppShellComponent);
+
+    const shell = harness.routeNativeElement as HTMLElement;
+    expect(shell.textContent).toContain('Matías Vega');
+    expect(shell.textContent).toContain('Rol');
+    expect(shell.textContent).toContain('Administrador');
+    expect(shell.textContent).toContain('MV');
+    expect(shell.querySelector('select[aria-label="Seleccionar rol demo"]')).toBeNull();
+  });
+
   it.each([
     ['camila.rojas@devzen.test', 'Solicitante123!', 'Bomba hidráulica B-07', 'Torno CNC T-05'],
     ['diego.perez@devzen.test', 'Tecnico123!', 'Torno CNC T-05', 'Horno industrial H-01'],

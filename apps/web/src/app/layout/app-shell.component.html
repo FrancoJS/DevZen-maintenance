@@ -31,7 +31,7 @@
       <div hlmSeparator orientation="horizontal" class="mb-3 bg-sidebar-border"></div>
       <div class="rounded-md bg-sidebar-accent/70 p-2">
         <div class="flex items-center gap-3">
-          <hlm-avatar size="sm" class="bg-primary text-white"><span hlmAvatarFallback>AG</span></hlm-avatar>
+          <hlm-avatar size="sm" class="bg-primary text-white"><span hlmAvatarFallback>{{ user().initials }}</span></hlm-avatar>
           @if (!sidebarCollapsed) { <div class="min-w-0"><p class="truncate text-sm font-semibold">{{ user().name }}</p><p class="truncate text-xs text-slate-400">{{ user().roleLabel }}</p></div> }
         </div>
         <button type="button" aria-label="Cerrar sesión" class="mt-2 flex w-full items-center justify-center gap-2 rounded-md px-2 py-2 text-xs font-medium text-slate-300 transition hover:bg-sidebar-accent hover:text-white" (click)="logout()">
@@ -49,7 +49,7 @@
         <button type="button" aria-label="Colapsar barra lateral" class="hidden size-10 items-center justify-center rounded-md border bg-card text-foreground hover:bg-muted lg:inline-flex" (click)="toggleSidebar()"><span aria-hidden="true" class="text-lg">{{ sidebarCollapsed ? '»' : '«' }}</span></button>
         <div><p class="text-xs font-medium uppercase tracking-wider text-muted-foreground">Panel de control</p><h1 class="text-lg font-semibold text-foreground">DevZen Maintenance</h1></div>
       </div>
-      <div class="flex items-center gap-3"><button type="button" class="inline-flex size-10 items-center justify-center rounded-md border bg-card text-foreground hover:bg-muted" [attr.aria-label]="theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'" (click)="theme.toggle()"><span aria-hidden="true" class="text-lg">{{ theme.isDark() ? '☀' : '☾' }}</span></button><label class="hidden items-center gap-2 text-xs text-muted-foreground sm:flex">Rol demo<select aria-label="Seleccionar rol demo" class="h-9 rounded-md border bg-card px-2 text-sm text-foreground" [value]="role()" (change)="changeRole($event)"><option value="REQUESTER">Solicitante</option><option value="TECHNICIAN">Técnico</option><option value="ADMIN">Administrador</option></select></label><span class="hidden text-sm text-muted-foreground md:inline">{{ user().name }}</span><hlm-avatar class="bg-primary text-white"><span hlmAvatarFallback>{{ user().initials }}</span></hlm-avatar></div>
+      <div class="flex items-center gap-3"><button type="button" class="inline-flex size-10 items-center justify-center rounded-md border bg-card text-foreground hover:bg-muted" [attr.aria-label]="theme.isDark() ? 'Cambiar a tema claro' : 'Cambiar a tema oscuro'" (click)="theme.toggle()"><span aria-hidden="true" class="text-lg">{{ theme.isDark() ? '☀' : '☾' }}</span></button><div class="hidden items-center gap-2 sm:flex" aria-label="Rol del usuario"><span class="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">Rol</span><span class="inline-flex items-center rounded-full border border-border bg-muted/50 px-2.5 py-1 text-xs font-medium text-foreground">{{ user().roleLabel }}</span></div><span class="hidden text-sm font-medium text-muted-foreground md:inline">{{ user().name }}</span><hlm-avatar class="bg-primary text-white"><span hlmAvatarFallback>{{ user().initials }}</span></hlm-avatar></div>
     </header>
     <main id="contenido" class="min-h-[calc(100vh-5rem)] p-4 sm:p-6 lg:p-8"><router-outlet></router-outlet></main>
   </div>
