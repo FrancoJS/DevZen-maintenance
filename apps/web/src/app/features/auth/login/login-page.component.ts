@@ -2,6 +2,7 @@ import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { DEMO_USERS, PreviewSessionService } from '../../../core/preview-session.service';
+import { AuthApiService } from '../../../core/auth/auth-api.service';
 
 @Component({
   selector: 'app-login-page',
@@ -10,6 +11,7 @@ import { DEMO_USERS, PreviewSessionService } from '../../../core/preview-session
   styleUrl: './login-page.component.css',
 })
 export class LoginPageComponent {
+  private readonly authApi = inject(AuthApiService);
   private readonly formBuilder = inject(FormBuilder);
   private readonly router = inject(Router);
   private readonly session = inject(PreviewSessionService);
@@ -29,12 +31,12 @@ export class LoginPageComponent {
     if (this.form.invalid) return;
 
     const { email, password } = this.form.getRawValue();
-    if (!this.session.login(email, password)) {
-      this.submitError.set('El correo o la contraseña no son correctos.');
-      return;
-    }
-
-    void this.router.navigateByUrl('/inicio');
+    this.authApi.login(email, password).subscribe({
+      next: ({ accessToken, user }) => {
+        this.session.loginFromApi(user.email, user.role, accessToken);
+        void this.router.navigateByUrl('/inicio');
+      },
+    });
   }
 
   hasError(controlName: 'email' | 'password'): boolean {
