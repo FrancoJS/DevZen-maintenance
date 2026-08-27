@@ -1,5 +1,6 @@
 import { computed, Injectable, signal } from '@angular/core';
 import { UserRole } from '../shared/navigation/navigation.model';
+import { ACCESS_TOKEN_STORAGE_KEY } from './api.config';
 
 export interface AuthenticatedUser {
   id: string;
@@ -18,7 +19,6 @@ export interface DemoUser extends PreviewUser {
 }
 
 const SESSION_STORAGE_KEY = 'devzen-mock-session';
-const ACCESS_TOKEN_STORAGE_KEY = 'devzen-access-token';
 const LEGACY_ROLE_STORAGE_KEY = 'devzen-preview-role';
 
 const ROLE_LABELS: Record<UserRole, string> = {

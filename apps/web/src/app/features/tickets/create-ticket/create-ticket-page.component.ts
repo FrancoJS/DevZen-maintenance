@@ -8,12 +8,12 @@ import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { toast } from '@spartan-ng/brain/sonner';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
-import { MockTicketGateway } from '../../../core/tickets/mock-ticket.gateway';
+import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import {
   CreateTicketRequest,
-  CreatedTicket,
   EquipmentStopped,
   ProductionImpact,
+  TicketDetail,
 } from '../../../core/tickets/ticket.models';
 import {
   PRIORITY_LABELS,
@@ -45,7 +45,7 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
     HlmCardImports,
     HlmInputImports,
   ],
-  providers: [MockTicketGateway, { provide: TICKET_GATEWAY, useExisting: MockTicketGateway }],
+  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './create-ticket-page.component.html',
   styleUrl: './create-ticket-page.component.css',
 })
@@ -54,7 +54,7 @@ export class CreateTicketPageComponent {
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
 
   readonly isSubmitting = signal(false);
-  readonly createdTicket = signal<CreatedTicket | null>(null);
+  readonly createdTicket = signal<TicketDetail | null>(null);
   readonly createdTicketRequest = signal<CreateTicketRequest | null>(null);
   readonly isDetailOpen = signal(false);
   readonly isDetailClosing = signal(false);
@@ -63,9 +63,8 @@ export class CreateTicketPageComponent {
 
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
-    area: this.formBuilder.control('', [Validators.required]),
-    location: this.formBuilder.control('', [Validators.required]),
-    asset: this.formBuilder.control('', [Validators.required]),
+    location: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
+    asset: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
     impactAssessment: this.formBuilder.group({
       safetyRisk: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
       equipmentStopped: this.formBuilder.control<EquipmentStopped | null>(null, [Validators.required]),
@@ -96,7 +95,7 @@ export class CreateTicketPageComponent {
       .createTicket(request)
       .pipe(finalize(() => this.isSubmitting.set(false)))
       .subscribe({
-        next: ({ ticket }) => {
+        next: (ticket) => {
           this.createdTicket.set(ticket);
           this.createdTicketRequest.set(request);
           this.isDetailOpen.set(false);
@@ -146,7 +145,6 @@ export class CreateTicketPageComponent {
     this.form.enable({ emitEvent: false });
     this.form.reset({
       description: '',
-      area: '',
       location: '',
       asset: '',
       impactAssessment: {
@@ -161,7 +159,7 @@ export class CreateTicketPageComponent {
     this.form.markAsUntouched();
   }
 
-  hasError(controlName: 'description' | 'area' | 'location' | 'asset'): boolean {
+  hasError(controlName: 'description' | 'location' | 'asset'): boolean {
     const control = this.form.controls[controlName];
     return control.invalid && this.showValidationErrors();
   }
@@ -178,11 +176,11 @@ export class CreateTicketPageComponent {
     return control.invalid && this.showValidationErrors();
   }
 
-  priorityLabel(ticket: CreatedTicket): string {
+  priorityLabel(ticket: TicketDetail): string {
     return PRIORITY_LABELS[ticket.priority];
   }
 
-  statusLabel(ticket: CreatedTicket): string {
+  statusLabel(ticket: TicketDetail): string {
     return STATUS_LABELS[ticket.status];
   }
 
@@ -194,8 +192,8 @@ export class CreateTicketPageComponent {
     return PRODUCTION_IMPACT_LABELS[value];
   }
 
-  priorityClass(priority: CreatedTicket['priority']): string {
-    const classes: Record<CreatedTicket['priority'], string> = {
+  priorityClass(priority: TicketDetail['priority']): string {
+    const classes: Record<TicketDetail['priority'], string> = {
       LOW: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200',
       MEDIUM: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
       HIGH: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-200',
@@ -217,7 +215,6 @@ export class CreateTicketPageComponent {
 
     return {
       description: value.description ?? '',
-      area: value.area ?? '',
       location: value.location ?? '',
       asset: value.asset ?? '',
       impactAssessment: {

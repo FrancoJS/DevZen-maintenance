@@ -24,15 +24,7 @@
           }
         </div>
 
-        <div class="grid gap-5 sm:grid-cols-2">
-          <div class="grid gap-2">
-            <label for="area" class="text-sm font-medium">Área</label>
-            <input hlmInput id="area" type="text" formControlName="area" aria-describedby="area-error" [class.border-destructive]="hasError('area')" [class.ring-1]="hasError('area')" [class.ring-destructive]="hasError('area')" />
-            @if (hasError('area')) {
-              <p id="area-error" class="text-sm text-destructive">El área es obligatoria.</p>
-            }
-          </div>
-
+        <div class="grid gap-5">
           <div class="grid gap-2">
             <label for="location" class="text-sm font-medium">Ubicación</label>
             <input hlmInput id="location" type="text" formControlName="location" aria-describedby="location-error" [class.border-destructive]="hasError('location')" [class.ring-1]="hasError('location')" [class.ring-destructive]="hasError('location')" />
@@ -147,7 +139,6 @@
             <div class="grid gap-4 border-t pt-5">
               <div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</p><p class="mt-1 whitespace-pre-wrap">{{ request.description }}</p></div>
               <dl class="grid gap-4 sm:grid-cols-3">
-                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Área</dt><dd class="mt-1">{{ request.area }}</dd></div>
                 <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ request.location }}</dd></div>
                 <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Máquina o equipo</dt><dd class="mt-1">{{ request.asset }}</dd></div>
               </dl>

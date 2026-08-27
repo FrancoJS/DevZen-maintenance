@@ -7,7 +7,6 @@ import { CreateTicketRequest, ImpactAssessment, TicketPriority } from './ticket.
 
 const baseRequest: CreateTicketRequest = {
   description: 'La bomba hidráulica no inicia.',
-  area: 'Producción',
   location: 'Planta 2',
   asset: 'Bomba B-02',
   impactAssessment: {
@@ -68,12 +67,12 @@ describe('MockTicketGateway', () => {
 
     const created = await firstValueFrom(gateway.createTicket(baseRequest));
     const requesterAfter = await firstValueFrom(gateway.listMyTickets());
-    expect(requesterAfter.tickets.map((ticket) => ticket.id)).toContain(created.ticket.id);
+    expect(requesterAfter.tickets.map((ticket) => ticket.id)).toContain(created.id);
 
     session.login('diego.perez@devzen.test', 'Tecnico123!');
     const technicianTickets = await firstValueFrom(gateway.listMyTickets());
     expect(technicianTickets.tickets.map((ticket) => ticket.id)).toContain('TK-1031');
-    expect(technicianTickets.tickets.map((ticket) => ticket.id)).not.toContain(created.ticket.id);
+    expect(technicianTickets.tickets.map((ticket) => ticket.id)).not.toContain(created.id);
 
     session.login('ana.gonzalez@devzen.test', 'Admin123!');
     const adminTickets = await firstValueFrom(gateway.listMyTickets());

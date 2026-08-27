@@ -1,10 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { PreviewSessionService } from './preview-session.service';
+import { ACCESS_TOKEN_STORAGE_KEY } from './api.config';
 
 describe('PreviewSessionService', () => {
   beforeEach(() => {
+    localStorage.removeItem('devzen-preview-role');
     localStorage.removeItem('devzen-mock-session');
-    localStorage.removeItem('devzen-access-token');
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
     TestBed.configureTestingModule({ providers: [PreviewSessionService] });
   });
 
@@ -43,7 +45,7 @@ describe('PreviewSessionService', () => {
         },
       })
     );
-    expect(localStorage.getItem('devzen-access-token')).toBe('access-token');
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBe('access-token');
   });
 
   it('restores the persisted authenticated identity after a page reload', () => {
@@ -90,6 +92,7 @@ describe('PreviewSessionService', () => {
     expect(service.isAuthenticated()).toBe(false);
     expect(service.role()).toBe('ADMIN');
     expect(localStorage.getItem('devzen-mock-session')).toBeNull();
-    expect(localStorage.getItem('devzen-access-token')).toBeNull();
+    expect(localStorage.getItem('devzen-preview-role')).toBeNull();
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBeNull();
   });
 });

@@ -1,23 +1,32 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { of, throwError } from 'rxjs';
-import { LoginPageComponent } from './login-page.component';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ACCESS_TOKEN_STORAGE_KEY } from '../../../core/api.config';
+import {
+  AuthApiService,
+  LoginResponse,
+} from '../../../core/auth/auth-api.service';
 import { PreviewSessionService } from '../../../core/preview-session.service';
-import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { LoginPageComponent } from './login-page.component';
 
 describe('LoginPageComponent', () => {
-  const authApi = {
-    login: vi.fn(),
-  };
+  let authApi: { login: ReturnType<typeof vi.fn> };
 
   beforeEach(async () => {
-    authApi.login.mockReturnValue(throwError(() => new Error('Invalid credentials')));
+    authApi = {
+      login: vi.fn(),
+    };
     await TestBed.configureTestingModule({
       imports: [LoginPageComponent],
-      providers: [provideRouter([]), { provide: AuthApiService, useValue: authApi }],
+      providers: [
+        provideRouter([]),
+        { provide: AuthApiService, useValue: authApi },
+      ],
     }).compileComponents();
     localStorage.removeItem('devzen-mock-session');
-    localStorage.removeItem('devzen-access-token');
+    localStorage.removeItem(ACCESS_TOKEN_STORAGE_KEY);
   });
 
   it('renders the login form', () => {
@@ -45,6 +54,15 @@ describe('LoginPageComponent', () => {
   });
 
   it('shows an error for invalid credentials', () => {
+    authApi.login.mockReturnValue(
+      throwError(
+        () =>
+          new HttpErrorResponse({
+            status: 401,
+            statusText: 'Unauthorized',
+          }),
+      ),
+    );
     const fixture = TestBed.createComponent(LoginPageComponent);
     fixture.componentInstance.form.setValue({
       email: 'ana.gonzalez@devzen.test',
@@ -55,14 +73,11 @@ describe('LoginPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
-      'no son correctas'
+      'no son correctos',
     );
   });
 
   it('stores the authenticated API user and redirects after valid credentials', () => {
-    const fixture = TestBed.createComponent(LoginPageComponent);
-    const router = TestBed.inject(Router);
-    const navigateByUrl = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     authApi.login.mockReturnValue(
       of({
         accessToken: 'access-token',
@@ -70,10 +85,13 @@ describe('LoginPageComponent', () => {
           id: 'matias-vega-id',
           name: 'Matías Vega',
           email: 'administrador@luxnova.demo',
-          role: 'ADMIN' as const,
+          role: 'ADMIN',
         },
-      }),
+      } satisfies LoginResponse),
     );
+    const fixture = TestBed.createComponent(LoginPageComponent);
+    const router = TestBed.inject(Router);
+    const navigateByUrl = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
     fixture.componentInstance.form.setValue({
       email: 'administrador@luxnova.demo',
       password: 'SeedPassword123!',
@@ -81,8 +99,10 @@ describe('LoginPageComponent', () => {
 
     fixture.componentInstance.submit();
 
-    expect(TestBed.inject(PreviewSessionService).user().name).toBe('Matías Vega');
-    expect(TestBed.inject(PreviewSessionService).role()).toBe('ADMIN');
+    const session = TestBed.inject(PreviewSessionService);
+    expect(session.user().name).toBe('Matías Vega');
+    expect(session.role()).toBe('ADMIN');
+    expect(localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY)).toBe('access-token');
     expect(navigateByUrl).toHaveBeenCalledWith('/inicio');
   });
 });

@@ -3,7 +3,7 @@ import { Observable, Subject, of, throwError } from 'rxjs';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { toast } from '@spartan-ng/brain/sonner';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
-import { CreateTicketRequest, CreateTicketResponse } from '../../../core/tickets/ticket.models';
+import { CreateTicketRequest, TicketDetail } from '../../../core/tickets/ticket.models';
 import { CreateTicketPageComponent } from './create-ticket-page.component';
 
 describe('CreateTicketPageComponent', () => {
@@ -13,13 +13,25 @@ describe('CreateTicketPageComponent', () => {
     gateway = {
       createTicket: vi.fn(() =>
         of({
-          ticket: {
-            id: 'TK-000123',
-            status: 'NEW',
-            priority: 'CRITICAL',
-            createdAt: '2026-08-26T12:00:00.000Z',
+          id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
+          description: 'No inicia el sistema hidráulico.',
+          location: 'Planta 2',
+          asset: 'Excavadora EX-04',
+          status: 'NEW',
+          priority: 'CRITICAL',
+          requester: { id: 'requester-id', name: 'Camila Rojas' },
+          createdAt: '2026-08-26T12:00:00.000Z',
+          updatedAt: '2026-08-26T12:00:00.000Z',
+          impactAssessment: {
+            safetyRisk: false,
+            equipmentStopped: 'NO',
+            productionImpact: 'NONE',
+            workaroundAvailable: true,
+            affectsOtherAreas: false,
+            calculatedPriority: 'CRITICAL',
           },
-        } satisfies CreateTicketResponse)
+          history: [],
+        } satisfies TicketDetail)
       ),
     };
 
@@ -43,7 +55,6 @@ describe('CreateTicketPageComponent', () => {
   function fillValidForm(component: CreateTicketPageComponent): void {
     component.form.setValue({
       description: 'No inicia el sistema hidráulico.',
-      area: 'Producción',
       location: 'Planta 2',
       asset: 'Excavadora EX-04',
       impactAssessment: {
@@ -94,7 +105,6 @@ describe('CreateTicketPageComponent', () => {
 
     expect(gateway.createTicket).toHaveBeenCalledWith({
       description: 'No inicia el sistema hidráulico.',
-      area: 'Producción',
       location: 'Planta 2',
       asset: 'Excavadora EX-04',
       impactAssessment: {
@@ -122,7 +132,7 @@ describe('CreateTicketPageComponent', () => {
     component.submit();
 
     expect(toastSuccess).toHaveBeenCalledWith('Solicitud creada', expect.objectContaining({
-      description: 'El ticket TK-000123 fue registrado correctamente.',
+      description: 'El ticket 54f1c1b7-2acf-4428-a2f7-58b2943fb044 fue registrado correctamente.',
       action: expect.objectContaining({ label: 'Descartar' }),
     }));
     toastSuccess.mockRestore();
@@ -164,7 +174,7 @@ describe('CreateTicketPageComponent', () => {
     fixture.detectChanges();
 
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('TK-000123');
+    expect(fixture.nativeElement.textContent).toContain('54f1c1b7-2acf-4428-a2f7-58b2943fb044');
     expect(fixture.nativeElement.textContent).toContain('No inicia el sistema hidráulico.');
     expect(fixture.nativeElement.textContent).toContain('No, continúa funcionando');
     expect(fixture.nativeElement.textContent).toContain('No afecta la producción');
@@ -180,7 +190,7 @@ describe('CreateTicketPageComponent', () => {
   });
 
   it('evita envíos duplicados mientras la solicitud está pendiente', () => {
-    const pendingResponse = new Subject<CreateTicketResponse>();
+    const pendingResponse = new Subject<TicketDetail>();
     gateway.createTicket.mockReturnValue(pendingResponse.asObservable());
     const fixture = createComponent();
     const component = fixture.componentInstance;
@@ -193,12 +203,24 @@ describe('CreateTicketPageComponent', () => {
     expect(component.isSubmitting()).toBe(true);
 
     pendingResponse.next({
-      ticket: {
-        id: 'TK-000124',
-        status: 'NEW',
-        priority: 'LOW',
-        createdAt: '2026-08-26T12:00:00.000Z',
+      id: '54f1c1b7-2acf-4428-a2f7-58b2943fb045',
+      description: 'No inicia el sistema hidráulico.',
+      location: 'Planta 2',
+      asset: 'Excavadora EX-04',
+      status: 'NEW',
+      priority: 'LOW',
+      requester: { id: 'requester-id', name: 'Camila Rojas' },
+      createdAt: '2026-08-26T12:00:00.000Z',
+      updatedAt: '2026-08-26T12:00:00.000Z',
+      impactAssessment: {
+        safetyRisk: false,
+        equipmentStopped: 'NO',
+        productionImpact: 'NONE',
+        workaroundAvailable: true,
+        affectsOtherAreas: false,
+        calculatedPriority: 'LOW',
       },
+      history: [],
     });
     pendingResponse.complete();
 
@@ -207,7 +229,7 @@ describe('CreateTicketPageComponent', () => {
 
   it('muestra un error recuperable si el gateway falla', () => {
     gateway.createTicket.mockReturnValue(
-      throwError(() => new Error('El backend no está disponible')) as Observable<CreateTicketResponse>
+      throwError(() => new Error('El backend no está disponible')) as Observable<TicketDetail>
     );
     const fixture = createComponent();
     const component = fixture.componentInstance;

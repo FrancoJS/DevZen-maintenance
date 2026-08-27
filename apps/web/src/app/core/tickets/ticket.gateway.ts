@@ -2,8 +2,8 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
-  CreateTicketResponse,
   ListMyTicketsResponse,
+  TicketDetail,
 } from './ticket.models';
 
 /**
@@ -11,7 +11,7 @@ import {
  * will call POST /api/tickets; screens must not depend on that transport.
  */
 export interface TicketGateway {
-  createTicket(request: CreateTicketRequest): Observable<CreateTicketResponse>;
+  createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
   listMyTickets(): Observable<ListMyTicketsResponse>;
 }
 
