@@ -50,40 +50,41 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 
 ### Crear ticket
 
-**Contrato pendiente de definición.**
+`POST /api/tickets`
 
 - **Actor:** cualquier rol autenticado.
-- **Precondición:** descripción, ubicación, máquina/equipo, área cuando aplique y cinco respuestas válidas.
-- **Efecto:** persistir ticket, evaluación de impacto, prioridad calculada e historial de creación.
-- **Cambio:** creación en `NEW`.
-- **Datos derivados:** requester y timestamp desde backend; prioridad calculada.
-- **Validaciones:** no confiar en requester/priority enviados por cliente.
+- **Entrada:** `description`, `location`, `asset` y `impactAssessment` con las cinco respuestas obligatorias. No existe `area`.
+- **Efecto:** en una transacción, persiste ticket `NEW`, evaluación, prioridad automática e historial `TICKET_CREATED`.
+- **Datos derivados:** requester/timestamps desde backend; prioridad calculada exclusivamente por backend.
+- **Respuesta `201`:** detalle del ticket, evaluación e historial.
+- **Errores:** `400` para DTO inválido o propiedades no permitidas.
 
 ### Listar tickets
 
-**Contrato pendiente de definición.**
+`GET /api/tickets?page=1&limit=20&status?&priority?`
 
 - **Actor:** autenticado.
-- **Efecto:** `REQUESTER`/`TECHNICIAN` ven sus tickets creados; técnico además accede a su mantención/participación según operación; `ADMIN` ve todos.
-- **Validaciones:** filtrado backend por identidad/rol.
+- **Visibilidad:** `REQUESTER` y `TECHNICIAN` ven solo tickets creados por sí mismos; `ADMIN` ve todos. La visibilidad técnica por asignación pertenece a una fase posterior.
+- **Consulta:** `page` desde 1, `limit` entre 1 y 100, filtros opcionales por estado y prioridad; orden `createdAt DESC, id DESC`.
+- **Respuesta `200`:** `{ items, page, limit, total, totalPages }`.
 
 ### Obtener detalle e historial
 
-**Contrato pendiente de definición.**
+`GET /api/tickets/:id`
 
-- **Actor:** propietario, técnico participante/actual según alcance, o `ADMIN`.
-- **Efecto:** devolver secciones del mismo ticket y cronología autorizada.
-- **Validaciones:** evitar fuga entre usuarios.
+- **Actor:** propietario o `ADMIN`; el técnico conserva en esta fase el alcance de solicitante.
+- **Efecto:** devuelve solicitud, evaluación de impacto e historial cronológico con actor seguro `{ id, name }`.
+- **Errores:** `404` tanto si el ticket no existe como si no es visible, para no revelar recursos ajenos.
 
 ### Editar solicitud
 
-**Contrato pendiente de definición.**
+`PATCH /api/tickets/:id`
 
 - **Actor:** creador autenticado.
 - **Precondición:** ticket propio `NEW`.
-- **Efecto:** actualizar datos permitidos y registrar cambio relevante.
-- **Cambio:** permanece `NEW`.
-- **Validaciones:** ownership, estado, campos editables. El Word no enumera con precisión los campos editables.
+- **Entrada:** solo `description`.
+- **Efecto:** actualiza descripción e historial `TICKET_UPDATED` atómicamente; estado y prioridad permanecen sin cambios.
+- **Errores:** `404` si no existe/no es visible; `409` si no está `NEW`; `400` para DTO inválido o campos no permitidos.
 
 No existe contrato de eliminación física ni reapertura.
 

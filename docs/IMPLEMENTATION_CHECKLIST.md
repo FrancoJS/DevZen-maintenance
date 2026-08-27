@@ -8,12 +8,12 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Crear entidades/tablas principales y migraciones.
 - [x] Implementar autenticación y guards por rol.
 - [x] Exponer documentación OpenAPI de autenticación únicamente en desarrollo.
-- [ ] Implementar cálculo de prioridad con pruebas unitarias.
+- [x] Implementar cálculo de prioridad con pruebas unitarias.
 - [ ] Implementar máquina de estados del ticket.
 - [ ] Implementar regla de máximo un ticket `ASSIGNED`/`IN_PROGRESS`/`FREEZE_REQUESTED` por técnico.
-- [ ] Implementar historial automático para cambios relevantes.
+- [x] Implementar historial automático para creación y edición de tickets.
 - [ ] Implementar flujo de congelamiento y liberación de asignación.
-- [ ] Implementar filtros de visibilidad por rol.
+- [x] Implementar visibilidad por rol, paginación y filtros mínimos de tickets.
 
 ## Frontend
 
