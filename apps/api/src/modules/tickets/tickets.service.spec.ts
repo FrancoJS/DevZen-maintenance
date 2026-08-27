@@ -708,6 +708,39 @@ describe('TicketsService', () => {
     );
   });
 
+  it('lists every freeze request for an administrator with its ticket projection', async () => {
+    const query = createQueryBuilder();
+    query.getManyAndCount.mockResolvedValue([
+      [{
+        id: 'freeze-id', status: FreezeRequestStatus.PENDING, reasonType: 'OTHER',
+        reasonDetail: 'Esperando proveedor', requestedAt: new Date('2026-08-27T10:00:00.000Z'),
+        reviewedBy: null, reviewedAt: null, reviewNote: null,
+        technician: { id: 'technician-id', name: 'Técnica' },
+        ticket: { id: 'ticket-id', description: 'Falla', asset: 'Prensa', priority: 'HIGH', status: TicketStatus.FREEZE_REQUESTED },
+      }],
+      1,
+    ]);
+    Object.assign(ticketsRepository, {
+      manager: { getRepository: jest.fn(() => ({ createQueryBuilder: jest.fn(() => query) })) },
+    });
+
+    await expect(service.findAllFreezeRequests(actor(UserRole.ADMIN))).resolves.toEqual({
+      items: [expect.objectContaining({
+        id: 'freeze-id',
+        technician: { id: 'technician-id', name: 'Técnica' },
+        ticket: expect.objectContaining({ id: 'ticket-id', asset: 'Prensa' }),
+      })],
+      total: 1,
+    });
+    expect(query.leftJoinAndSelect).toHaveBeenCalledWith('freezeRequest.ticket', 'ticket');
+  });
+
+  it('does not allow a non-administrator to list freeze requests', async () => {
+    await expect(service.findAllFreezeRequests(actor(UserRole.TECHNICIAN))).rejects.toEqual(
+      new ForbiddenException('Solo un administrador puede realizar esta acción'),
+    );
+  });
+
   it('closes a resolved ticket and records the optional administrative note atomically', async () => {
     const ticket = {
       id: 'ticket-id',

@@ -29,6 +29,10 @@ import { RejectFreezeRequestDto } from './dto/reject-freeze-request.dto';
 import { RequestFreezeDto } from './dto/request-freeze.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import {
+  FreezeRequestListItemResponseDto,
+  FreezeRequestsResponseDto,
+} from './dto/freeze-request-list-response.dto';
+import {
   PaginatedTicketsResponseDto,
   AssignmentHistoryResponseDto,
   FreezeRequestResponseDto,
@@ -801,6 +805,25 @@ export class TicketsService {
     };
   }
 
+  async findAllFreezeRequests(
+    actor: AuthenticatedUser,
+  ): Promise<FreezeRequestsResponseDto> {
+    this.assertAdmin(actor);
+
+    const [requests, total] = await this.tickets.manager
+      .getRepository(FreezeRequest)
+      .createQueryBuilder('freezeRequest')
+      .leftJoinAndSelect('freezeRequest.ticket', 'ticket')
+      .leftJoinAndSelect('freezeRequest.technician', 'technician')
+      .leftJoinAndSelect('freezeRequest.reviewedBy', 'reviewedBy')
+      .getManyAndCount();
+
+    return {
+      items: requests.map((request) => this.toFreezeRequestListItem(request)),
+      total,
+    };
+  }
+
   async findOne(
     id: string,
     actor: AuthenticatedUser,
@@ -1004,6 +1027,21 @@ export class TicketsService {
         : null,
       reviewedAt: request.reviewedAt,
       reviewNote: request.reviewNote,
+    };
+  }
+
+  private toFreezeRequestListItem(
+    request: FreezeRequest,
+  ): FreezeRequestListItemResponseDto {
+    return {
+      ...this.toFreezeRequest(request),
+      ticket: {
+        id: request.ticket.id,
+        description: request.ticket.description,
+        asset: request.ticket.asset,
+        priority: request.ticket.priority,
+        status: request.ticket.status,
+      },
     };
   }
 

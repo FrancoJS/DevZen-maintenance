@@ -29,20 +29,27 @@ function activeTicket(): Ticket {
 describe('TechniciansService', () => {
   const query = {
     leftJoinAndSelect: jest.fn(),
+    leftJoin: jest.fn(),
     where: jest.fn(),
     orderBy: jest.fn(),
     addOrderBy: jest.fn(),
     skip: jest.fn(),
     take: jest.fn(),
     getManyAndCount: jest.fn(),
+    select: jest.fn(),
+    addSelect: jest.fn(),
+    getRawOne: jest.fn(),
   };
   for (const method of [
     'leftJoinAndSelect',
+    'leftJoin',
     'where',
     'orderBy',
     'addOrderBy',
     'skip',
     'take',
+    'select',
+    'addSelect',
   ] as const) {
     query[method].mockReturnValue(query);
   }
@@ -53,11 +60,14 @@ describe('TechniciansService', () => {
     jest.resetAllMocks();
     for (const method of [
       'leftJoinAndSelect',
+      'leftJoin',
       'where',
       'orderBy',
       'addOrderBy',
       'skip',
       'take',
+      'select',
+      'addSelect',
     ] as const) {
       query[method].mockReturnValue(query);
     }
@@ -77,6 +87,31 @@ describe('TechniciansService', () => {
       TechnicianAvailability.AVAILABLE,
     ]);
     expect(query.leftJoinAndSelect).toHaveBeenCalledWith(
+      'user.currentTickets',
+      'currentTicket',
+      'currentTicket.status IN (:...activeStatuses)',
+      expect.objectContaining({
+        activeStatuses: [
+          TicketStatus.ASSIGNED,
+          TicketStatus.IN_PROGRESS,
+          TicketStatus.FREEZE_REQUESTED,
+        ],
+      }),
+    );
+  });
+
+  it('uses the same active states when aggregating capacity', async () => {
+    query.getRawOne.mockResolvedValue({ total: '3', busy: '1' });
+    const manager = {
+      getRepository: jest.fn(() => ({ createQueryBuilder: jest.fn(() => query) })),
+    };
+
+    await expect(service.getCapacity(manager as never)).resolves.toEqual({
+      total: 3,
+      available: 2,
+      busy: 1,
+    });
+    expect(query.leftJoin).toHaveBeenCalledWith(
       'user.currentTickets',
       'currentTicket',
       'currentTicket.status IN (:...activeStatuses)',

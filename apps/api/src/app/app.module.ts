@@ -6,6 +6,7 @@ import { HistoryModule } from '../modules/history/history.module';
 import { TicketsModule } from '../modules/tickets/tickets.module';
 import { TechniciansModule } from '../modules/technicians/technicians.module';
 import { UsersModule } from '../modules/users/users.module';
+import { DashboardModule } from '../modules/dashboard/dashboard.module';
 import { readJwtConfiguration } from '../modules/auth/auth.config';
 
 @Module({
@@ -24,6 +25,7 @@ import { readJwtConfiguration } from '../modules/auth/auth.config';
     TicketsModule,
     TechniciansModule,
     HistoryModule,
+    DashboardModule,
   ],
 })
 export class AppModule {}

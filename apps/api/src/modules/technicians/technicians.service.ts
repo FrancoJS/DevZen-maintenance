@@ -1,7 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Ticket } from '../tickets/entities/ticket.entity';
+import { EntityManager, Repository } from 'typeorm';
 import { TicketStatus } from '../tickets/enums/ticket-status.enum';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
@@ -12,11 +11,17 @@ import {
   TechnicianResponseDto,
 } from './dto/technician-response.dto';
 
-const ACTIVE_TICKET_STATUSES = [
+export const ACTIVE_TICKET_STATUSES = [
   TicketStatus.ASSIGNED,
   TicketStatus.IN_PROGRESS,
   TicketStatus.FREEZE_REQUESTED,
 ] as const;
+
+export interface TechnicianCapacity {
+  total: number;
+  available: number;
+  busy: number;
+}
 
 @Injectable()
 export class TechniciansService {
@@ -50,6 +55,27 @@ export class TechniciansService {
       total,
       totalPages: Math.ceil(total / query.limit),
     };
+  }
+
+  async getCapacity(manager: EntityManager): Promise<TechnicianCapacity> {
+    const result = await manager
+      .getRepository(User)
+      .createQueryBuilder('user')
+      .leftJoin(
+        'user.currentTickets',
+        'currentTicket',
+        'currentTicket.status IN (:...activeStatuses)',
+        { activeStatuses: ACTIVE_TICKET_STATUSES },
+      )
+      .where('user.role = :role', { role: UserRole.TECHNICIAN })
+      .select('COUNT(user.id)', 'total')
+      .addSelect('COUNT(currentTicket.id)', 'busy')
+      .getRawOne<{ total: string; busy: string }>();
+
+    const total = Number(result?.total ?? 0);
+    const busy = Number(result?.busy ?? 0);
+
+    return { total, busy, available: total - busy };
   }
 
   private toResponse(technician: User): TechnicianResponseDto {
