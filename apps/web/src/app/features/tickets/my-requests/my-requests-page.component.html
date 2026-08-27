@@ -1,0 +1,122 @@
+<section class="mx-auto max-w-7xl space-y-6" aria-labelledby="my-requests-title">
+  <header class="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+    <div>
+      <p class="text-sm text-muted-foreground">Solicitudes / Seguimiento</p>
+      <h2 id="my-requests-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Mis solicitudes</h2>
+      <p class="mt-1 max-w-2xl text-muted-foreground">Consulta los tickets que has creado como solicitante.</p>
+    </div>
+    <a hlmBtn routerLink="/crear-solicitud">Crear solicitud</a>
+  </header>
+
+  @if (isLoading()) {
+    <article hlmCard aria-busy="true" aria-label="Cargando solicitudes">
+      <div hlmCardContent class="space-y-4 py-8">
+        <div class="h-5 w-48 animate-pulse rounded bg-muted"></div>
+        <div class="h-16 animate-pulse rounded-lg bg-muted"></div>
+        <div class="h-16 animate-pulse rounded-lg bg-muted"></div>
+        <p class="text-sm text-muted-foreground">Cargando tus solicitudes…</p>
+      </div>
+    </article>
+  } @else if (loadError(); as error) {
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos mostrar tus solicitudes</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadTickets()">Reintentar</button>
+      </div>
+    </article>
+  } @else if (tickets().length) {
+    <article hlmCard>
+      <header hlmCardHeader class="border-b">
+        <h3 hlmCardTitle>Buscar y filtrar</h3>
+        <p hlmCardDescription>Encuentra tus solicitudes por ticket, máquina, estado o prioridad.</p>
+      </header>
+      <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
+        <div class="grid gap-2">
+          <label for="my-requests-search" class="text-sm font-medium">Buscar por ticket o equipo</label>
+          <input id="my-requests-search" type="search" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Ej.: TK-1024 o Bomba" [value]="query()" (input)="updateQuery($any($event.target).value)" />
+        </div>
+        <div class="grid gap-2">
+          <label for="my-requests-status" class="text-sm font-medium">Estado</label>
+          <select id="my-requests-status" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedStatus()" (change)="updateStatus($any($event.target).value)">
+            <option value="">Todos los estados</option>
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabel(status) }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid gap-2">
+          <label for="my-requests-priority" class="text-sm font-medium">Prioridad</label>
+          <select id="my-requests-priority" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedPriority()" (change)="updatePriority($any($event.target).value)">
+            <option value="">Todas las prioridades</option>
+            @for (priority of priorities; track priority) {
+              <option [value]="priority">{{ priorityLabel(priority) }}</option>
+            }
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button hlmBtn type="button" variant="outline" class="w-full" [disabled]="!hasActiveFilters()" (click)="clearFilters()">Limpiar filtros</button>
+        </div>
+      </div>
+    </article>
+
+    <article hlmCard>
+      <header hlmCardHeader class="border-b">
+        <h3 hlmCardTitle>Tickets creados</h3>
+        <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} de {{ tickets().length }} {{ tickets().length === 1 ? 'solicitud registrada' : 'solicitudes registradas' }}</p>
+      </header>
+      @if (filteredTickets().length) {
+        <div hlmCardContent class="p-0">
+          <div class="hidden overflow-x-auto md:block">
+            <table class="w-full min-w-180 text-left text-sm">
+              <caption class="sr-only">Listado de solicitudes creadas por el usuario actual</caption>
+              <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th scope="col" class="px-6 py-3 font-semibold">Ticket</th>
+                  <th scope="col" class="px-6 py-3 font-semibold">Máquina o equipo</th>
+                  <th scope="col" class="px-6 py-3 font-semibold">Estado</th>
+                  <th scope="col" class="px-6 py-3 font-semibold">Prioridad</th>
+                  <th scope="col" class="px-6 py-3 font-semibold">Fecha de creación</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (ticket of filteredTickets(); track ticket.id) {
+                  <tr class="transition-colors hover:bg-muted/35">
+                    <td class="px-6 py-4 font-semibold">{{ ticket.id }}</td>
+                    <td class="px-6 py-4">{{ ticket.asset }}</td>
+                    <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></td>
+                    <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></td>
+                    <td class="px-6 py-4 text-muted-foreground">{{ formatDate(ticket.createdAt) }}</td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid gap-3 p-4 md:hidden">
+            @for (ticket of filteredTickets(); track ticket.id) {
+              <article class="rounded-lg border p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ ticket.id }}</p><p class="mt-1 text-sm text-muted-foreground">{{ ticket.asset }}</p></div><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></div>
+                <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</p><span hlmBadge variant="outline" class="mt-1" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de creación</p><p class="mt-1">{{ formatDate(ticket.createdAt) }}</p></div></div>
+              </article>
+            }
+          </div>
+        </div>
+      } @else {
+        <div hlmCardContent class="py-12 text-center">
+          <p class="font-semibold">No encontramos solicitudes con esos criterios</p>
+          <p class="mt-1 text-sm text-muted-foreground">Ajusta la búsqueda o vuelve a mostrar todas tus solicitudes.</p>
+          <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
+        </div>
+      }
+    </article>
+  } @else {
+    <article hlmCard>
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">Aún no tienes solicitudes</p>
+        <p class="mt-1 text-sm text-muted-foreground">Cuando reportes una falla, podrás seguir su estado desde aquí.</p>
+        <a hlmBtn routerLink="/crear-solicitud" variant="outline" class="mt-5">Crear mi primera solicitud</a>
+      </div>
+    </article>
+  }
+</section>

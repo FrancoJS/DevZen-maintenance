@@ -22,7 +22,16 @@ export const appRoutes: Route[] = [
     canActivate: [authGuard],
     children: [
       { path: 'inicio', component: HomePage, title: 'Inicio | DevZen Maintenance', canActivate: [roleGuard], data: { roles: ALL_ROLES } },
-      { path: 'mis-solicitudes', component: PlaceholderPage, title: 'Mis solicitudes | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Mis solicitudes', roles: ALL_ROLES } },
+      {
+        path: 'mis-solicitudes',
+        title: 'Mis solicitudes | DevZen Maintenance',
+        canActivate: [roleGuard],
+        data: { roles: ALL_ROLES },
+        loadComponent: () =>
+          import('./features/tickets/my-requests/my-requests-page.component').then(
+            (module) => module.MyRequestsPageComponent
+          ),
+      },
       {
         path: 'crear-solicitud',
         title: 'Crear solicitud | DevZen Maintenance',

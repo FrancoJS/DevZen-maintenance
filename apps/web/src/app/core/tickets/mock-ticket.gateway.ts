@@ -1,11 +1,14 @@
-import { Injectable } from '@angular/core';
+import { inject, Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { PreviewSessionService } from '../preview-session.service';
 import { TicketGateway } from './ticket.gateway';
 import {
   CreateTicketRequest,
   CreateTicketResponse,
+  ListMyTicketsResponse,
   TicketPriority,
 } from './ticket.models';
+import { MockTicketStore } from './mock-ticket.store';
 
 /**
  * Temporary development adapter. It emulates the backend contract so the UI
@@ -13,48 +16,49 @@ import {
  */
 @Injectable()
 export class MockTicketGateway implements TicketGateway {
-  private nextTicketNumber = 1;
+  private readonly session = inject(PreviewSessionService);
+  private readonly store = inject(MockTicketStore);
 
   createTicket(request: CreateTicketRequest): Observable<CreateTicketResponse> {
-    const ticketNumber = String(this.nextTicketNumber++).padStart(4, '0');
-
     return of({
-      ticket: {
-        id: `TK-MOCK-${ticketNumber}`,
-        status: 'NEW',
-        priority: calculatePriority(request),
-        createdAt: new Date().toISOString(),
-      },
+      ticket: this.store.createForRequester(
+        this.session.user().email,
+        request,
+        calculatePriority(request)
+      ),
+    });
+  }
+
+  listMyTickets(): Observable<ListMyTicketsResponse> {
+    return of({
+      tickets: this.store.listForRequester(this.session.user().email),
     });
   }
 }
 
 export function calculatePriority(request: CreateTicketRequest): TicketPriority {
   const impact = request.impactAssessment;
-  const score =
-    (impact.safetyRisk ? 10 : 0) +
-    (impact.equipmentStopped === 'YES'
-      ? 3
-      : impact.equipmentStopped === 'PARTIAL'
-        ? 1
-        : 0) +
-    (impact.productionImpact === 'STOPPED'
-      ? 8
-      : impact.productionImpact === 'REDUCED'
-        ? 2
-        : 0) +
-    (!impact.workaroundAvailable ? 2 : 0) +
-    (impact.affectsOtherAreas ? 1 : 0);
 
-  if (score >= 10) {
+  if (
+    impact.safetyRisk ||
+    (impact.productionImpact === 'STOPPED' && !impact.workaroundAvailable)
+  ) {
     return 'CRITICAL';
   }
 
-  if (score >= 3) {
+  if (
+    impact.equipmentStopped === 'YES' ||
+    impact.productionImpact === 'STOPPED' ||
+    (impact.productionImpact === 'REDUCED' && !impact.workaroundAvailable) ||
+    impact.affectsOtherAreas
+  ) {
     return 'HIGH';
   }
 
-  if (score >= 1) {
+  if (
+    impact.equipmentStopped === 'PARTIAL' ||
+    impact.productionImpact === 'REDUCED'
+  ) {
     return 'MEDIUM';
   }
 
