@@ -5,10 +5,10 @@
       <h2 id="my-requests-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Mis solicitudes</h2>
       <p class="mt-1 max-w-2xl text-muted-foreground">Consulta los tickets que has creado como solicitante.</p>
     </div>
-    <a hlmBtn routerLink="/crear-solicitud">Crear solicitud</a>
+    <button hlmBtn type="button" (click)="openCreateModal()">Crear solicitud</button>
   </header>
 
-  @if (isLoading()) {
+  @if (isLoading() && !tickets().length) {
     <article hlmCard aria-busy="true" aria-label="Cargando solicitudes">
       <div hlmCardContent class="space-y-4 py-8">
         <div class="h-5 w-48 animate-pulse rounded bg-muted"></div>
@@ -124,8 +124,27 @@
       <div hlmCardContent class="py-12 text-center">
         <p class="font-semibold">Aún no tienes solicitudes</p>
         <p class="mt-1 text-sm text-muted-foreground">Cuando reportes una falla, podrás seguir su estado desde aquí.</p>
-        <a hlmBtn routerLink="/crear-solicitud" variant="outline" class="mt-5">Crear mi primera solicitud</a>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="openCreateModal()">Crear mi primera solicitud</button>
       </div>
     </article>
+  }
+
+  @if (isCreateModalOpen()) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeCreateModal()">
+      <article hlmCard role="dialog" aria-modal="true" aria-labelledby="create-request-modal-title" class="max-h-[90vh] w-full max-w-4xl overflow-y-auto" (click)="$event.stopPropagation()" (keydown.escape)="closeCreateModal()" tabindex="-1">
+        <header hlmCardHeader class="sticky top-0 z-10 border-b bg-card">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
+              <h3 hlmCardTitle id="create-request-modal-title" class="mt-1">Reportar una falla</h3>
+            </div>
+            <button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar formulario de solicitud" [disabled]="!!createTicketPage?.isSubmitting()" (click)="closeCreateModal()">×</button>
+          </div>
+        </header>
+        <div hlmCardContent class="p-0">
+          <app-create-ticket-page (created)="onTicketCreated($event)" />
+        </div>
+      </article>
+    </div>
   }
 </section>

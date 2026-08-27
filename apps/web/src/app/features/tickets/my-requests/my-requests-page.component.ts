@@ -1,13 +1,13 @@
-import { Component, computed, inject, OnInit, signal } from '@angular/core';
-import { RouterLink } from '@angular/router';
+import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
-import { TicketPriority, TicketStatus, TicketSummary } from '../../../core/tickets/ticket.models';
+import { TicketDetail, TicketPriority, TicketStatus, TicketSummary } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
+import { CreateTicketPageComponent } from '../create-ticket/create-ticket-page.component';
 
 const TICKET_STATUSES: TicketStatus[] = [
   'NEW',
@@ -24,12 +24,15 @@ const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
 
 @Component({
   selector: 'app-my-requests-page',
-  imports: [RouterLink, HlmBadgeImports, HlmButtonImports, HlmCardImports],
+  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './my-requests-page.component.html',
 })
 export class MyRequestsPageComponent implements OnInit {
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
+
+  @ViewChild(CreateTicketPageComponent)
+  readonly createTicketPage?: CreateTicketPageComponent;
 
   readonly tickets = signal<TicketSummary[]>([]);
   readonly isLoading = signal(true);
@@ -41,6 +44,7 @@ export class MyRequestsPageComponent implements OnInit {
   readonly pageSize = 20;
   readonly total = signal(0);
   readonly totalPages = signal(0);
+  readonly isCreateModalOpen = signal(false);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
   readonly filteredTickets = computed(() => {
@@ -129,6 +133,31 @@ export class MyRequestsPageComponent implements OnInit {
     this.loadTickets();
   }
 
+  openCreateModal(): void {
+    this.isCreateModalOpen.set(true);
+  }
+
+  closeCreateModal(): void {
+    if (this.createTicketPage?.isSubmitting()) return;
+
+    this.createTicketPage?.startNewTicket();
+    this.isCreateModalOpen.set(false);
+  }
+
+  onTicketCreated(ticket: TicketDetail): void {
+    this.query.set('');
+    this.selectedStatus.set('');
+    this.selectedPriority.set('');
+    this.page.set(1);
+
+    const nextTotal = this.total() + 1;
+    this.tickets.update((tickets) => [this.toSummary(ticket), ...tickets].slice(0, this.pageSize));
+    this.total.set(nextTotal);
+    this.totalPages.set(Math.ceil(nextTotal / this.pageSize));
+    this.closeCreateModal();
+    this.loadTickets();
+  }
+
   statusLabel(status: TicketSummary['status']): string {
     return STATUS_LABELS[status];
   }
@@ -164,5 +193,19 @@ export class MyRequestsPageComponent implements OnInit {
       HIGH: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-200',
       CRITICAL: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200',
     }[priority];
+  }
+
+  private toSummary(ticket: TicketDetail): TicketSummary {
+    return {
+      id: ticket.id,
+      description: ticket.description,
+      location: ticket.location,
+      asset: ticket.asset,
+      status: ticket.status,
+      priority: ticket.priority,
+      requester: ticket.requester,
+      createdAt: ticket.createdAt,
+      updatedAt: ticket.updatedAt,
+    };
   }
 }

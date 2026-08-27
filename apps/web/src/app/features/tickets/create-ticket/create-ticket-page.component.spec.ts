@@ -132,8 +132,10 @@ describe('CreateTicketPageComponent', () => {
 
   it('muestra una confirmación flotante y descartable al crear la solicitud', () => {
     const toastSuccess = vi.spyOn(toast, 'success');
+    const created = vi.fn();
     const fixture = createComponent();
     const component = fixture.componentInstance;
+    component.created.subscribe(created);
     fillValidForm(component);
 
     component.submit();
@@ -141,6 +143,9 @@ describe('CreateTicketPageComponent', () => {
     expect(toastSuccess).toHaveBeenCalledWith('Solicitud creada', expect.objectContaining({
       description: 'El ticket 54f1c1b7-2acf-4428-a2f7-58b2943fb044 fue registrado correctamente.',
       action: expect.objectContaining({ label: 'Descartar' }),
+    }));
+    expect(created).toHaveBeenCalledWith(expect.objectContaining({
+      id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
     }));
     toastSuccess.mockRestore();
   });
@@ -242,6 +247,7 @@ describe('CreateTicketPageComponent', () => {
   });
 
   it('muestra un error recuperable si el gateway falla', () => {
+    const toastError = vi.spyOn(toast, 'error');
     gateway.createTicket.mockReturnValue(
       throwError(() => new Error('El backend no está disponible')) as Observable<TicketDetail>
     );
@@ -255,5 +261,12 @@ describe('CreateTicketPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.'
     );
+    expect(toastError).toHaveBeenCalledWith(
+      'No pudimos crear la solicitud',
+      expect.objectContaining({
+        description: 'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.',
+      })
+    );
+    toastError.mockRestore();
   });
 });

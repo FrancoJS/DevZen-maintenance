@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -61,6 +61,8 @@ export class CreateTicketPageComponent {
   readonly submitError = signal<string | null>(null);
   readonly showValidationErrors = signal(false);
 
+  @Output() readonly created = new EventEmitter<TicketDetail>();
+
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
     location: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
@@ -108,11 +110,17 @@ export class CreateTicketPageComponent {
             class: 'border-primary! bg-card! text-card-foreground! shadow-lg!',
             actionButtonStyle: 'background-color: var(--primary); color: var(--primary-foreground);',
           });
+          this.created.emit(ticket);
         },
-        error: () =>
-          this.submitError.set(
-            'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.'
-          ),
+        error: () => {
+          const message =
+            'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.';
+          this.submitError.set(message);
+          toast.error('No pudimos crear la solicitud', {
+            description: message,
+            duration: 8000,
+          });
+        },
       });
   }
 

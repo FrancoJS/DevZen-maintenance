@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TICKET_GATEWAY } from '../../../core/tickets/ticket.gateway';
 import {
   PaginatedTicketsResponse,
+  TicketDetail,
   TicketSummary,
 } from '../../../core/tickets/ticket.models';
 import { MyRequestsPageComponent } from './my-requests-page.component';
@@ -40,6 +41,34 @@ const response: PaginatedTicketsResponse = {
   limit: 20,
   total: 22,
   totalPages: 2,
+};
+
+const createdTicket: TicketDetail = {
+  id: 'TK-CREATED',
+  description: 'Solicitud creada desde el modal',
+  location: 'Planta 3',
+  asset: 'Bomba nueva',
+  requester: { id: 'requester-id', name: 'Camila Rojas' },
+  status: 'NEW',
+  priority: 'HIGH',
+  createdAt: '2026-08-27T12:00:00.000Z',
+  updatedAt: '2026-08-27T12:00:00.000Z',
+  impactAssessment: {
+    safetyRisk: false,
+    equipmentStopped: 'YES',
+    productionImpact: 'NONE',
+    workaroundAvailable: true,
+    affectsOtherAreas: false,
+    calculatedPriority: 'HIGH',
+  },
+  currentTechnician: null,
+  resolvedBy: null,
+  resolvedAt: null,
+  closedBy: null,
+  closedAt: null,
+  assignments: [],
+  maintenance: null,
+  history: [],
 };
 
 describe('MyRequestsPageComponent', () => {
@@ -176,5 +205,30 @@ describe('MyRequestsPageComponent', () => {
 
     component.previousPage();
     expect(component.page()).toBe(1);
+  });
+
+  it('abre el modal de creación y lista de inmediato el ticket creado', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.openCreateModal();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
+
+    const refreshedList = new Subject<PaginatedTicketsResponse>();
+    gateway.listMyTickets.mockReturnValueOnce(refreshedList.asObservable());
+    component.onTicketCreated(createdTicket);
+    fixture.detectChanges();
+
+    expect(component.isCreateModalOpen()).toBe(false);
+    expect(component.page()).toBe(1);
+    expect(component.selectedStatus()).toBe('');
+    expect(component.selectedPriority()).toBe('');
+    expect(component.tickets().map((ticket) => ticket.id)).toContain('TK-CREATED');
+    expect(component.total()).toBe(23);
+    expect(fixture.nativeElement.textContent).toContain('Bomba nueva');
+
+    refreshedList.next(response);
+    refreshedList.complete();
   });
 });
