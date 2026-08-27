@@ -111,51 +111,65 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 
 ### Asignar o reasignar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/assign`
 
 - **Actor:** `ADMIN`.
-- **Precondición:** ticket `NEW` o `PENDING_REASSIGNMENT`; técnico disponible.
-- **Efecto:** crear asignación histórica activa, definir `currentTechnicianId`, ocupar técnico.
-- **Cambio:** `NEW|PENDING_REASSIGNMENT -> ASSIGNED`.
-- **Validaciones:** rol, transición, disponibilidad a tiempo de escritura y concurrencia (`RN-20`).
+- **Entrada:** `{ technicianId }`, UUID v4 de un usuario con rol `TECHNICIAN`.
+- **Precondición:** ticket `NEW`; técnico disponible.
+- **Efecto:** crear asignación histórica activa, definir `currentTechnicianId`, ocupar técnico y registrar `TECHNICIAN_ASSIGNED`.
+- **Cambio:** `NEW -> ASSIGNED`.
+- **Validaciones:** rol, transición, disponibilidad a tiempo de escritura y concurrencia (`RN-20`). Las restricciones únicas parciales de PostgreSQL se traducen a `409`.
+- **Errores:** `400` para destinatario inválido/no técnico, `404` para ticket/técnico inexistente y `409` para ticket no `NEW` o técnico ocupado.
+
+La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al flujo de congelamiento.
 
 ## Mantención
 
 ### Iniciar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/start`
 
 - **Actor:** técnico actual.
-- **Precondición:** ticket `ASSIGNED`.
-- **Efecto:** registrar inicio.
+- **Precondición:** ticket `ASSIGNED` y una asignación activa del técnico autenticado.
+- **Efecto:** registra `startedAt`, crea el registro de mantención vacío cuando no existe y agrega `MAINTENANCE_STARTED` al historial.
 - **Cambio:** `ASSIGNED -> IN_PROGRESS`.
-- **Validaciones:** identidad igual a `currentTechnicianId` y transición.
+- **Validaciones:** identidad igual a `currentTechnicianId`, transición y asignación activa coherente.
+- **Errores:** `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado/asignación incompatibles.
 
 ### Actualizar información técnica
 
-**Contrato pendiente de definición.**
+`PATCH /api/tickets/:id/maintenance`
 
 - **Actor:** técnico actual.
-- **Datos:** diagnóstico, trabajo realizado, observaciones; evidencia solo si se incluye.
-- **Precondición/estados exactos para edición parcial:** contrato pendiente de definición. La resolución sí exige `IN_PROGRESS`.
+- **Datos:** `diagnosis`, `workPerformed`, `notes`; todos opcionales y anulables de forma individual. Debe enviarse al menos un campo.
+- **Precondición:** técnico actual y ticket `IN_PROGRESS`.
+- **Efecto:** actualiza únicamente los campos enviados y registra `MAINTENANCE_UPDATED` con los valores anterior/nuevo. Una solicitud sin cambios no genera evento ficticio.
+- **Límites:** no incluye evidencia final ni permite registrar información antes de iniciar.
+- **Errores:** `400` para cuerpo sin campos, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado/mantención incompatibles.
 
 ### Resolver
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/resolve`
 
 - **Actor:** técnico actual.
-- **Precondición:** ticket `IN_PROGRESS`; `workPerformed` obligatorio.
-- **Efecto:** registrar resolución, liberar asignación, limpiar `currentTechnicianId`, dejar técnico disponible e historial intacto.
+- **Entrada:** `{ workPerformed }`, texto obligatorio y no vacío después de normalizar espacios.
+- **Precondición:** ticket `IN_PROGRESS`, técnico autenticado igual a `currentTechnicianId`, asignación activa coherente e información técnica existente.
+- **Efecto:** guarda el trabajo final, registra `resolvedAt` y `resolvedById`, libera la asignación con motivo `RESOLVED`, limpia `currentTechnicianId` y agrega `TICKET_RESOLVED` al historial.
 - **Cambio:** `IN_PROGRESS -> RESOLVED`.
+- **Respuesta `200`:** detalle actualizado, incluyendo los datos de resolución y la participación liberada.
+- **Errores:** `400` para cuerpo/identificador inválido, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado o asignación/mantención incompatibles.
 
 ### Cerrar administrativamente
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/close`
 
 - **Actor:** `ADMIN`.
+- **Entrada:** `{ note? }`; observación opcional, anulable y normalizada. Una observación vacía no se conserva.
 - **Precondición:** ticket `RESOLVED`.
-- **Efecto:** registrar administrador, timestamp y observación final opcional; volver inmutable.
+- **Efecto:** registra `closedAt` y `closedById`; si existe observación, la conserva en `TicketHistory.details`; agrega `TICKET_CLOSED` y vuelve el ticket inmutable.
 - **Cambio:** `RESOLVED -> CLOSED`.
+- **Respuesta `200`:** detalle actualizado, incluyendo los datos de cierre.
+- **Errores:** `400` para cuerpo/identificador inválido, `403` para actor no administrador, `404` para ticket inexistente y `409` para cualquier estado distinto de `RESOLVED`.
 
 ## Congelamiento
 
@@ -190,19 +204,36 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 
 ### Listar disponibilidad
 
-**Contrato pendiente de definición.**
+`GET /api/technicians?page=1&limit=20`
 
 - **Actor:** `ADMIN`.
-- **Efecto:** devolver técnicos con disponibilidad derivada y ticket actual cuando estén ocupados.
-- **Validaciones:** calcular desde estados activos; no aceptar edición manual.
+- **Efecto:** devuelve `{ items, page, limit, total, totalPages }`; cada técnico incluye identidad segura, `availability` y `currentTicket` cuando está ocupado.
+- **Validaciones:** `BUSY` se deriva de tickets `ASSIGNED`, `IN_PROGRESS` o `FREEZE_REQUESTED`; no existe edición manual de disponibilidad.
+
+### Mantención actual
+
+`GET /api/tickets/my-maintenance`
+
+- **Actor:** `TECHNICIAN`.
+- **Efecto:** devuelve `{ ticket }`, con el detalle de la asignación actual o `ticket: null` si no existe.
+- **Visibilidad:** no cambia el listado general de solicitudes propias; únicamente habilita el detalle del ticket donde el técnico es el responsable actual.
+
+### Historial de mantenciones del técnico
+
+`GET /api/tickets/my-maintenance-history?page=1&limit=20&status?&priority?`
+
+- **Actor:** `TECHNICIAN`.
+- **Efecto:** devuelve `{ items, page, limit, total, totalPages }` con tickets donde el técnico participó y cuya asignación ya fue liberada.
+- **Orden y filtros:** paginación y filtros mínimos equivalentes al listado de tickets; orden `createdAt DESC, id DESC`.
+- **Visibilidad:** habilita el detalle de cada ticket de participación histórica, pero no devuelve permisos de escritura.
 
 ## Historial
 
-### Consultar por ticket, historial técnico o global
+### Consultar historial global
 
 **Contrato pendiente de definición.**
 
-- **Actor:** propietario/autorizado para el ticket, técnico participante para su historial o `ADMIN` para global.
+- **Actor:** `ADMIN`.
 - **Efecto:** devolver cronología con actor, timestamp, acción, estados y detalle relevante.
 - **Validaciones:** alcance por rol y control de volumen/paginación por definir.
 

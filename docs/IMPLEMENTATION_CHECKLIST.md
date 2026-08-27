@@ -10,10 +10,14 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Exponer documentación OpenAPI de autenticación únicamente en desarrollo.
 - [x] Implementar cálculo de prioridad con pruebas unitarias.
 - [ ] Implementar máquina de estados del ticket.
-- [ ] Implementar regla de máximo un ticket `ASSIGNED`/`IN_PROGRESS`/`FREEZE_REQUESTED` por técnico.
+- [x] Implementar asignación inicial `NEW -> ASSIGNED`, disponibilidad derivada y protección de capacidad para técnicos.
 - [x] Implementar historial automático para creación y edición de tickets.
 - [ ] Implementar flujo de congelamiento y liberación de asignación.
 - [x] Implementar visibilidad por rol, paginación y filtros mínimos de tickets.
+- [x] Implementar consulta administrativa paginada de técnicos y consulta de mantención actual del técnico.
+- [x] Implementar inicio `ASSIGNED -> IN_PROGRESS` y registro técnico parcial en `IN_PROGRESS`.
+- [x] Implementar resolución `IN_PROGRESS -> RESOLVED`, liberación del técnico e historial de mantenciones anteriores.
+- [x] Implementar cierre administrativo `RESOLVED -> CLOSED` e inmutabilidad de tickets cerrados.
 
 ## Frontend
 
@@ -43,8 +47,8 @@ El componente gráfico del dashboard es valor adicional. La gestión administrat
 - `apps/web` contiene la bienvenida de Nx y rutas vacías.
 - `apps/api` incorpora configuración TypeORM, entidades, migración inicial y seed de usuarios.
 - La autenticación JWT, el guard global, la autorización gruesa por roles, `/api/auth/login`, `/api/auth/me` y la documentación OpenAPI de desarrollo están implementados.
-- Los servicios/controladores y contratos funcionales de tickets todavía no están implementados; sus ítems permanecen pendientes.
-- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; los flujos de tickets siguen pendientes.
+- Los tickets implementan creación, listado, detalle, edición propia `NEW`, asignación inicial, inicio, registro técnico, resolución y cierre administrativo. Solo el flujo de congelamiento permanece pendiente.
+- TypeORM `0.3.31`, PostgreSQL, entidades, migración inicial y seed base están implementados; el ciclo normal está completo.
 
 ## Flujo de trabajo por fases
 

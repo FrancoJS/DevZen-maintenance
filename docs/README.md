@@ -33,7 +33,7 @@ No se encontraron decisiones funcionales adicionales que modifiquen la especific
 - La autenticación JWT stateless está implementada: `POST /api/auth/login` es público, `GET /api/auth/me` requiere Bearer JWT y las rutas NestJS quedan protegidas globalmente por defecto.
 - La autorización gruesa usa `@Roles(...)`; ownership, técnico asignado y estado del ticket permanecen como reglas de dominio pendientes de los servicios de tickets.
 - Swagger/OpenAPI se expone únicamente en desarrollo mediante `/api/docs` y `/api/docs-json`, con el esquema Bearer `access-token`.
-- Los servicios/controladores y contratos funcionales de tickets todavía no están implementados; el detalle vigente se mantiene en [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md).
+- Los tickets implementan creación, listado, detalle, edición propia `NEW`, asignación inicial transaccional, inicio, registro técnico en `IN_PROGRESS`, resolución con liberación atómica del técnico y cierre administrativo. El técnico puede consultar sus mantenciones históricas liberadas. El congelamiento permanece pendiente; el detalle vigente se mantiene en [IMPLEMENTATION_CHECKLIST.md](IMPLEMENTATION_CHECKLIST.md).
 
 ## Índice y guía de consulta
 

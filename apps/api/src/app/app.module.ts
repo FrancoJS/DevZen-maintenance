@@ -4,6 +4,7 @@ import { DatabaseModule } from '../database/database.module';
 import { AuthModule } from '../modules/auth/auth.module';
 import { HistoryModule } from '../modules/history/history.module';
 import { TicketsModule } from '../modules/tickets/tickets.module';
+import { TechniciansModule } from '../modules/technicians/technicians.module';
 import { UsersModule } from '../modules/users/users.module';
 import { readJwtConfiguration } from '../modules/auth/auth.config';
 
@@ -21,6 +22,7 @@ import { readJwtConfiguration } from '../modules/auth/auth.config';
     UsersModule,
     AuthModule,
     TicketsModule,
+    TechniciansModule,
     HistoryModule,
   ],
 })
