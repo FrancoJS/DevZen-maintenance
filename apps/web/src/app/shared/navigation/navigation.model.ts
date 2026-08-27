@@ -23,7 +23,6 @@ export const NAVIGATION_GROUPS: NavigationGroup[] = [
   { label: 'Administración', items: [
     { label: 'Dashboard', route: '/inicio', icon: '⌂', roles: ['ADMIN'] },
     { label: 'Gestión de tickets', route: '/gestion-tickets', icon: '▤', roles: ['ADMIN'] },
-    { label: 'Técnicos', route: '/tecnicos', icon: '♙', roles: ['ADMIN'] },
     { label: 'Congelamientos', route: '/congelamientos', icon: '❄', roles: ['ADMIN'] },
     { label: 'Historial global', route: '/historial-global', icon: '◷', roles: ['ADMIN'] },
   ] },

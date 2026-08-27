@@ -88,6 +88,13 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Implementación:** UI pública en `/api/docs` y documento JSON en `/api/docs-json`; fuera de desarrollo las rutas no se registran.
 - **Seguridad documentada:** Bearer JWT global con nombre `access-token`; el login declara `security: []` y `/api/auth/me` permanece protegido.
 
+## `PD-013` — Unificación de Gestión de tickets y Técnicos — Resuelta
+
+- **Decisión aprobada:** la información de disponibilidad técnica se integra en Gestión de tickets y se elimina la pantalla/ruta administrativa independiente de Técnicos.
+- **Filtros MVP:** estado, prioridad y presencia de técnico actual; el último se deriva en frontend sobre un máximo de 100 tickets obtenidos desde el contrato vigente.
+- **Límite:** Congelamientos permanece como apartado independiente y solo se implementan acciones respaldadas por el backend existente.
+- **Implementación frontend:** Gestión de tickets enlaza a `/tickets/:id`; el detalle permite la asignación inicial desde `NEW` y muestra técnicos ocupados como no seleccionables.
+
 ## Diferencias documentales ya resueltas por precedencia
 
 No requieren decisión pendiente:

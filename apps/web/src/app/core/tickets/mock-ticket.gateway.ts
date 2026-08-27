@@ -41,6 +41,13 @@ export class MockTicketGateway implements TicketGateway {
         ...request.impactAssessment,
         calculatedPriority: priority,
       },
+      currentTechnician: null,
+      resolvedBy: null,
+      resolvedAt: null,
+      closedBy: null,
+      closedAt: null,
+      assignments: [],
+      maintenance: null,
       history: [],
     });
   }

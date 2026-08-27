@@ -6,6 +6,7 @@ import { appRoutes } from './app.routes';
 import { PreviewSessionService } from './core/preview-session.service';
 import { LoginPageComponent } from './features/auth/login/login-page.component';
 import { AppShellComponent } from './layout/app-shell.component';
+import { NAVIGATION_GROUPS } from './shared/navigation/navigation.model';
 
 describe('App', () => {
   beforeEach(async () => {
@@ -95,6 +96,18 @@ describe('App', () => {
     expect(shell.textContent).toContain('Administrador');
     expect(shell.textContent).toContain('MV');
     expect(shell.querySelector('select[aria-label="Seleccionar rol demo"]')).toBeNull();
+  });
+
+  it('removes the standalone technicians destination from routes and navigation', () => {
+    const privateRoutes = appRoutes
+      .flatMap((route) => route.children ?? [])
+      .map((route) => route.path);
+    const navigationRoutes = NAVIGATION_GROUPS.flatMap((group) =>
+      group.items.map((item) => item.route)
+    );
+
+    expect(privateRoutes).not.toContain('tecnicos');
+    expect(navigationRoutes).not.toContain('/tecnicos');
   });
 
   it.each([

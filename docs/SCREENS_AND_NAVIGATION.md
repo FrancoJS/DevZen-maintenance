@@ -101,10 +101,10 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 ### Gestión de tickets
 
-- **Propósito:** listar y gestionar todos los tickets.
-- **Información mínima:** estado, prioridad, máquina, solicitante y técnico actual cuando exista.
+- **Propósito:** listar y gestionar todos los tickets y consultar la capacidad técnica necesaria para asignarlos.
+- **Información mínima:** estado, prioridad, máquina, solicitante, técnico actual cuando exista y resumen de técnicos `AVAILABLE`/`BUSY`.
 - **Acciones:** abrir detalle y acciones administrativas permitidas.
-- **Restricciones:** filtros completos son valor adicional.
+- **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y presencia de técnico actual; filtros completos son valor adicional. La disponibilidad es derivada y no editable.
 
 ### Detalle completo
 
@@ -112,19 +112,14 @@ Este documento describe propósito, información mínima, acciones y restriccion
 - **Acciones:** corregir prioridad con motivo; asignar/reasignar; decidir congelamiento; marcar bloqueo resuelto; cerrar desde `RESOLVED`.
 - **Restricciones:** cada acción depende del estado; `CLOSED` solo lectura.
 
-### Técnicos
-
-- **Propósito:** visualizar disponibilidad y ticket actual.
-- **Información mínima:** técnico, `AVAILABLE`/`BUSY` y ticket activo cuando corresponda.
-- **Acciones:** consulta; acceso a asignación cuando proceda.
-- **Restricciones:** sin edición manual de disponibilidad.
-
 ### Asignación
 
 - **Propósito:** asignar desde `NEW` o `PENDING_REASSIGNMENT`.
 - **Información mínima:** ticket y técnicos con disponibilidad derivada.
 - **Acciones:** seleccionar técnico disponible y confirmar.
 - **Restricciones:** ocupados no seleccionables; backend revalida concurrencia.
+
+La selección y consulta de técnicos forma parte de Gestión de tickets; no existe una pantalla administrativa independiente de técnicos.
 
 ### Congelamientos
 

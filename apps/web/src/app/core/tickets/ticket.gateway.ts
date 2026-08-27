@@ -3,7 +3,11 @@ import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
   ListMyTicketsResponse,
+  PaginatedTechniciansResponse,
+  PaginatedTicketsResponse,
   TicketDetail,
+  TicketPriority,
+  TicketStatus,
 } from './ticket.models';
 
 /**
@@ -16,3 +20,19 @@ export interface TicketGateway {
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
+
+export interface AdminTicketFilters {
+  status?: TicketStatus;
+  priority?: TicketPriority;
+}
+
+export interface AdminTicketGateway {
+  listTickets(filters: AdminTicketFilters): Observable<PaginatedTicketsResponse>;
+  listTechnicians(): Observable<PaginatedTechniciansResponse>;
+  getTicket(id: string): Observable<TicketDetail>;
+  assignTechnician(id: string, technicianId: string): Observable<TicketDetail>;
+}
+
+export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(
+  'ADMIN_TICKET_GATEWAY'
+);

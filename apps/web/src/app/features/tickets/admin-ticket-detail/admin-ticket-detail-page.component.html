@@ -1,0 +1,158 @@
+<section class="mx-auto max-w-6xl space-y-6" aria-labelledby="ticket-detail-title">
+  <a hlmBtn variant="ghost" routerLink="/gestion-tickets">← Volver a Gestión de tickets</a>
+
+  @if (isLoading()) {
+    <article hlmCard aria-busy="true" aria-label="Cargando detalle del ticket">
+      <div hlmCardContent class="space-y-4 py-8">
+        <div class="h-8 w-64 animate-pulse rounded bg-muted"></div>
+        <div class="h-40 animate-pulse rounded-lg bg-muted"></div>
+        <p class="text-sm text-muted-foreground">Cargando detalle y disponibilidad técnica…</p>
+      </div>
+    </article>
+  } @else if (loadError(); as error) {
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos mostrar el ticket</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadData()">Reintentar</button>
+      </div>
+    </article>
+  } @else if (ticket(); as currentTicket) {
+    <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+      <div class="min-w-0">
+        <p class="text-sm text-muted-foreground">Administración / Detalle del ticket</p>
+        <h2 id="ticket-detail-title" class="mt-1 truncate text-2xl font-bold tracking-tight sm:text-3xl" [title]="currentTicket.id">{{ currentTicket.asset }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.id }}</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <span hlmBadge variant="outline" [class]="statusClass(currentTicket.status)">{{ statusLabel(currentTicket.status) }}</span>
+        <span hlmBadge variant="outline" [class]="priorityClass(currentTicket.priority)">{{ priorityLabel(currentTicket.priority) }}</span>
+      </div>
+    </header>
+
+    @if (assignmentSuccess(); as success) {
+      <div class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</div>
+    }
+    @if (availabilityWarning(); as warning) {
+      <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" role="status">{{ warning }}</div>
+    }
+
+    <div class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
+      <div class="space-y-6">
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Solicitud</h3><p hlmCardDescription>Información original reportada por {{ currentTicket.requester.name }}.</p></header>
+          <div hlmCardContent class="space-y-5">
+            <div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción de la falla</p><p class="mt-2 whitespace-pre-wrap">{{ currentTicket.description }}</p></div>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ currentTicket.location }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Máquina o equipo</dt><dd class="mt-1">{{ currentTicket.asset }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1">{{ currentTicket.requester.name }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creación</dt><dd class="mt-1">{{ formatDate(currentTicket.createdAt) }}</dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Evaluación de impacto</h3><p hlmCardDescription>Respuestas utilizadas por el backend para calcular la prioridad.</p></header>
+          <div hlmCardContent>
+            <dl class="grid gap-4 sm:grid-cols-2">
+              <div><dt class="text-sm text-muted-foreground">Riesgo para la seguridad</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.safetyRisk) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Detención del equipo</dt><dd class="mt-1 font-medium">{{ equipmentStoppedLabel(currentTicket.impactAssessment.equipmentStopped) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Impacto productivo</dt><dd class="mt-1 font-medium">{{ productionImpactLabel(currentTicket.impactAssessment.productionImpact) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Alternativa temporal</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.workaroundAvailable) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Afecta otras áreas o equipos</dt><dd class="mt-1 font-medium">{{ booleanLabel(currentTicket.impactAssessment.affectsOtherAreas) }}</dd></div>
+              <div><dt class="text-sm text-muted-foreground">Prioridad calculada</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="priorityClass(currentTicket.impactAssessment.calculatedPriority)">{{ priorityLabel(currentTicket.impactAssessment.calculatedPriority) }}</span></dd></div>
+            </dl>
+          </div>
+        </article>
+
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Mantención y cierre</h3><p hlmCardDescription>Información técnica disponible en el ciclo actual.</p></header>
+          <div hlmCardContent class="space-y-5">
+            @if (currentTicket.maintenance; as maintenance) {
+              <dl class="grid gap-4">
+                <div><dt class="text-sm text-muted-foreground">Diagnóstico</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.diagnosis || 'Sin diagnóstico registrado' }}</dd></div>
+                <div><dt class="text-sm text-muted-foreground">Trabajo realizado</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.workPerformed || 'Sin trabajo registrado' }}</dd></div>
+                <div><dt class="text-sm text-muted-foreground">Observaciones</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.notes || 'Sin observaciones' }}</dd></div>
+              </dl>
+            } @else {
+              <p class="text-sm text-muted-foreground">La mantención todavía no ha sido iniciada.</p>
+            }
+            @if (currentTicket.resolvedAt) {
+              <div class="rounded-lg border bg-muted/30 p-4"><p class="font-medium">Resolución registrada</p><p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.resolvedBy?.name }} · {{ formatDate(currentTicket.resolvedAt) }}</p></div>
+            }
+            @if (currentTicket.closedAt) {
+              <div class="rounded-lg border bg-muted/30 p-4"><p class="font-medium">Cierre administrativo</p><p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.closedBy?.name }} · {{ formatDate(currentTicket.closedAt) }}</p></div>
+            }
+          </div>
+        </article>
+
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Historial</h3><p hlmCardDescription>Cronología de acciones y cambios de estado.</p></header>
+          <div hlmCardContent>
+            @if (currentTicket.history.length) {
+              <ol class="space-y-4">
+                @for (entry of currentTicket.history; track entry.id) {
+                  <li class="relative border-l-2 border-border pl-5">
+                    <span class="absolute -left-[0.42rem] top-1 size-3 rounded-full border-2 border-primary bg-card"></span>
+                    <div class="flex flex-wrap items-start justify-between gap-2"><p class="font-medium">{{ historyActionLabel(entry.action) }}</p><time class="text-xs text-muted-foreground">{{ formatDate(entry.createdAt) }}</time></div>
+                    <p class="mt-1 text-sm text-muted-foreground">Realizado por {{ entry.actor.name }}</p>
+                    @if (entry.previousStatus && entry.newStatus) { <p class="mt-2 text-sm">{{ statusLabel(entry.previousStatus) }} → {{ statusLabel(entry.newStatus) }}</p> }
+                    @if (historyDetail(entry); as detail) { <p class="mt-2 text-sm">{{ detail }}</p> }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="text-sm text-muted-foreground">No hay eventos registrados.</p>
+            }
+          </div>
+        </article>
+      </div>
+
+      <aside class="space-y-6">
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Asignación actual</h3><p hlmCardDescription>La disponibilidad siempre es calculada por el backend.</p></header>
+          <div hlmCardContent class="space-y-4">
+            @if (currentTicket.currentTechnician; as technician) {
+              <div class="rounded-lg border bg-muted/30 p-4"><p class="font-semibold">{{ technician.name }}</p><p class="mt-1 text-sm text-muted-foreground">Técnico actualmente responsable</p></div>
+            } @else {
+              <p class="text-sm text-muted-foreground">Este ticket no tiene un técnico actual.</p>
+            }
+
+            @if (canAssign()) {
+              <div class="grid gap-2">
+                <label for="ticket-technician" class="text-sm font-medium">Seleccionar técnico</label>
+                <select id="ticket-technician" class="h-10 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedTechnicianId()" [disabled]="isAssigning()" (change)="updateTechnician($any($event.target).value)">
+                  <option value="">Selecciona un técnico disponible</option>
+                  @for (technician of technicians(); track technician.id) {
+                    <option [value]="technician.id" [disabled]="technician.availability === 'BUSY'">{{ technician.name }} — {{ technician.availability === 'AVAILABLE' ? 'Disponible' : 'Ocupado: ' + technician.currentTicket?.asset }}</option>
+                  }
+                </select>
+                <p class="text-xs text-muted-foreground">{{ availableTechnicians().length }} técnicos disponibles de {{ technicians().length }}.</p>
+              </div>
+              @if (assignmentError(); as error) { <p class="text-sm text-destructive" role="alert">{{ error }}</p> }
+              <button hlmBtn type="button" class="w-full" [disabled]="isAssigning() || !selectedTechnicianId()" (click)="assignTechnician()">{{ isAssigning() ? 'Asignando…' : 'Confirmar asignación' }}</button>
+            } @else if (currentTicket.status === 'PENDING_REASSIGNMENT') {
+              <p class="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">La reasignación se habilitará como parte del flujo de congelamientos.</p>
+            }
+          </div>
+        </article>
+
+        <article hlmCard>
+          <header hlmCardHeader><h3 hlmCardTitle>Participación técnica</h3><p hlmCardDescription>Asignaciones conservadas para trazabilidad.</p></header>
+          <div hlmCardContent>
+            @if (currentTicket.assignments.length) {
+              <ul class="space-y-3">
+                @for (assignment of currentTicket.assignments; track assignment.id) {
+                  <li class="rounded-lg border p-4"><p class="font-medium">{{ assignment.technician.name }}</p><p class="mt-1 text-sm text-muted-foreground">Asignado por {{ assignment.assignedBy.name }}</p><p class="mt-1 text-xs text-muted-foreground">{{ formatDate(assignment.assignedAt) }}</p>@if (assignment.releasedAt) { <p class="mt-2 text-sm">Liberado: {{ formatDate(assignment.releasedAt) }}</p> }</li>
+                }
+              </ul>
+            } @else {
+              <p class="text-sm text-muted-foreground">Aún no hay asignaciones registradas.</p>
+            }
+          </div>
+        </article>
+      </aside>
+    </div>
+  }
+</section>
