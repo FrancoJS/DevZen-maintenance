@@ -55,6 +55,22 @@ export class PreviewSessionService {
     return true;
   }
 
+  loginFromApi(
+    email: string,
+    role: UserRole,
+    accessToken: string,
+  ): void {
+    this.role.set(role);
+    this.isAuthenticated.set(true);
+
+    localStorage.setItem(ROLE_STORAGE_KEY, role);
+    localStorage.setItem(
+      SESSION_STORAGE_KEY,
+      JSON.stringify({ email, role }),
+    );
+    localStorage.setItem('devzen-access-token', accessToken);
+  }
+
   logout(): void {
     this.isAuthenticated.set(false);
     this.role.set('ADMIN');
