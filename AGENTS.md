@@ -113,17 +113,17 @@ Canonical states:
 
 Only these transitions are valid:
 
-| Current | Actor/action | Next |
-|---|---|---|
-| `NEW` | `ADMIN` assigns available technician | `ASSIGNED` |
-| `ASSIGNED` | Assigned technician starts | `IN_PROGRESS` |
-| `IN_PROGRESS` | Assigned technician resolves | `RESOLVED` |
-| `IN_PROGRESS` | Assigned technician requests freeze | `FREEZE_REQUESTED` |
-| `FREEZE_REQUESTED` | `ADMIN` rejects | `IN_PROGRESS` |
-| `FREEZE_REQUESTED` | `ADMIN` approves | `FROZEN` |
-| `FROZEN` | `ADMIN` marks blocker resolved | `PENDING_REASSIGNMENT` |
-| `PENDING_REASSIGNMENT` | `ADMIN` assigns available technician | `ASSIGNED` |
-| `RESOLVED` | `ADMIN` closes | `CLOSED` |
+| Current                | Actor/action                         | Next                   |
+| ---------------------- | ------------------------------------ | ---------------------- |
+| `NEW`                  | `ADMIN` assigns available technician | `ASSIGNED`             |
+| `ASSIGNED`             | Assigned technician starts           | `IN_PROGRESS`          |
+| `IN_PROGRESS`          | Assigned technician resolves         | `RESOLVED`             |
+| `IN_PROGRESS`          | Assigned technician requests freeze  | `FREEZE_REQUESTED`     |
+| `FREEZE_REQUESTED`     | `ADMIN` rejects                      | `IN_PROGRESS`          |
+| `FREEZE_REQUESTED`     | `ADMIN` approves                     | `FROZEN`               |
+| `FROZEN`               | `ADMIN` marks blocker resolved       | `PENDING_REASSIGNMENT` |
+| `PENDING_REASSIGNMENT` | `ADMIN` assigns available technician | `ASSIGNED`             |
+| `RESOLVED`             | `ADMIN` closes                       | `CLOSED`               |
 
 Validate transitions in backend domain/service logic. Do not allow `NEW -> IN_PROGRESS`, `IN_PROGRESS -> CLOSED`, `FROZEN -> IN_PROGRESS`, or any transition from `CLOSED`.
 
@@ -315,13 +315,13 @@ Prioritize:
 
 Validation must be proportional to the actual diff:
 
-| Change | Required validation |
-|---|---|
-| Documentation, comments, static copy, visual-only UI | Review the diff; inspect an already-running preview when useful. Do not automatically run tests, lint, build, E2E, formatters, or `nx affected`. |
-| Frontend behavior, forms, conditions, events, guards, or API integration | Run the smallest relevant frontend tests; add type/lint/build only for a concrete introduced risk. |
-| Backend business rules | Run the smallest relevant unit/service/integration tests. |
-| Contracts, routing, auth, dependencies, configuration, schema, or migrations | Run targeted behavior tests plus the smallest relevant type/lint/build and database validation. |
-| Complete integrated flow | Run a targeted E2E when it exists and is practical. |
+| Change                                                                       | Required validation                                                                                                                              |
+| ---------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Documentation, comments, static copy, visual-only UI                         | Review the diff; inspect an already-running preview when useful. Do not automatically run tests, lint, build, E2E, formatters, or `nx affected`. |
+| Frontend behavior, forms, conditions, events, guards, or API integration     | Run the smallest relevant frontend tests; add type/lint/build only for a concrete introduced risk.                                               |
+| Backend business rules                                                       | Run the smallest relevant unit/service/integration tests.                                                                                        |
+| Contracts, routing, auth, dependencies, configuration, schema, or migrations | Run targeted behavior tests plus the smallest relevant type/lint/build and database validation.                                                  |
+| Complete integrated flow                                                     | Run a targeted E2E when it exists and is practical.                                                                                              |
 
 Use only scripts/targets that exist. Prefer `npx nx ...`; do not assume global Nx. Do not run the entire workspace automatically.
 

@@ -111,13 +111,17 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 
 ### Asignar o reasignar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/assign`
 
 - **Actor:** `ADMIN`.
-- **Precondición:** ticket `NEW` o `PENDING_REASSIGNMENT`; técnico disponible.
-- **Efecto:** crear asignación histórica activa, definir `currentTechnicianId`, ocupar técnico.
-- **Cambio:** `NEW|PENDING_REASSIGNMENT -> ASSIGNED`.
-- **Validaciones:** rol, transición, disponibilidad a tiempo de escritura y concurrencia (`RN-20`).
+- **Entrada:** `{ technicianId }`, UUID v4 de un usuario con rol `TECHNICIAN`.
+- **Precondición:** ticket `NEW`; técnico disponible.
+- **Efecto:** crear asignación histórica activa, definir `currentTechnicianId`, ocupar técnico y registrar `TECHNICIAN_ASSIGNED`.
+- **Cambio:** `NEW -> ASSIGNED`.
+- **Validaciones:** rol, transición, disponibilidad a tiempo de escritura y concurrencia (`RN-20`). Las restricciones únicas parciales de PostgreSQL se traducen a `409`.
+- **Errores:** `400` para destinatario inválido/no técnico, `404` para ticket/técnico inexistente y `409` para ticket no `NEW` o técnico ocupado.
+
+La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al flujo de congelamiento.
 
 ## Mantención
 
@@ -190,11 +194,19 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 
 ### Listar disponibilidad
 
-**Contrato pendiente de definición.**
+`GET /api/technicians?page=1&limit=20`
 
 - **Actor:** `ADMIN`.
-- **Efecto:** devolver técnicos con disponibilidad derivada y ticket actual cuando estén ocupados.
-- **Validaciones:** calcular desde estados activos; no aceptar edición manual.
+- **Efecto:** devuelve `{ items, page, limit, total, totalPages }`; cada técnico incluye identidad segura, `availability` y `currentTicket` cuando está ocupado.
+- **Validaciones:** `BUSY` se deriva de tickets `ASSIGNED`, `IN_PROGRESS` o `FREEZE_REQUESTED`; no existe edición manual de disponibilidad.
+
+### Mantención actual
+
+`GET /api/tickets/my-maintenance`
+
+- **Actor:** `TECHNICIAN`.
+- **Efecto:** devuelve `{ ticket }`, con el detalle de la asignación actual o `ticket: null` si no existe.
+- **Visibilidad:** no cambia el listado general de solicitudes propias; únicamente habilita el detalle del ticket donde el técnico es el responsable actual.
 
 ## Historial
 

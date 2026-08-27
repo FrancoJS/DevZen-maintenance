@@ -1,4 +1,8 @@
-import { ConflictException, NotFoundException } from '@nestjs/common';
+import {
+  ConflictException,
+  ForbiddenException,
+  NotFoundException,
+} from '@nestjs/common';
 import { DataSource } from 'typeorm';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { HistoryService } from '../history/history.service';
@@ -6,6 +10,9 @@ import { UserRole } from '../users/enums/user-role.enum';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { TicketStatus } from './enums/ticket-status.enum';
+import { AssignmentHistory } from './entities/assignment-history.entity';
+import { Ticket } from './entities/ticket.entity';
+import { User } from '../users/entities/user.entity';
 import { TicketsService } from './tickets.service';
 
 function createQueryBuilder(getOne: jest.Mock = jest.fn()) {
@@ -142,6 +149,148 @@ describe('TicketsService', () => {
     expect(query.andWhere).toHaveBeenCalledWith(
       'ticket.requesterId = :requesterId',
       { requesterId: 'actor-id' },
+    );
+  });
+
+  it('does not allow a non-administrator to assign a technician', async () => {
+    await expect(
+      service.assign(
+        'ticket-id',
+        { technicianId: 'technician-id' },
+        actor(UserRole.TECHNICIAN),
+      ),
+    ).rejects.toEqual(
+      new ForbiddenException('Solo un administrador puede asignar técnicos'),
+    );
+    expect(dataSource.transaction).not.toHaveBeenCalled();
+  });
+
+  it('rejects an assignment when the technician already has an active assignment', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.NEW,
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const assignments = {
+      findOne: jest.fn().mockResolvedValue({ id: 'active-assignment' }),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return { createQueryBuilder: jest.fn(() => ticketQuery) };
+        }
+        if (entity === User) {
+          return {
+            findOne: jest.fn().mockResolvedValue({
+              id: 'technician-id',
+              role: UserRole.TECHNICIAN,
+            }),
+          };
+        }
+        if (entity === AssignmentHistory) {
+          return assignments;
+        }
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+
+    await expect(
+      service.assign(
+        'ticket-id',
+        { technicianId: 'technician-id' },
+        actor(UserRole.ADMIN),
+      ),
+    ).rejects.toEqual(
+      new ConflictException('El técnico seleccionado está ocupado'),
+    );
+    expect(historyService.record).not.toHaveBeenCalled();
+  });
+
+  it('maps the active-technician database constraint to a conflict', async () => {
+    (dataSource.transaction as jest.Mock).mockRejectedValue({
+      code: '23505',
+      constraint: 'uq_assignment_histories_active_technician',
+    });
+
+    await expect(
+      service.assign(
+        'ticket-id',
+        { technicianId: 'technician-id' },
+        actor(UserRole.ADMIN),
+      ),
+    ).rejects.toEqual(
+      new ConflictException('El técnico seleccionado está ocupado'),
+    );
+  });
+
+  it('creates the assignment, state transition, and audit event atomically', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.NEW,
+      currentTechnicianId: null,
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const saveTicket = jest.fn();
+    const assignments = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value) => value),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: saveTicket,
+          };
+        }
+        if (entity === User) {
+          return {
+            findOne: jest.fn().mockResolvedValue({
+              id: 'technician-id',
+              role: UserRole.TECHNICIAN,
+            }),
+          };
+        }
+        if (entity === AssignmentHistory) {
+          return assignments;
+        }
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.assign(
+      'ticket-id',
+      { technicianId: 'technician-id' },
+      actor(UserRole.ADMIN),
+    );
+
+    expect(assignments.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ticketId: 'ticket-id',
+        technicianId: 'technician-id',
+        assignedById: 'actor-id',
+      }),
+    );
+    expect(ticket).toMatchObject({
+      status: TicketStatus.ASSIGNED,
+      currentTechnicianId: 'technician-id',
+    });
+    expect(saveTicket).toHaveBeenCalledWith(ticket);
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'TECHNICIAN_ASSIGNED',
+        previousStatus: TicketStatus.NEW,
+        newStatus: TicketStatus.ASSIGNED,
+      }),
     );
   });
 });

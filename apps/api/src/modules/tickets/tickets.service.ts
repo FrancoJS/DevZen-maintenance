@@ -1,24 +1,31 @@
 import {
+  BadRequestException,
   ConflictException,
+  ForbiddenException,
   Injectable,
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, Repository, SelectQueryBuilder } from 'typeorm';
+import { DataSource, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
 import { HistoryService } from '../history/history.service';
 import { TicketHistoryAction } from '../history/enums/ticket-history-action.enum';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
+import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import {
   PaginatedTicketsResponseDto,
+  AssignmentHistoryResponseDto,
   TicketDetailResponseDto,
   TicketHistoryResponseDto,
   TicketSummaryResponseDto,
 } from './dto/ticket-response.dto';
 import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { ImpactAssessment } from './entities/impact-assessment.entity';
+import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Ticket } from './entities/ticket.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { calculateTicketPriority } from './priority/ticket-priority-calculator';
@@ -89,7 +96,9 @@ export class TicketsService {
         .createQueryBuilder('ticket')
         .setLock('pessimistic_write')
         .where('ticket.id = :id', { id })
-        .andWhere('ticket.requesterId = :requesterId', { requesterId: actor.id })
+        .andWhere('ticket.requesterId = :requesterId', {
+          requesterId: actor.id,
+        })
         .getOne();
 
       if (!ticket) {
@@ -112,6 +121,108 @@ export class TicketsService {
     });
 
     return this.findOne(id, actor);
+  }
+
+  async assign(
+    id: string,
+    assignTechnicianDto: AssignTechnicianDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Solo un administrador puede asignar técnicos',
+      );
+    }
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const ticket = await manager
+          .getRepository(Ticket)
+          .createQueryBuilder('ticket')
+          .setLock('pessimistic_write')
+          .where('ticket.id = :id', { id })
+          .getOne();
+
+        if (!ticket) {
+          throw new NotFoundException('Ticket no encontrado');
+        }
+        if (ticket.status !== TicketStatus.NEW) {
+          throw new ConflictException(
+            'Solo se pueden asignar tickets en estado NEW',
+          );
+        }
+
+        const technician = await manager.getRepository(User).findOne({
+          where: { id: assignTechnicianDto.technicianId },
+        });
+        if (!technician) {
+          throw new NotFoundException('Técnico no encontrado');
+        }
+        if (technician.role !== UserRole.TECHNICIAN) {
+          throw new BadRequestException(
+            'El usuario seleccionado no es un técnico',
+          );
+        }
+
+        const assignments = manager.getRepository(AssignmentHistory);
+        const activeAssignment = await assignments.findOne({
+          where: {
+            technicianId: technician.id,
+            releasedAt: IsNull(),
+          },
+        });
+        if (activeAssignment) {
+          throw new ConflictException('El técnico seleccionado está ocupado');
+        }
+
+        await assignments.save(
+          assignments.create({
+            ticketId: ticket.id,
+            technicianId: technician.id,
+            assignedById: actor.id,
+            startedAt: null,
+            releasedAt: null,
+            releaseReason: null,
+          }),
+        );
+
+        ticket.status = TicketStatus.ASSIGNED;
+        ticket.currentTechnicianId = technician.id;
+        await manager.getRepository(Ticket).save(ticket);
+        await this.historyService.record(manager, {
+          ticketId: ticket.id,
+          actorId: actor.id,
+          action: TicketHistoryAction.TECHNICIAN_ASSIGNED,
+          previousStatus: TicketStatus.NEW,
+          newStatus: TicketStatus.ASSIGNED,
+          details: { technicianId: technician.id },
+        });
+      });
+    } catch (error) {
+      if (this.isActiveAssignmentUniqueViolation(error)) {
+        throw new ConflictException('El técnico seleccionado está ocupado');
+      }
+      throw error;
+    }
+
+    return this.findOne(id, actor);
+  }
+
+  async findCurrentMaintenance(
+    actor: AuthenticatedUser,
+  ): Promise<CurrentMaintenanceResponseDto> {
+    if (actor.role !== UserRole.TECHNICIAN) {
+      throw new ForbiddenException(
+        'Solo un técnico puede consultar su mantención',
+      );
+    }
+
+    const ticket = await this.tickets.findOne({
+      where: { currentTechnicianId: actor.id },
+      order: { updatedAt: 'DESC', id: 'DESC' },
+    });
+
+    return { ticket: ticket ? await this.findOne(ticket.id, actor) : null };
   }
 
   async findAll(
@@ -155,12 +266,13 @@ export class TicketsService {
     const ticketQuery = this.tickets
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester')
+      .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.history', 'history')
       .leftJoinAndSelect('history.actor', 'historyActor')
       .where('ticket.id = :id', { id });
 
-    this.applyVisibility(ticketQuery, actor);
+    this.applyVisibility(ticketQuery, actor, true);
     const ticket = await ticketQuery
       .orderBy('history.createdAt', 'ASC')
       .addOrderBy('history.id', 'ASC')
@@ -170,13 +282,23 @@ export class TicketsService {
       throw new NotFoundException('Ticket no encontrado');
     }
 
-    return this.toDetail(ticket);
+    const assignments = await this.findAssignments(ticket.id);
+    return this.toDetail(ticket, assignments);
   }
 
   private applyVisibility(
     query: SelectQueryBuilder<Ticket>,
     actor: AuthenticatedUser,
+    includeCurrentMaintenance = false,
   ): void {
+    if (actor.role === UserRole.TECHNICIAN && includeCurrentMaintenance) {
+      query.andWhere(
+        '(ticket.requesterId = :requesterId OR ticket.currentTechnicianId = :currentTechnicianId)',
+        { requesterId: actor.id, currentTechnicianId: actor.id },
+      );
+      return;
+    }
+
     if (actor.role !== UserRole.ADMIN) {
       query.andWhere('ticket.requesterId = :requesterId', {
         requesterId: actor.id,
@@ -201,13 +323,22 @@ export class TicketsService {
     };
   }
 
-  private toDetail(ticket: Ticket): TicketDetailResponseDto {
+  private toDetail(
+    ticket: Ticket,
+    assignments: AssignmentHistory[],
+  ): TicketDetailResponseDto {
     if (!ticket.impactAssessment) {
       throw new NotFoundException('Evaluación de impacto no encontrada');
     }
 
     return {
       ...this.toSummary(ticket),
+      currentTechnician: ticket.currentTechnician
+        ? {
+            id: ticket.currentTechnician.id,
+            name: ticket.currentTechnician.name,
+          }
+        : null,
       impactAssessment: {
         safetyRisk: ticket.impactAssessment.safetyRisk,
         equipmentStopped: ticket.impactAssessment.equipmentStopped,
@@ -216,6 +347,9 @@ export class TicketsService {
         affectsOtherAreas: ticket.impactAssessment.affectsOtherAreas,
         calculatedPriority: ticket.impactAssessment.calculatedPriority,
       },
+      assignments: assignments.map((assignment) =>
+        this.toAssignmentHistory(assignment),
+      ),
       history: ticket.history.map((entry) => this.toHistoryEntry(entry)),
     };
   }
@@ -234,5 +368,47 @@ export class TicketsService {
       details: entry.details,
       createdAt: entry.createdAt,
     };
+  }
+
+  private findAssignments(ticketId: string): Promise<AssignmentHistory[]> {
+    return this.tickets.manager.getRepository(AssignmentHistory).find({
+      where: { ticketId },
+      relations: { technician: true, assignedBy: true },
+      order: { assignedAt: 'ASC', id: 'ASC' },
+    });
+  }
+
+  private toAssignmentHistory(
+    assignment: AssignmentHistory,
+  ): AssignmentHistoryResponseDto {
+    return {
+      id: assignment.id,
+      technician: {
+        id: assignment.technician.id,
+        name: assignment.technician.name,
+      },
+      assignedBy: {
+        id: assignment.assignedBy.id,
+        name: assignment.assignedBy.name,
+      },
+      assignedAt: assignment.assignedAt,
+      startedAt: assignment.startedAt,
+      releasedAt: assignment.releasedAt,
+      releaseReason: assignment.releaseReason,
+    };
+  }
+
+  private isActiveAssignmentUniqueViolation(error: unknown): boolean {
+    if (!error || typeof error !== 'object') {
+      return false;
+    }
+
+    const databaseError = error as { code?: unknown; constraint?: unknown };
+    return (
+      databaseError.code === '23505' &&
+      (databaseError.constraint === 'uq_assignment_histories_active_ticket' ||
+        databaseError.constraint ===
+          'uq_assignment_histories_active_technician')
+    );
   }
 }

@@ -15,6 +15,7 @@ import {
   ApiBearerAuth,
   ApiConflictResponse,
   ApiCreatedResponse,
+  ApiForbiddenResponse,
   ApiNotFoundResponse,
   ApiOkResponse,
   ApiOperation,
@@ -22,7 +23,11 @@ import {
 } from '@nestjs/swagger';
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
+import { Roles } from '../auth/decorators/roles.decorator';
+import { UserRole } from '../users/enums/user-role.enum';
+import { AssignTechnicianDto } from './dto/assign-technician.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
+import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import {
   PaginatedTicketsResponseDto,
@@ -59,6 +64,16 @@ export class TicketsController {
     return this.ticketsService.findAll(query, currentUser);
   }
 
+  @Get('my-maintenance')
+  @Roles(UserRole.TECHNICIAN)
+  @ApiOperation({ summary: 'Obtener la mantención actual del técnico' })
+  @ApiOkResponse({ type: CurrentMaintenanceResponseDto })
+  currentMaintenance(
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<CurrentMaintenanceResponseDto> {
+    return this.ticketsService.findCurrentMaintenance(currentUser);
+  }
+
   @Get(':id')
   @ApiOperation({ summary: 'Obtener el detalle de un ticket visible' })
   @ApiOkResponse({ type: TicketDetailResponseDto })
@@ -84,5 +99,24 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<TicketDetailResponseDto> {
     return this.ticketsService.update(id, updateTicketDto, currentUser);
+  }
+
+  @Post(':id/assign')
+  @Roles(UserRole.ADMIN)
+  @HttpCode(HttpStatus.OK)
+  @ApiOperation({ summary: 'Asignar un técnico disponible a un ticket NEW' })
+  @ApiOkResponse({ type: TicketDetailResponseDto })
+  @ApiBadRequestResponse({ description: 'Técnico o identificador inválido.' })
+  @ApiConflictResponse({
+    description: 'El ticket no está disponible o el técnico está ocupado.',
+  })
+  @ApiForbiddenResponse({ description: 'Acción exclusiva de administración.' })
+  @ApiNotFoundResponse({ description: 'Ticket o técnico no encontrado.' })
+  assign(
+    @Param('id', new ParseUUIDPipe({ version: '4' })) id: string,
+    @Body() assignTechnicianDto: AssignTechnicianDto,
+    @CurrentUser() currentUser: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    return this.ticketsService.assign(id, assignTechnicianDto, currentUser);
   }
 }

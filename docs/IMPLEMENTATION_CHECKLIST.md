@@ -10,10 +10,11 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Exponer documentación OpenAPI de autenticación únicamente en desarrollo.
 - [x] Implementar cálculo de prioridad con pruebas unitarias.
 - [ ] Implementar máquina de estados del ticket.
-- [ ] Implementar regla de máximo un ticket `ASSIGNED`/`IN_PROGRESS`/`FREEZE_REQUESTED` por técnico.
+- [x] Implementar asignación inicial `NEW -> ASSIGNED`, disponibilidad derivada y protección de capacidad para técnicos.
 - [x] Implementar historial automático para creación y edición de tickets.
 - [ ] Implementar flujo de congelamiento y liberación de asignación.
 - [x] Implementar visibilidad por rol, paginación y filtros mínimos de tickets.
+- [x] Implementar consulta administrativa paginada de técnicos y consulta de mantención actual del técnico.
 
 ## Frontend
 

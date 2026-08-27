@@ -20,7 +20,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Parte resuelta (autenticación):** `POST /api/auth/login` y `GET /api/auth/me`, junto con sus DTOs, respuestas, errores y requisitos Bearer, están definidos en [API_CONTRACTS.md](API_CONTRACTS.md).
 - **Parte resuelta (OpenAPI):** durante desarrollo se exponen `/api/docs` y `/api/docs-json` con el esquema Bearer `access-token`.
 - **Parte resuelta (núcleo de tickets):** `POST /api/tickets`, `GET /api/tickets`, `GET /api/tickets/:id` y `PATCH /api/tickets/:id`, con DTOs, respuestas, filtros mínimos y errores, se definen en `API_CONTRACTS.md`.
-- **Parte pendiente:** contratos de técnicos, asignaciones, mantención, historial global y dashboard.
+- **Parte resuelta (asignación inicial):** `GET /api/technicians`, `POST /api/tickets/:id/assign` y `GET /api/tickets/my-maintenance` se definen en `API_CONTRACTS.md`. La asignación inicial solo permite `NEW -> ASSIGNED`.
+- **Parte pendiente:** contratos de inicio/edición/resolución de mantención, reasignación, historial global y dashboard.
 - **Fuentes:** Word 13.1; [API_CONTRACTS.md](API_CONTRACTS.md).
 
 ## `PD-004` — Campos editables del ticket `NEW` — Resuelta
@@ -69,7 +70,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 ## `PD-010` — Protección concreta de concurrencia — Parcialmente resuelta
 
 - **Decisión aprobada para persistencia:** índices únicos parciales impiden más de una asignación activa por ticket o técnico.
-- **Pendiente:** la futura operación de asignación debe usar una transacción y manejar correctamente una violación de unicidad concurrente.
+- **Parte resuelta:** la asignación inicial usa una transacción, bloquea el ticket y convierte las violaciones de los índices activos en `409`.
+- **Pendiente:** validar manualmente concurrencia sobre PostgreSQL y extender la misma protección a reasignación cuando se autorice el flujo de congelamiento.
 
 ## `PD-011` — Contratos de listados e historial — Parcialmente resuelta
 

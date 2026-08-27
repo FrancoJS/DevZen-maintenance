@@ -4,6 +4,7 @@ import { ProductionImpact } from '../enums/production-impact.enum';
 import { TicketPriority } from '../enums/ticket-priority.enum';
 import { TicketStatus } from '../enums/ticket-status.enum';
 import { TicketHistoryAction } from '../../history/enums/ticket-history-action.enum';
+import { AssignmentReleaseReason } from '../enums/assignment-release-reason.enum';
 
 export class TicketUserResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -62,6 +63,32 @@ export class TicketHistoryResponseDto {
   createdAt!: Date;
 }
 
+export class AssignmentHistoryResponseDto {
+  @ApiProperty({ format: 'uuid' })
+  id!: string;
+
+  @ApiProperty({ type: () => TicketUserResponseDto })
+  technician!: TicketUserResponseDto;
+
+  @ApiProperty({ type: () => TicketUserResponseDto })
+  assignedBy!: TicketUserResponseDto;
+
+  @ApiProperty({ format: 'date-time' })
+  assignedAt!: Date;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  startedAt!: Date | null;
+
+  @ApiPropertyOptional({ format: 'date-time' })
+  releasedAt!: Date | null;
+
+  @ApiPropertyOptional({
+    enum: AssignmentReleaseReason,
+    enumName: 'AssignmentReleaseReason',
+  })
+  releaseReason!: AssignmentReleaseReason | null;
+}
+
 export class TicketSummaryResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
@@ -92,8 +119,14 @@ export class TicketSummaryResponseDto {
 }
 
 export class TicketDetailResponseDto extends TicketSummaryResponseDto {
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  currentTechnician!: TicketUserResponseDto | null;
+
   @ApiProperty({ type: () => ImpactAssessmentResponseDto })
   impactAssessment!: ImpactAssessmentResponseDto;
+
+  @ApiProperty({ type: () => AssignmentHistoryResponseDto, isArray: true })
+  assignments!: AssignmentHistoryResponseDto[];
 
   @ApiProperty({ type: () => TicketHistoryResponseDto, isArray: true })
   history!: TicketHistoryResponseDto[];
