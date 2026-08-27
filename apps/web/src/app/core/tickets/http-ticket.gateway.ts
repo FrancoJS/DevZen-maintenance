@@ -13,6 +13,7 @@ import {
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   TicketDetail,
+  UpdateTicketRequest,
 } from './ticket.models';
 
 @Injectable()
@@ -59,6 +60,13 @@ export class HttpTicketGateway
 
   getTicket(id: string): Observable<TicketDetail> {
     return this.http.get<TicketDetail>(`${API_BASE_URL}/tickets/${id}`);
+  }
+
+  updateTicket(
+    id: string,
+    request: UpdateTicketRequest
+  ): Observable<TicketDetail> {
+    return this.http.patch<TicketDetail>(`${API_BASE_URL}/tickets/${id}`, request);
   }
 
   assignTechnician(id: string, technicianId: string): Observable<TicketDetail> {

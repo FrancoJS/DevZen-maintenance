@@ -1,11 +1,14 @@
 import { Component, computed, inject, OnInit, signal, ViewChild } from '@angular/core';
+import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
+import { PreviewSessionService } from '../../../core/preview-session.service';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
 import { TicketDetail, TicketPriority, TicketStatus, TicketSummary } from '../../../core/tickets/ticket.models';
+import { toast } from '@spartan-ng/brain/sonner';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
 import { CreateTicketPageComponent } from '../create-ticket/create-ticket-page.component';
 import { TicketDetailModalComponent } from '../ticket-detail/ticket-detail-modal.component';
@@ -25,12 +28,14 @@ const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
 
 @Component({
   selector: 'app-my-requests-page',
-  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, TicketDetailModalComponent],
+  imports: [CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, ReactiveFormsModule, TicketDetailModalComponent],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './my-requests-page.component.html',
 })
 export class MyRequestsPageComponent implements OnInit {
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
+  private readonly formBuilder = inject(FormBuilder);
+  private readonly session = inject(PreviewSessionService);
 
   @ViewChild(CreateTicketPageComponent)
   readonly createTicketPage?: CreateTicketPageComponent;
@@ -51,6 +56,14 @@ export class MyRequestsPageComponent implements OnInit {
   readonly detailError = signal<string | null>(null);
   readonly ticketDetail = signal<TicketDetail | null>(null);
   readonly detailTicketId = signal<string | null>(null);
+  readonly isEditModalOpen = signal(false);
+  readonly isSavingEdit = signal(false);
+  readonly editError = signal<string | null>(null);
+  readonly showEditValidation = signal(false);
+  readonly editingTicket = signal<TicketSummary | null>(null);
+  readonly editForm = this.formBuilder.nonNullable.group({
+    description: ['', [Validators.required, Validators.maxLength(1000)]],
+  });
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
   readonly filteredTickets = computed(() => {
@@ -193,6 +206,78 @@ export class MyRequestsPageComponent implements OnInit {
             'No fue posible cargar el detalle de esta solicitud. Inténtalo nuevamente.'
           ),
       });
+  }
+
+  canEdit(ticket: TicketSummary): boolean {
+    return ticket.status === 'NEW' && ticket.requester.id === this.session.user().id;
+  }
+
+  openEditModal(ticket: TicketSummary): void {
+    if (!this.canEdit(ticket)) return;
+
+    this.editingTicket.set(ticket);
+    this.editError.set(null);
+    this.showEditValidation.set(false);
+    this.editForm.reset({ description: ticket.description });
+    this.isEditModalOpen.set(true);
+  }
+
+  closeEditModal(): void {
+    if (this.isSavingEdit()) return;
+
+    this.isEditModalOpen.set(false);
+    this.editingTicket.set(null);
+    this.editError.set(null);
+    this.showEditValidation.set(false);
+    this.editForm.reset({ description: '' });
+  }
+
+  submitEdit(): void {
+    const ticket = this.editingTicket();
+    if (!ticket || this.isSavingEdit()) return;
+
+    this.showEditValidation.set(true);
+    this.editForm.markAllAsTouched();
+    if (this.editForm.invalid) return;
+
+    this.isSavingEdit.set(true);
+    const request = { description: this.editForm.controls.description.value.trim() };
+
+    this.ticketGateway
+      .updateTicket(ticket.id, request)
+      .pipe(finalize(() => this.isSavingEdit.set(false)))
+      .subscribe({
+        next: (updatedTicket) => {
+          this.tickets.update((tickets) =>
+            tickets.map((current) =>
+              current.id === updatedTicket.id ? this.toSummary(updatedTicket) : current
+            )
+          );
+          if (this.ticketDetail()?.id === updatedTicket.id) {
+            this.ticketDetail.set(updatedTicket);
+          }
+          toast.success('Solicitud actualizada', {
+            description: `El ticket ${updatedTicket.id} fue actualizado correctamente.`,
+            duration: 8000,
+          });
+          this.isSavingEdit.set(false);
+          this.closeEditModal();
+        },
+        error: () => {
+          const message =
+            'No fue posible actualizar la solicitud. Puede que ya no esté disponible para edición.';
+          this.editError.set(message);
+          toast.error('No pudimos actualizar la solicitud', {
+            description: message,
+            duration: 8000,
+          });
+          this.loadTickets();
+        },
+      });
+  }
+
+  hasEditError(): boolean {
+    return this.editForm.controls.description.invalid && this.showEditValidation();
   }
 
   statusLabel(status: TicketSummary['status']): string {

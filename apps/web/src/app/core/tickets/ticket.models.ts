@@ -45,6 +45,10 @@ export interface CreateTicketRequest {
   impactAssessment: ImpactAssessment;
 }
 
+export interface UpdateTicketRequest {
+  description: string;
+}
+
 export interface TicketUser {
   id: string;
   name: string;

@@ -172,6 +172,21 @@ describe('HttpTicketGateway', () => {
     pendingRequest.flush(response);
   });
 
+  it('updates only the ticket description', () => {
+    gateway
+      .updateTicket(response.id, { description: 'Descripción corregida.' })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}`
+    );
+    expect(pendingRequest.request.method).toBe('PATCH');
+    expect(pendingRequest.request.body).toEqual({
+      description: 'Descripción corregida.',
+    });
+    pendingRequest.flush({ ...response, description: 'Descripción corregida.' });
+  });
+
   it('assigns the selected technician without sending derived fields', () => {
     gateway.assignTechnician(response.id, 'technician-id').subscribe();
 

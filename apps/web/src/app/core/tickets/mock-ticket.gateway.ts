@@ -7,6 +7,7 @@ import {
   PaginatedTicketsResponse,
   TicketDetail,
   TicketPriority,
+  UpdateTicketRequest,
 } from './ticket.models';
 import { ListMyTicketsQuery } from './ticket.gateway';
 import { MockTicketStore } from './mock-ticket.store';
@@ -81,6 +82,13 @@ export class MockTicketGateway implements TicketGateway {
 
   getTicket(_id: string): Observable<TicketDetail> {
     return throwError(() => new Error('El detalle no está disponible en el adaptador mock.'));
+  }
+
+  updateTicket(
+    _id: string,
+    _request: UpdateTicketRequest
+  ): Observable<TicketDetail> {
+    return throwError(() => new Error('La edición no está disponible en el adaptador mock.'));
   }
 }
 

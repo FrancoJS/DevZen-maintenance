@@ -7,6 +7,7 @@ import {
   TicketDetail,
   TicketPriority,
   TicketStatus,
+  UpdateTicketRequest,
 } from './ticket.models';
 
 /**
@@ -17,6 +18,7 @@ export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
   listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse>;
   getTicket(id: string): Observable<TicketDetail>;
+  updateTicket(id: string, request: UpdateTicketRequest): Observable<TicketDetail>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');

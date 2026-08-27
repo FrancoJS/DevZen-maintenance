@@ -3,6 +3,7 @@ import { provideRouter } from '@angular/router';
 import { Observable, Subject, of, throwError } from 'rxjs';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TICKET_GATEWAY } from '../../../core/tickets/ticket.gateway';
+import { PreviewSessionService } from '../../../core/preview-session.service';
 import {
   PaginatedTicketsResponse,
   TicketDetail,
@@ -71,16 +72,26 @@ const createdTicket: TicketDetail = {
   history: [],
 };
 
+const editableTicket: TicketDetail = {
+  ...createdTicket,
+  id: 'TK-NEW',
+  description: 'Falla reciente',
+  asset: 'Compresor nuevo',
+  location: 'Planta 1',
+};
+
 describe('MyRequestsPageComponent', () => {
   let gateway: {
     listMyTickets: ReturnType<typeof vi.fn>;
     getTicket: ReturnType<typeof vi.fn>;
+    updateTicket: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
     gateway = {
       listMyTickets: vi.fn(() => of(response)),
       getTicket: vi.fn(() => of(createdTicket)),
+      updateTicket: vi.fn(() => of(editableTicket)),
     };
 
     await TestBed.configureTestingModule({
@@ -266,5 +277,82 @@ describe('MyRequestsPageComponent', () => {
 
     expect(gateway.getTicket).toHaveBeenCalledTimes(2);
     expect(fixture.nativeElement.textContent).toContain('Solicitud creada desde el modal');
+  });
+
+  it('solo permite editar al propietario cuando el ticket está NEW', () => {
+    const session = TestBed.inject(PreviewSessionService);
+    session.loginFromApi(
+      {
+        id: 'requester-id',
+        name: 'Camila Rojas',
+        email: 'camila.rojas@devzen.test',
+        role: 'REQUESTER',
+      },
+      'access-token'
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.canEdit({ ...tickets[0], status: 'NEW' })).toBe(true);
+    expect(component.canEdit(tickets[0])).toBe(false);
+    expect(component.canEdit({ ...tickets[1], status: 'NEW', requester: { id: 'other-user', name: 'Otro usuario' } })).toBe(false);
+  });
+
+  it('actualiza la descripción propia NEW y sincroniza el listado', () => {
+    const session = TestBed.inject(PreviewSessionService);
+    session.loginFromApi(
+      {
+        id: 'requester-id',
+        name: 'Camila Rojas',
+        email: 'camila.rojas@devzen.test',
+        role: 'REQUESTER',
+      },
+      'access-token'
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    const editableSummary = { ...tickets[0], status: 'NEW' as const };
+    gateway.updateTicket.mockReturnValueOnce(
+      of({ ...editableTicket, description: 'Descripción corregida.' })
+    );
+
+    component.openEditModal(editableSummary);
+    component.editForm.setValue({ description: 'Descripción corregida.' });
+    component.submitEdit();
+    fixture.detectChanges();
+
+    expect(gateway.updateTicket).toHaveBeenCalledWith('TK-NEW', {
+      description: 'Descripción corregida.',
+    });
+    expect(component.isEditModalOpen()).toBe(false);
+    expect(component.tickets().find((ticket) => ticket.id === 'TK-NEW')?.description).toBe('Descripción corregida.');
+  });
+
+  it('conserva el formulario y recarga la lista si la edición falla', () => {
+    const session = TestBed.inject(PreviewSessionService);
+    session.loginFromApi(
+      {
+        id: 'requester-id',
+        name: 'Camila Rojas',
+        email: 'camila.rojas@devzen.test',
+        role: 'REQUESTER',
+      },
+      'access-token'
+    );
+    gateway.updateTicket.mockReturnValueOnce(
+      throwError(() => new Error('El ticket ya fue asignado')) as Observable<TicketDetail>
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.openEditModal({ ...tickets[0], status: 'NEW' });
+    component.editForm.setValue({ description: 'Texto que se conserva' });
+    component.submitEdit();
+    fixture.detectChanges();
+
+    expect(component.isEditModalOpen()).toBe(true);
+    expect(component.editForm.controls.description.value).toBe('Texto que se conserva');
+    expect(fixture.nativeElement.textContent).toContain('No fue posible actualizar la solicitud');
+    expect(gateway.listMyTickets).toHaveBeenCalledTimes(2);
   });
 });
