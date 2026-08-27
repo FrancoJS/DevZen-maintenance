@@ -3,32 +3,67 @@ import { PreviewSessionService } from './preview-session.service';
 
 describe('PreviewSessionService', () => {
   beforeEach(() => {
-    localStorage.removeItem('devzen-preview-role');
     localStorage.removeItem('devzen-mock-session');
+    localStorage.removeItem('devzen-access-token');
     TestBed.configureTestingModule({ providers: [PreviewSessionService] });
   });
 
-  it('starts as ADMIN and persists role changes', () => {
+  it('starts unauthenticated with the default display user', () => {
     const service = TestBed.inject(PreviewSessionService);
 
+    expect(service.isAuthenticated()).toBe(false);
     expect(service.role()).toBe('ADMIN');
-    service.setRole('REQUESTER');
-
-    expect(service.role()).toBe('REQUESTER');
-    expect(localStorage.getItem('devzen-preview-role')).toBe('REQUESTER');
-    expect(service.user().roleLabel).toBe('Solicitante');
   });
 
-  it('authenticates a demo user and stores the active session without the password', () => {
+  it('stores the complete authenticated API user and derives its display data', () => {
     const service = TestBed.inject(PreviewSessionService);
 
-    expect(service.login('ana.gonzalez@devzen.test', 'Admin123!')).toBe(true);
-    expect(service.role()).toBe('ADMIN');
-    expect(service.user().name).toBe('Ana González');
-    expect(localStorage.getItem('devzen-mock-session')).toBe(
-      JSON.stringify({ email: 'ana.gonzalez@devzen.test', role: 'ADMIN' })
+    service.loginFromApi(
+      {
+        id: 'matias-vega-id',
+        name: 'Matías Vega',
+        email: 'administrador@luxnova.demo',
+        role: 'ADMIN',
+      },
+      'access-token',
     );
-    expect(localStorage.getItem('devzen-mock-session')).not.toContain('Admin123!');
+
+    expect(service.isAuthenticated()).toBe(true);
+    expect(service.role()).toBe('ADMIN');
+    expect(service.user().name).toBe('Matías Vega');
+    expect(service.user().initials).toBe('MV');
+    expect(service.user().roleLabel).toBe('Administrador');
+    expect(localStorage.getItem('devzen-mock-session')).toBe(
+      JSON.stringify({
+        user: {
+          id: 'matias-vega-id',
+          name: 'Matías Vega',
+          email: 'administrador@luxnova.demo',
+          role: 'ADMIN',
+        },
+      })
+    );
+    expect(localStorage.getItem('devzen-access-token')).toBe('access-token');
+  });
+
+  it('restores the persisted authenticated identity after a page reload', () => {
+    localStorage.setItem(
+      'devzen-mock-session',
+      JSON.stringify({
+        user: {
+          id: 'matias-vega-id',
+          name: 'Matías Vega',
+          email: 'administrador@luxnova.demo',
+          role: 'ADMIN',
+        },
+      }),
+    );
+
+    const service = TestBed.inject(PreviewSessionService);
+
+    expect(service.isAuthenticated()).toBe(true);
+    expect(service.user().name).toBe('Matías Vega');
+    expect(service.user().initials).toBe('MV');
   });
 
   it('rejects invalid demo credentials', () => {
@@ -40,13 +75,21 @@ describe('PreviewSessionService', () => {
 
   it('clears the active session on logout', () => {
     const service = TestBed.inject(PreviewSessionService);
-    service.login('ana.gonzalez@devzen.test', 'Admin123!');
+    service.loginFromApi(
+      {
+        id: 'matias-vega-id',
+        name: 'Matías Vega',
+        email: 'administrador@luxnova.demo',
+        role: 'ADMIN',
+      },
+      'access-token',
+    );
 
     service.logout();
 
     expect(service.isAuthenticated()).toBe(false);
     expect(service.role()).toBe('ADMIN');
     expect(localStorage.getItem('devzen-mock-session')).toBeNull();
-    expect(localStorage.getItem('devzen-preview-role')).toBeNull();
+    expect(localStorage.getItem('devzen-access-token')).toBeNull();
   });
 });

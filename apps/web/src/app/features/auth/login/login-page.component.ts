@@ -33,8 +33,11 @@ export class LoginPageComponent {
     const { email, password } = this.form.getRawValue();
     this.authApi.login(email, password).subscribe({
       next: ({ accessToken, user }) => {
-        this.session.loginFromApi(user.email, user.role, accessToken);
+        this.session.loginFromApi(user, accessToken);
         void this.router.navigateByUrl('/inicio');
+      },
+      error: () => {
+        this.submitError.set('Las credenciales ingresadas no son correctas.');
       },
     });
   }
