@@ -6,22 +6,32 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { DataSource, IsNull, Repository, SelectQueryBuilder } from 'typeorm';
+import {
+  DataSource,
+  EntityManager,
+  IsNull,
+  Repository,
+  SelectQueryBuilder,
+} from 'typeorm';
 import { HistoryService } from '../history/history.service';
 import { TicketHistoryAction } from '../history/enums/ticket-history-action.enum';
 import { AuthenticatedUser } from '../auth/interfaces/authenticated-user.interface';
 import { User } from '../users/entities/user.entity';
 import { UserRole } from '../users/enums/user-role.enum';
 import { AssignTechnicianDto } from './dto/assign-technician.dto';
+import { ApproveFreezeRequestDto } from './dto/approve-freeze-request.dto';
 import { CloseTicketDto } from './dto/close-ticket.dto';
 import { CreateTicketDto } from './dto/create-ticket.dto';
 import { CurrentMaintenanceResponseDto } from './dto/current-maintenance-response.dto';
 import { ListTicketsQueryDto } from './dto/list-tickets-query.dto';
 import { ResolveTicketDto } from './dto/resolve-ticket.dto';
+import { RejectFreezeRequestDto } from './dto/reject-freeze-request.dto';
+import { RequestFreezeDto } from './dto/request-freeze.dto';
 import { UpdateMaintenanceDto } from './dto/update-maintenance.dto';
 import {
   PaginatedTicketsResponseDto,
   AssignmentHistoryResponseDto,
+  FreezeRequestResponseDto,
   TicketDetailResponseDto,
   TicketHistoryResponseDto,
   TicketSummaryResponseDto,
@@ -30,9 +40,12 @@ import { UpdateTicketDto } from './dto/update-ticket.dto';
 import { ImpactAssessment } from './entities/impact-assessment.entity';
 import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Maintenance } from './entities/maintenance.entity';
+import { FreezeRequest } from './entities/freeze-request.entity';
 import { Ticket } from './entities/ticket.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
+import { FreezeReasonType } from './enums/freeze-reason-type.enum';
+import { FreezeRequestStatus } from './enums/freeze-request-status.enum';
 import { calculateTicketPriority } from './priority/ticket-priority-calculator';
 
 @Injectable()
@@ -151,9 +164,12 @@ export class TicketsService {
         if (!ticket) {
           throw new NotFoundException('Ticket no encontrado');
         }
-        if (ticket.status !== TicketStatus.NEW) {
+        if (
+          ticket.status !== TicketStatus.NEW &&
+          ticket.status !== TicketStatus.PENDING_REASSIGNMENT
+        ) {
           throw new ConflictException(
-            'Solo se pueden asignar tickets en estado NEW',
+            'Solo se pueden asignar tickets en estado NEW o PENDING_REASSIGNMENT',
           );
         }
 
@@ -180,6 +196,7 @@ export class TicketsService {
           throw new ConflictException('El técnico seleccionado está ocupado');
         }
 
+        const previousStatus = ticket.status;
         await assignments.save(
           assignments.create({
             ticketId: ticket.id,
@@ -198,7 +215,7 @@ export class TicketsService {
           ticketId: ticket.id,
           actorId: actor.id,
           action: TicketHistoryAction.TECHNICIAN_ASSIGNED,
-          previousStatus: TicketStatus.NEW,
+          previousStatus,
           newStatus: TicketStatus.ASSIGNED,
           details: { technicianId: technician.id },
         });
@@ -210,6 +227,227 @@ export class TicketsService {
       throw error;
     }
 
+    return this.findOne(id, actor);
+  }
+
+  async requestFreeze(
+    id: string,
+    requestFreezeDto: RequestFreezeDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+    if (
+      requestFreezeDto.reasonType === FreezeReasonType.OTHER &&
+      !requestFreezeDto.reasonDetail
+    ) {
+      throw new BadRequestException(
+        'El detalle es obligatorio para motivo OTHER',
+      );
+    }
+
+    try {
+      await this.dataSource.transaction(async (manager) => {
+        const ticket = await this.lockTicket(manager, id);
+        this.assertCurrentTechnician(ticket, actor);
+        if (ticket.status !== TicketStatus.IN_PROGRESS) {
+          throw new ConflictException(
+            'Solo se puede solicitar congelamiento en estado IN_PROGRESS',
+          );
+        }
+        const assignment = await this.lockActiveAssignment(manager, ticket.id);
+        if (!assignment || assignment.technicianId !== actor.id) {
+          throw new ConflictException('No existe una asignación activa válida');
+        }
+
+        const freezes = manager.getRepository(FreezeRequest);
+        const pending = await freezes.findOne({
+          where: { ticketId: ticket.id, status: FreezeRequestStatus.PENDING },
+        });
+        if (pending) {
+          throw new ConflictException(
+            'Ya existe una solicitud de congelamiento pendiente',
+          );
+        }
+
+        await freezes.save(
+          freezes.create({
+            ticketId: ticket.id,
+            technicianId: actor.id,
+            reasonType: requestFreezeDto.reasonType,
+            reasonDetail: requestFreezeDto.reasonDetail ?? null,
+            status: FreezeRequestStatus.PENDING,
+            reviewedById: null,
+            reviewedAt: null,
+            reviewNote: null,
+          }),
+        );
+        ticket.status = TicketStatus.FREEZE_REQUESTED;
+        await manager.getRepository(Ticket).save(ticket);
+        await this.historyService.record(manager, {
+          ticketId: ticket.id,
+          actorId: actor.id,
+          action: TicketHistoryAction.FREEZE_REQUESTED,
+          previousStatus: TicketStatus.IN_PROGRESS,
+          newStatus: TicketStatus.FREEZE_REQUESTED,
+          details: {
+            reasonType: requestFreezeDto.reasonType,
+            reasonDetail: requestFreezeDto.reasonDetail ?? null,
+          },
+        });
+      });
+    } catch (error) {
+      if (this.isPendingFreezeUniqueViolation(error)) {
+        throw new ConflictException(
+          'Ya existe una solicitud de congelamiento pendiente',
+        );
+      }
+      throw error;
+    }
+    return this.findOne(id, actor);
+  }
+
+  async approveFreeze(
+    id: string,
+    freezeRequestId: string,
+    dto: ApproveFreezeRequestDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertAdmin(actor);
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await this.lockTicket(manager, id);
+      if (ticket.status !== TicketStatus.FREEZE_REQUESTED) {
+        throw new ConflictException(
+          'El ticket no está en estado FREEZE_REQUESTED',
+        );
+      }
+      const assignment = await this.lockActiveAssignment(manager, ticket.id);
+      if (
+        !assignment ||
+        assignment.technicianId !== ticket.currentTechnicianId
+      ) {
+        throw new ConflictException('No existe una asignación activa válida');
+      }
+      const freeze = await this.lockFreezeRequest(
+        manager,
+        ticket.id,
+        freezeRequestId,
+      );
+      if (freeze.status !== FreezeRequestStatus.PENDING) {
+        throw new ConflictException(
+          'La solicitud de congelamiento ya fue resuelta',
+        );
+      }
+
+      const reviewedAt = new Date();
+      freeze.status = FreezeRequestStatus.APPROVED;
+      freeze.reviewedById = actor.id;
+      freeze.reviewedAt = reviewedAt;
+      freeze.reviewNote = dto.reviewNote ?? null;
+      assignment.releasedAt = reviewedAt;
+      assignment.releaseReason = AssignmentReleaseReason.FREEZE_APPROVED;
+      ticket.status = TicketStatus.FROZEN;
+      ticket.currentTechnicianId = null;
+
+      await manager.getRepository(FreezeRequest).save(freeze);
+      await manager.getRepository(AssignmentHistory).save(assignment);
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.FREEZE_APPROVED,
+        previousStatus: TicketStatus.FREEZE_REQUESTED,
+        newStatus: TicketStatus.FROZEN,
+        details: {
+          freezeRequestId: freeze.id,
+          reviewNote: freeze.reviewNote,
+          releasedAssignmentId: assignment.id,
+          technicianId: assignment.technicianId,
+          releaseReason: AssignmentReleaseReason.FREEZE_APPROVED,
+          releasedAt: reviewedAt,
+        },
+      });
+    });
+    return this.findOne(id, actor);
+  }
+
+  async rejectFreeze(
+    id: string,
+    freezeRequestId: string,
+    dto: RejectFreezeRequestDto,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertAdmin(actor);
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await this.lockTicket(manager, id);
+      if (ticket.status !== TicketStatus.FREEZE_REQUESTED) {
+        throw new ConflictException(
+          'El ticket no está en estado FREEZE_REQUESTED',
+        );
+      }
+      const assignment = await this.lockActiveAssignment(manager, ticket.id);
+      if (
+        !assignment ||
+        assignment.technicianId !== ticket.currentTechnicianId
+      ) {
+        throw new ConflictException('No existe una asignación activa válida');
+      }
+      const freeze = await this.lockFreezeRequest(
+        manager,
+        ticket.id,
+        freezeRequestId,
+      );
+      if (freeze.status !== FreezeRequestStatus.PENDING) {
+        throw new ConflictException(
+          'La solicitud de congelamiento ya fue resuelta',
+        );
+      }
+
+      freeze.status = FreezeRequestStatus.REJECTED;
+      freeze.reviewedById = actor.id;
+      freeze.reviewedAt = new Date();
+      freeze.reviewNote = dto.reviewNote;
+      ticket.status = TicketStatus.IN_PROGRESS;
+      await manager.getRepository(FreezeRequest).save(freeze);
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.FREEZE_REJECTED,
+        previousStatus: TicketStatus.FREEZE_REQUESTED,
+        newStatus: TicketStatus.IN_PROGRESS,
+        details: { freezeRequestId: freeze.id, reviewNote: freeze.reviewNote },
+      });
+    });
+    return this.findOne(id, actor);
+  }
+
+  async resolveBlocker(
+    id: string,
+    actor: AuthenticatedUser,
+  ): Promise<TicketDetailResponseDto> {
+    this.assertAdmin(actor);
+    await this.dataSource.transaction(async (manager) => {
+      const ticket = await this.lockTicket(manager, id);
+      if (ticket.status !== TicketStatus.FROZEN) {
+        throw new ConflictException(
+          'Solo se puede resolver el bloqueo en estado FROZEN',
+        );
+      }
+      if (ticket.currentTechnicianId !== null) {
+        throw new ConflictException(
+          'Un ticket congelado no puede tener técnico activo',
+        );
+      }
+      ticket.status = TicketStatus.PENDING_REASSIGNMENT;
+      await manager.getRepository(Ticket).save(ticket);
+      await this.historyService.record(manager, {
+        ticketId: ticket.id,
+        actorId: actor.id,
+        action: TicketHistoryAction.BLOCKER_RESOLVED,
+        previousStatus: TicketStatus.FROZEN,
+        newStatus: TicketStatus.PENDING_REASSIGNMENT,
+      });
+    });
     return this.findOne(id, actor);
   }
 
@@ -587,8 +825,11 @@ export class TicketsService {
       throw new NotFoundException('Ticket no encontrado');
     }
 
-    const assignments = await this.findAssignments(ticket.id);
-    return this.toDetail(ticket, assignments);
+    const [assignments, freezeRequests] = await Promise.all([
+      this.findAssignments(ticket.id),
+      this.findFreezeRequests(ticket.id),
+    ]);
+    return this.toDetail(ticket, assignments, freezeRequests);
   }
 
   private applyVisibility(
@@ -643,6 +884,7 @@ export class TicketsService {
   private toDetail(
     ticket: Ticket,
     assignments: AssignmentHistory[],
+    freezeRequests: FreezeRequest[],
   ): TicketDetailResponseDto {
     if (!ticket.impactAssessment) {
       throw new NotFoundException('Evaluación de impacto no encontrada');
@@ -681,6 +923,9 @@ export class TicketsService {
       assignments: assignments.map((assignment) =>
         this.toAssignmentHistory(assignment),
       ),
+      freezeRequests: freezeRequests.map((request) =>
+        this.toFreezeRequest(request),
+      ),
       maintenance: ticket.maintenance
         ? {
             diagnosis: ticket.maintenance.diagnosis,
@@ -716,6 +961,14 @@ export class TicketsService {
     });
   }
 
+  private findFreezeRequests(ticketId: string): Promise<FreezeRequest[]> {
+    return this.tickets.manager.getRepository(FreezeRequest).find({
+      where: { ticketId },
+      relations: { technician: true, reviewedBy: true },
+      order: { requestedAt: 'ASC', id: 'ASC' },
+    });
+  }
+
   private toAssignmentHistory(
     assignment: AssignmentHistory,
   ): AssignmentHistoryResponseDto {
@@ -736,6 +989,22 @@ export class TicketsService {
     };
   }
 
+  private toFreezeRequest(request: FreezeRequest): FreezeRequestResponseDto {
+    return {
+      id: request.id,
+      technician: { id: request.technician.id, name: request.technician.name },
+      reasonType: request.reasonType,
+      reasonDetail: request.reasonDetail,
+      status: request.status,
+      requestedAt: request.requestedAt,
+      reviewedBy: request.reviewedBy
+        ? { id: request.reviewedBy.id, name: request.reviewedBy.name }
+        : null,
+      reviewedAt: request.reviewedAt,
+      reviewNote: request.reviewNote,
+    };
+  }
+
   private isActiveAssignmentUniqueViolation(error: unknown): boolean {
     if (!error || typeof error !== 'object') {
       return false;
@@ -748,6 +1017,71 @@ export class TicketsService {
         databaseError.constraint ===
           'uq_assignment_histories_active_technician')
     );
+  }
+
+  private isPendingFreezeUniqueViolation(error: unknown): boolean {
+    return (
+      !!error &&
+      typeof error === 'object' &&
+      (error as { code?: unknown; constraint?: unknown }).code === '23505' &&
+      (error as { constraint?: unknown }).constraint ===
+        'uq_freeze_requests_pending_ticket'
+    );
+  }
+
+  private async lockTicket(
+    manager: EntityManager,
+    id: string,
+  ): Promise<Ticket> {
+    const ticket = await manager
+      .getRepository(Ticket)
+      .createQueryBuilder('ticket')
+      .setLock('pessimistic_write')
+      .where('ticket.id = :id', { id })
+      .getOne();
+    if (!ticket) {
+      throw new NotFoundException('Ticket no encontrado');
+    }
+    return ticket;
+  }
+
+  private lockActiveAssignment(
+    manager: EntityManager,
+    ticketId: string,
+  ): Promise<AssignmentHistory | null> {
+    return manager
+      .getRepository(AssignmentHistory)
+      .createQueryBuilder('assignment')
+      .setLock('pessimistic_write')
+      .where('assignment.ticketId = :ticketId', { ticketId })
+      .andWhere('assignment.releasedAt IS NULL')
+      .getOne();
+  }
+
+  private async lockFreezeRequest(
+    manager: EntityManager,
+    ticketId: string,
+    freezeRequestId: string,
+  ): Promise<FreezeRequest> {
+    const freeze = await manager
+      .getRepository(FreezeRequest)
+      .createQueryBuilder('freezeRequest')
+      .setLock('pessimistic_write')
+      .where('freezeRequest.id = :freezeRequestId', { freezeRequestId })
+      .andWhere('freezeRequest.ticketId = :ticketId', { ticketId })
+      .getOne();
+    if (!freeze) {
+      throw new NotFoundException('Solicitud de congelamiento no encontrada');
+    }
+    return freeze;
+  }
+
+  private assertAdmin(actor: AuthenticatedUser): void {
+    if (actor.role !== UserRole.ADMIN) {
+      throw new ForbiddenException(
+        'Solo un administrador puede realizar esta acción',
+      );
+    }
   }
 
   private assertTechnician(actor: AuthenticatedUser): void {

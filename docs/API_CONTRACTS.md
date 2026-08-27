@@ -175,26 +175,30 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 
 ### Solicitar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/freeze-requests`
 
 - **Actor:** técnico actual.
 - **Precondición:** `IN_PROGRESS`; motivo obligatorio; detalle obligatorio para “Otro”.
 - **Efecto:** crear `FreezeRequest`; conservar asignación/técnico ocupado.
 - **Cambio:** `IN_PROGRESS -> FREEZE_REQUESTED`.
+- **Entrada:** `{ reasonType, reasonDetail? }`; `OTHER` exige detalle no vacío.
 
 ### Aprobar o rechazar
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/freeze-requests/:freezeRequestId/approve` y
+`POST /api/tickets/:id/freeze-requests/:freezeRequestId/reject`.
 
 - **Actor:** `ADMIN`.
 - **Precondición:** `FREEZE_REQUESTED` pendiente.
 - **Aprobación:** `FROZEN`, libera asignación/técnico y limpia `currentTechnicianId`.
 - **Rechazo:** `IN_PROGRESS`, mantiene asignación/técnico ocupado.
 - **Validaciones:** decisión única, rol, estado y actualización atómica.
+- **Entrada de aprobación:** `{ reviewNote? }`. **Entrada de rechazo:**
+  `{ reviewNote }`, obligatorio y no vacío.
 
 ### Marcar bloqueo resuelto
 
-**Contrato pendiente de definición.**
+`POST /api/tickets/:id/resolve-blocker` sin cuerpo.
 
 - **Actor:** `ADMIN`.
 - **Precondición:** ticket `FROZEN` y causa resuelta.

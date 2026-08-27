@@ -49,9 +49,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 
 - **Contexto:** el motivo es obligatorio para solicitar, pero no se declara si el administrador debe motivar un rechazo.
 - **Fuentes:** Word 8.1, 8.2 y modelo `FreezeRequest`; `AGENTS.md`, Freeze workflow.
-- **Decisión requerida:** determinar obligatoriedad y formato del detalle de rechazo.
+- **Decisión aprobada:** el rechazo exige `reviewNote` no vacío, normalizado en el backend y registrado en la solicitud y el historial.
 - **Impacto:** DTO, historial, pantalla administrativa y pruebas.
-- **Opciones conocidas:** opcional u obligatorio; ninguna aprobada.
 
 ## `PD-008` — Límite entre dashboard obligatorio y opcional
 
