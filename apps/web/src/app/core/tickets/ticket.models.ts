@@ -62,6 +62,24 @@ export interface TicketHistoryEntry {
   createdAt: string;
 }
 
+export type AssignmentReleaseReason = 'FREEZE_APPROVED' | 'RESOLVED';
+
+export interface TicketAssignment {
+  id: string;
+  technician: TicketUser;
+  assignedBy: TicketUser;
+  assignedAt: string;
+  startedAt: string | null;
+  releasedAt: string | null;
+  releaseReason: AssignmentReleaseReason | null;
+}
+
+export interface TicketMaintenance {
+  diagnosis: string | null;
+  workPerformed: string | null;
+  notes: string | null;
+}
+
 export interface TicketDetail {
   id: string;
   description: string;
@@ -75,7 +93,60 @@ export interface TicketDetail {
   impactAssessment: ImpactAssessment & {
     calculatedPriority: TicketPriority;
   };
+  currentTechnician: TicketUser | null;
+  resolvedBy: TicketUser | null;
+  resolvedAt: string | null;
+  closedBy: TicketUser | null;
+  closedAt: string | null;
+  assignments: TicketAssignment[];
+  maintenance: TicketMaintenance | null;
   history: TicketHistoryEntry[];
+}
+
+export interface TicketSummary {
+  id: string;
+  description: string;
+  location: string;
+  asset: string;
+  status: TicketStatus;
+  priority: TicketPriority;
+  requester: TicketUser;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface PaginatedTicketsResponse {
+  items: TicketSummary[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
+}
+
+export type TechnicianAvailability = 'AVAILABLE' | 'BUSY';
+
+export interface TechnicianCurrentTicket {
+  id: string;
+  description: string;
+  asset: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+}
+
+export interface Technician {
+  id: string;
+  name: string;
+  email: string;
+  availability: TechnicianAvailability;
+  currentTicket: TechnicianCurrentTicket | null;
+}
+
+export interface PaginatedTechniciansResponse {
+  items: Technician[];
+  page: number;
+  limit: number;
+  total: number;
+  totalPages: number;
 }
 
 export interface TicketListItem {

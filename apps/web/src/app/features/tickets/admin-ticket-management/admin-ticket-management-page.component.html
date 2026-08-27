@@ -1,0 +1,248 @@
+<section class="mx-auto max-w-7xl space-y-6" aria-labelledby="ticket-management-title">
+  <header>
+    <p class="text-sm text-muted-foreground">Administración / Operación</p>
+    <h2 id="ticket-management-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Gestión de tickets</h2>
+    <p class="mt-1 max-w-3xl text-muted-foreground">Supervisa las solicitudes y la capacidad actual del equipo técnico.</p>
+  </header>
+
+  @if (isLoading() && !hasLoadedOnce()) {
+    <article hlmCard aria-busy="true" aria-label="Cargando gestión de tickets">
+      <div hlmCardContent class="space-y-4 py-8">
+        <div class="grid gap-4 sm:grid-cols-3">
+          <div class="h-24 animate-pulse rounded-lg bg-muted"></div>
+          <div class="h-24 animate-pulse rounded-lg bg-muted"></div>
+          <div class="h-24 animate-pulse rounded-lg bg-muted"></div>
+        </div>
+        <div class="h-40 animate-pulse rounded-lg bg-muted"></div>
+        <p class="text-sm text-muted-foreground">Cargando tickets y disponibilidad…</p>
+      </div>
+    </article>
+  } @else if (loadError(); as error) {
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos cargar la gestión de tickets</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadData()">Reintentar</button>
+      </div>
+    </article>
+  } @else {
+    <div class="grid gap-4 sm:grid-cols-3" aria-label="Resumen de capacidad técnica">
+      <article hlmCard>
+        <div hlmCardHeader>
+          <p hlmCardDescription>Técnicos registrados</p>
+          <p hlmCardTitle class="text-3xl">{{ technicians().length }}</p>
+        </div>
+      </article>
+      <article hlmCard class="border-l-4 border-l-emerald-500">
+        <div hlmCardHeader>
+          <p hlmCardDescription>Disponibles</p>
+          <p hlmCardTitle class="text-3xl">{{ availableTechnicians() }}</p>
+        </div>
+      </article>
+      <article hlmCard class="border-l-4 border-l-amber-500">
+        <div hlmCardHeader>
+          <p hlmCardDescription>Ocupados</p>
+          <p hlmCardTitle class="text-3xl">{{ busyTechnicians() }}</p>
+        </div>
+      </article>
+    </div>
+
+    <article hlmCard>
+      <header hlmCardHeader class="border-b">
+        <h3 hlmCardTitle>Filtros compartidos</h3>
+        <p hlmCardDescription>Aplican a los tickets y a los técnicos según su ticket activo.</p>
+      </header>
+      <div hlmCardContent class="grid gap-4 md:grid-cols-3 xl:grid-cols-[repeat(3,minmax(11rem,1fr))_auto]">
+        <div class="grid gap-2">
+          <label for="admin-ticket-status" class="text-sm font-medium">Estado</label>
+          <select id="admin-ticket-status" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedStatus()" (change)="updateStatus($any($event.target).value)">
+            <option value="">Todos los estados</option>
+            @for (status of statuses; track status) {
+              <option [value]="status">{{ statusLabel(status) }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid gap-2">
+          <label for="admin-ticket-priority" class="text-sm font-medium">Prioridad</label>
+          <select id="admin-ticket-priority" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedPriority()" (change)="updatePriority($any($event.target).value)">
+            <option value="">Todas las prioridades</option>
+            @for (priority of priorities; track priority) {
+              <option [value]="priority">{{ priorityLabel(priority) }}</option>
+            }
+          </select>
+        </div>
+        <div class="grid gap-2">
+          <label for="admin-ticket-assignment" class="text-sm font-medium">Disponibilidad / asignación</label>
+          <select id="admin-ticket-assignment" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedAssignment()" (change)="updateAssignment($any($event.target).value)">
+            <option value="">Todos</option>
+            <option value="WITH_TECHNICIAN">Ocupados / con ticket activo</option>
+            <option value="WITHOUT_TECHNICIAN">Disponibles / sin ticket activo</option>
+          </select>
+        </div>
+        <div class="flex items-end">
+          <button hlmBtn type="button" variant="outline" class="w-full" [disabled]="!hasActiveFilters()" (click)="clearFilters()">Limpiar filtros</button>
+        </div>
+      </div>
+    </article>
+
+    <article hlmCard data-testid="tickets-section" class="overflow-hidden">
+      <header>
+        <button type="button" data-testid="tickets-toggle" class="flex w-full flex-wrap items-center justify-between gap-3 border-0 bg-transparent px-4 py-3 text-left sm:px-5 sm:py-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [attr.aria-expanded]="ticketsExpanded()" aria-controls="tickets-section-content" (click)="toggleTicketsSection()">
+        <div>
+          <h3 hlmCardTitle>Todos los tickets</h3>
+          <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} en la consulta actual</p>
+        </div>
+        <span class="text-sm font-medium text-muted-foreground">{{ ticketsExpanded() ? 'Ocultar' : 'Mostrar' }}</span>
+        </button>
+      </header>
+      <div id="tickets-section-content" class="collapsible-content" [class.collapsible-content--expanded]="ticketsExpanded()" [attr.aria-hidden]="!ticketsExpanded()" [attr.inert]="!ticketsExpanded() ? '' : null">
+        <div class="collapsible-content__inner">
+
+      @if (filteredTickets().length) {
+        <div hlmCardContent class="border-t p-0">
+          <div class="hidden overflow-x-auto lg:block">
+            <table class="w-full min-w-240 text-left text-sm">
+              <caption class="sr-only">Listado administrativo de tickets</caption>
+              <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th scope="col" class="px-5 py-3 font-semibold">Ticket</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Máquina</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Solicitante</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Estado</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Prioridad</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Técnico actual</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Creación</th>
+                  <th scope="col" class="px-5 py-3 font-semibold"><span class="sr-only">Acciones</span></th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (ticket of filteredTickets(); track ticket.id) {
+                  <tr class="transition-colors hover:bg-muted/35">
+                    <td class="px-5 py-4"><p class="max-w-40 truncate font-semibold" [title]="ticket.id">{{ ticket.id }}</p></td>
+                    <td class="px-5 py-4"><p class="font-medium">{{ ticket.asset }}</p><p class="mt-1 max-w-56 truncate text-xs text-muted-foreground">{{ ticket.description }}</p></td>
+                    <td class="px-5 py-4">{{ ticket.requester.name }}</td>
+                    <td class="px-5 py-4"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></td>
+                    <td class="px-5 py-4"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></td>
+                    <td class="px-5 py-4"><span [class.text-muted-foreground]="!hasCurrentTechnician(ticket)">{{ technicianName(ticket) }}</span></td>
+                    <td class="px-5 py-4 text-muted-foreground">{{ formatDate(ticket.createdAt) }}</td>
+                    <td class="px-5 py-4 text-right"><button hlmBtn type="button" variant="outline" size="sm" (click)="openActions(ticket)">Acciones</button></td>
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid gap-3 p-4 lg:hidden">
+            @for (ticket of filteredTickets(); track ticket.id) {
+              <article class="rounded-lg border p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3">
+                  <div><p class="font-semibold">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.id }}</p></div>
+                  <span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span>
+                </div>
+                <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                  <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1">{{ ticket.requester.name }}</dd></div>
+                  <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Técnico actual</dt><dd class="mt-1">{{ technicianName(ticket) }}</dd></div>
+                  <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</dt><dd><span hlmBadge variant="outline" class="mt-1" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></dd></div>
+                  <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creación</dt><dd class="mt-1">{{ formatDate(ticket.createdAt) }}</dd></div>
+                </dl>
+                <button hlmBtn type="button" variant="outline" class="mt-4 w-full" (click)="openActions(ticket)">Acciones</button>
+              </article>
+            }
+          </div>
+        </div>
+      } @else if (hasActiveFilters()) {
+        <div hlmCardContent class="border-t py-12 text-center">
+          <p class="font-semibold">No hay tickets con esos criterios</p>
+          <p class="mt-1 text-sm text-muted-foreground">Ajusta los filtros para ampliar los resultados.</p>
+          <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
+        </div>
+      } @else {
+        <div hlmCardContent class="border-t py-12 text-center">
+          <p class="font-semibold">No hay tickets registrados</p>
+          <p class="mt-1 text-sm text-muted-foreground">Las nuevas solicitudes aparecerán aquí cuando sean creadas.</p>
+        </div>
+      }
+        </div>
+      </div>
+    </article>
+
+    <article hlmCard data-testid="technicians-section" class="overflow-hidden">
+      <header>
+        <button type="button" data-testid="technicians-toggle" class="flex w-full flex-wrap items-center justify-between gap-3 border-0 bg-transparent px-4 py-3 text-left sm:px-5 sm:py-4 focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [attr.aria-expanded]="techniciansExpanded()" aria-controls="technicians-section-content" (click)="toggleTechniciansSection()">
+        <div>
+          <h3 hlmCardTitle>Técnicos</h3>
+          <p hlmCardDescription>{{ filteredTechnicians().length }} {{ filteredTechnicians().length === 1 ? 'técnico' : 'técnicos' }} en la consulta actual.</p>
+        </div>
+        <span class="text-sm font-medium text-muted-foreground">{{ techniciansExpanded() ? 'Ocultar' : 'Mostrar' }}</span>
+        </button>
+      </header>
+      <div id="technicians-section-content" class="collapsible-content" [class.collapsible-content--expanded]="techniciansExpanded()" [attr.aria-hidden]="!techniciansExpanded()" [attr.inert]="!techniciansExpanded() ? '' : null">
+        <div class="collapsible-content__inner">
+      <div hlmCardContent class="border-t p-0">
+        @if (filteredTechnicians().length) {
+          <div class="hidden overflow-x-auto lg:block">
+            <table class="w-full min-w-200 text-left text-sm">
+              <caption class="sr-only">Listado de técnicos y su disponibilidad actual</caption>
+              <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
+                <tr>
+                  <th scope="col" class="px-5 py-3 font-semibold">Técnico</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Disponibilidad</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Ticket actual</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Estado</th>
+                  <th scope="col" class="px-5 py-3 font-semibold">Prioridad</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y">
+                @for (technician of filteredTechnicians(); track technician.id) {
+                  <tr class="transition-colors hover:bg-muted/35">
+                    <td class="px-5 py-4 font-medium">{{ technician.name }}</td>
+                    <td class="px-5 py-4"><span hlmBadge variant="outline" [class]="technician.availability === 'AVAILABLE' ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200'">{{ technician.availability === 'AVAILABLE' ? 'Disponible' : 'Ocupado' }}</span></td>
+                    @if (technician.currentTicket; as currentTicket) {
+                      <td class="px-5 py-4"><p class="font-medium">{{ currentTicket.asset }}</p><p class="mt-1 max-w-56 truncate text-xs text-muted-foreground">{{ currentTicket.description }}</p></td>
+                      <td class="px-5 py-4"><span hlmBadge variant="outline" [class]="statusClass(currentTicket.status)">{{ statusLabel(currentTicket.status) }}</span></td>
+                      <td class="px-5 py-4"><span hlmBadge variant="outline" [class]="priorityClass(currentTicket.priority)">{{ priorityLabel(currentTicket.priority) }}</span></td>
+                    } @else {
+                      <td class="px-5 py-4 text-muted-foreground">Sin ticket activo</td>
+                      <td class="px-5 py-4 text-muted-foreground">—</td>
+                      <td class="px-5 py-4 text-muted-foreground">—</td>
+                    }
+                  </tr>
+                }
+              </tbody>
+            </table>
+          </div>
+
+          <div class="grid gap-3 p-4 lg:hidden">
+            @for (technician of filteredTechnicians(); track technician.id) {
+              <article class="rounded-lg border p-4">
+                <div class="flex flex-wrap items-start justify-between gap-3"><p class="font-semibold">{{ technician.name }}</p><span hlmBadge variant="outline" [class]="technician.availability === 'AVAILABLE' ? 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200' : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200'">{{ technician.availability === 'AVAILABLE' ? 'Disponible' : 'Ocupado' }}</span></div>
+                @if (technician.currentTicket; as currentTicket) {
+                  <div class="mt-4 text-sm"><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ticket actual</p><p class="mt-1 font-medium">{{ currentTicket.asset }}</p><div class="mt-2 flex flex-wrap gap-2"><span hlmBadge variant="outline" [class]="statusClass(currentTicket.status)">{{ statusLabel(currentTicket.status) }}</span><span hlmBadge variant="outline" [class]="priorityClass(currentTicket.priority)">{{ priorityLabel(currentTicket.priority) }}</span></div></div>
+                } @else {
+                  <p class="mt-4 text-sm text-muted-foreground">Sin ticket activo.</p>
+                }
+              </article>
+            }
+          </div>
+        } @else if (hasActiveFilters()) {
+          <div class="p-10 text-center"><p class="font-semibold">No hay técnicos con esos criterios</p><p class="mt-1 text-sm text-muted-foreground">Ajusta los filtros para ampliar los resultados.</p></div>
+        } @else {
+          <div class="p-12 text-center"><p class="font-semibold">No hay técnicos registrados</p><p class="mt-1 text-sm text-muted-foreground">El equipo técnico aparecerá aquí cuando esté disponible en el sistema.</p></div>
+        }
+      </div>
+        </div>
+      </div>
+    </article>
+
+    @if (isActionsModalOpen()) {
+      @if (selectedActionTicket(); as ticket) {
+        <div class="ticket-actions-modal-backdrop fixed inset-0 z-50 grid place-items-center p-4" [class.ticket-actions-modal-backdrop--closing]="isActionsModalClosing()" role="presentation" (click)="closeActions()">
+          <article hlmCard role="dialog" aria-modal="true" aria-labelledby="ticket-actions-title" class="ticket-actions-modal max-h-[94vh] w-full max-w-6xl overflow-hidden" [class.ticket-actions-modal--closing]="isActionsModalClosing()" (click)="$event.stopPropagation()" (keydown.escape)="closeActions()" tabindex="-1">
+            <header class="flex items-center justify-between border-b px-5 py-4"><h3 id="ticket-actions-title" class="text-lg font-semibold">Detalle y acciones administrativas</h3><button hlmBtn type="button" variant="ghost" (click)="closeActions()" aria-label="Cerrar detalle">✕</button></header>
+            <div class="ticket-actions-modal-content max-h-[calc(94vh-4.5rem)] overflow-y-auto px-1 py-4 sm:px-4"><app-admin-ticket-detail-page [ticketId]="ticket.id" [embedded]="true" (ticketUpdated)="loadData()" /></div>
+          </article>
+        </div>
+      }
+    }
+  }
+</section>

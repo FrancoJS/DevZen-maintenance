@@ -30,6 +30,13 @@ describe('CreateTicketPageComponent', () => {
             affectsOtherAreas: false,
             calculatedPriority: 'CRITICAL',
           },
+          currentTechnician: null,
+          resolvedBy: null,
+          resolvedAt: null,
+          closedBy: null,
+          closedAt: null,
+          assignments: [],
+          maintenance: null,
           history: [],
         } satisfies TicketDetail)
       ),
@@ -220,6 +227,13 @@ describe('CreateTicketPageComponent', () => {
         affectsOtherAreas: false,
         calculatedPriority: 'LOW',
       },
+      currentTechnician: null,
+      resolvedBy: null,
+      resolvedAt: null,
+      closedBy: null,
+      closedAt: null,
+      assignments: [],
+      maintenance: null,
       history: [],
     });
     pendingResponse.complete();

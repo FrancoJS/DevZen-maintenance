@@ -1,0 +1,15 @@
+:host {
+  display: block;
+}
+
+.ticket-history-content--embedded {
+  max-height: 40vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+@media (max-width: 639px) {
+  .ticket-history-content--embedded {
+    max-height: 32vh;
+  }
+}

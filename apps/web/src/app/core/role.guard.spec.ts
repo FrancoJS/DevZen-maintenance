@@ -11,7 +11,18 @@ describe('roleGuard', () => {
     TestBed.inject(PreviewSessionService).login('camila.rojas@devzen.test', 'Solicitante123!');
     const harness = await RouterTestingHarness.create();
 
-    await harness.navigateByUrl('/tecnicos');
+    await harness.navigateByUrl('/gestion-tickets');
+
+    expect(TestBed.inject(Router).url).toBe('/inicio');
+  });
+
+  it('redirects a requester away from the administrative ticket detail', async () => {
+    localStorage.removeItem('devzen-mock-session');
+    TestBed.configureTestingModule({ providers: [provideRouter(appRoutes)] });
+    TestBed.inject(PreviewSessionService).login('camila.rojas@devzen.test', 'Solicitante123!');
+    const harness = await RouterTestingHarness.create();
+
+    await harness.navigateByUrl('/tickets/54f1c1b7-2acf-4428-a2f7-58b2943fb044');
 
     expect(TestBed.inject(Router).url).toBe('/inicio');
   });

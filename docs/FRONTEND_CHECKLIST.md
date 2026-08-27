@@ -59,13 +59,14 @@ Este checklist organiza el frontend del MVP por dependencias. Una tarea se consi
 
 ## 4. Administrador (P0)
 
-- [ ] Gestión de todos los tickets.
+- [x] Gestión de todos los tickets con listado administrativo y estados de carga, error y vacío.
+- [x] Filtros MVP por estado, prioridad y presencia de técnico actual.
 - [ ] Filtros por fecha, estado, prioridad, área, máquina y técnico.
-- [ ] Detalle completo del ticket.
-- [ ] Listado de técnicos con estado Disponible/Ocupado y ticket actual.
-- [ ] Asignar tickets `NEW` a técnicos disponibles.
+- [x] Detalle administrativo con solicitud, impacto, mantención, asignaciones, resolución, cierre e historial.
+- [x] Resumen integrado y secciones desplegables animadas de tickets y técnicos, con filtros compartidos de estado, prioridad y disponibilidad/asignación.
+- [x] Asignar tickets `NEW` a técnicos disponibles.
 - [ ] Reasignar tickets `PENDING_REASSIGNMENT` a técnicos disponibles.
-- [ ] Mostrar técnicos ocupados como no seleccionables o filtrarlos.
+- [x] Mostrar técnicos ocupados como no seleccionables o filtrarlos.
 - [ ] Bandeja de solicitudes de congelamiento pendientes.
 - [ ] Aprobar congelamiento.
 - [ ] Rechazar congelamiento.

@@ -55,6 +55,16 @@ export const appRoutes: Route[] = [
                 (module) => module.CreateTicketPageComponent
               ),
           },
+          {
+            path: ':id',
+            title: 'Detalle del ticket | DevZen Maintenance',
+            canActivate: [roleGuard],
+            data: { roles: ['ADMIN'] },
+            loadComponent: () =>
+              import(
+                './features/tickets/admin-ticket-detail/admin-ticket-detail-page.component'
+              ).then((module) => module.AdminTicketDetailPageComponent),
+          },
         ],
       },
       { path: 'mi-mantencion', component: PlaceholderPage, title: 'Mi mantención | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Mi mantención', roles: ['TECHNICIAN'] } },
@@ -68,8 +78,16 @@ export const appRoutes: Route[] = [
             (module) => module.MaintenanceHistoryPageComponent
           ),
       },
-      { path: 'gestion-tickets', component: PlaceholderPage, title: 'Gestión de tickets | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Gestión de tickets', roles: ['ADMIN'] } },
-      { path: 'tecnicos', component: PlaceholderPage, title: 'Técnicos | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Técnicos', roles: ['ADMIN'] } },
+      {
+        path: 'gestion-tickets',
+        title: 'Gestión de tickets | DevZen Maintenance',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () =>
+          import(
+            './features/tickets/admin-ticket-management/admin-ticket-management-page.component'
+          ).then((module) => module.AdminTicketManagementPageComponent),
+      },
       { path: 'congelamientos', component: PlaceholderPage, title: 'Congelamientos | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Congelamientos', roles: ['ADMIN'] } },
       {
         path: 'historial-global',

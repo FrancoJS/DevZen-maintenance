@@ -7,7 +7,12 @@ import { TestBed } from '@angular/core/testing';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { API_BASE_URL } from '../api.config';
 import { HttpTicketGateway } from './http-ticket.gateway';
-import { CreateTicketRequest, TicketDetail } from './ticket.models';
+import {
+  CreateTicketRequest,
+  PaginatedTechniciansResponse,
+  PaginatedTicketsResponse,
+  TicketDetail,
+} from './ticket.models';
 
 const request: CreateTicketRequest = {
   description: 'La bomba hidráulica no inicia.',
@@ -36,6 +41,13 @@ const response: TicketDetail = {
     ...request.impactAssessment,
     calculatedPriority: 'LOW',
   },
+  currentTechnician: null,
+  resolvedBy: null,
+  resolvedAt: null,
+  closedBy: null,
+  closedAt: null,
+  assignments: [],
+  maintenance: null,
   history: [],
 };
 
@@ -72,5 +84,78 @@ describe('HttpTicketGateway', () => {
     pendingRequest.flush(response);
 
     expect(createdTicket).toEqual(response);
+  });
+
+  it('lists up to 100 tickets using the supported backend filters', () => {
+    const response: PaginatedTicketsResponse = {
+      items: [],
+      page: 1,
+      limit: 100,
+      total: 0,
+      totalPages: 0,
+    };
+
+    gateway
+      .listTickets({ status: 'NEW', priority: 'CRITICAL' })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url === `${API_BASE_URL}/tickets` &&
+        candidate.params.get('page') === '1' &&
+        candidate.params.get('limit') === '100' &&
+        candidate.params.get('status') === 'NEW' &&
+        candidate.params.get('priority') === 'CRITICAL'
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(response);
+  });
+
+  it('lists up to 100 technicians for the administrative summary', () => {
+    const response: PaginatedTechniciansResponse = {
+      items: [],
+      page: 1,
+      limit: 100,
+      total: 0,
+      totalPages: 0,
+    };
+
+    gateway.listTechnicians().subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url === `${API_BASE_URL}/technicians` &&
+        candidate.params.get('page') === '1' &&
+        candidate.params.get('limit') === '100'
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(response);
+  });
+
+  it('gets an administrative ticket detail', () => {
+    gateway.getTicket(response.id).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}`
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(response);
+  });
+
+  it('assigns the selected technician without sending derived fields', () => {
+    gateway.assignTechnician(response.id, 'technician-id').subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/assign`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({
+      technicianId: 'technician-id',
+    });
+    pendingRequest.flush({
+      ...response,
+      status: 'ASSIGNED',
+      currentTechnician: { id: 'technician-id', name: 'Diego Pérez' },
+    });
   });
 });
