@@ -25,11 +25,11 @@
         <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadTickets()">Reintentar</button>
       </div>
     </article>
-  } @else if (tickets().length) {
+  } @else if (tickets().length || hasActiveFilters()) {
     <article hlmCard>
       <header hlmCardHeader class="border-b">
         <h3 hlmCardTitle>Buscar y filtrar</h3>
-        <p hlmCardDescription>Encuentra tus solicitudes por ticket, máquina, estado o prioridad.</p>
+        <p hlmCardDescription>Filtra por estado o prioridad. La búsqueda se aplica a los resultados de esta página.</p>
       </header>
       <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
         <div class="grid gap-2">
@@ -63,7 +63,7 @@
     <article hlmCard>
       <header hlmCardHeader class="border-b">
         <h3 hlmCardTitle>Tickets creados</h3>
-        <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} de {{ tickets().length }} {{ tickets().length === 1 ? 'solicitud registrada' : 'solicitudes registradas' }}</p>
+        <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} en esta página de {{ total() }} {{ total() === 1 ? 'solicitud registrada' : 'solicitudes registradas' }}</p>
       </header>
       @if (filteredTickets().length) {
         <div hlmCardContent class="p-0">
@@ -108,6 +108,15 @@
           <p class="mt-1 text-sm text-muted-foreground">Ajusta la búsqueda o vuelve a mostrar todas tus solicitudes.</p>
           <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
         </div>
+      }
+      @if (totalPages() > 1) {
+        <footer hlmCardContent class="flex items-center justify-between border-t py-4">
+          <p class="text-sm text-muted-foreground">Página {{ page() }} de {{ totalPages() }}</p>
+          <div class="flex gap-2">
+            <button hlmBtn type="button" variant="outline" [disabled]="page() === 1 || isLoading()" (click)="previousPage()">Anterior</button>
+            <button hlmBtn type="button" variant="outline" [disabled]="page() === totalPages() || isLoading()" (click)="nextPage()">Siguiente</button>
+          </div>
+        </footer>
       }
     </article>
   } @else {

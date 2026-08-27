@@ -61,22 +61,22 @@ describe('MockTicketGateway', () => {
     const gateway = TestBed.inject(MockTicketGateway);
 
     session.login('camila.rojas@devzen.test', 'Solicitante123!');
-    const requesterBefore = await firstValueFrom(gateway.listMyTickets());
-    expect(requesterBefore.tickets.map((ticket) => ticket.id)).toContain('TK-1024');
-    expect(requesterBefore.tickets.map((ticket) => ticket.id)).not.toContain('TK-1031');
+    const requesterBefore = await firstValueFrom(gateway.listMyTickets({ page: 1, limit: 20 }));
+    expect(requesterBefore.items.map((ticket) => ticket.id)).toContain('TK-1024');
+    expect(requesterBefore.items.map((ticket) => ticket.id)).not.toContain('TK-1031');
 
     const created = await firstValueFrom(gateway.createTicket(baseRequest));
-    const requesterAfter = await firstValueFrom(gateway.listMyTickets());
-    expect(requesterAfter.tickets.map((ticket) => ticket.id)).toContain(created.id);
+    const requesterAfter = await firstValueFrom(gateway.listMyTickets({ page: 1, limit: 20 }));
+    expect(requesterAfter.items.map((ticket) => ticket.id)).toContain(created.id);
 
     session.login('diego.perez@devzen.test', 'Tecnico123!');
-    const technicianTickets = await firstValueFrom(gateway.listMyTickets());
-    expect(technicianTickets.tickets.map((ticket) => ticket.id)).toContain('TK-1031');
-    expect(technicianTickets.tickets.map((ticket) => ticket.id)).not.toContain(created.id);
+    const technicianTickets = await firstValueFrom(gateway.listMyTickets({ page: 1, limit: 20 }));
+    expect(technicianTickets.items.map((ticket) => ticket.id)).toContain('TK-1031');
+    expect(technicianTickets.items.map((ticket) => ticket.id)).not.toContain(created.id);
 
     session.login('ana.gonzalez@devzen.test', 'Admin123!');
-    const adminTickets = await firstValueFrom(gateway.listMyTickets());
-    expect(adminTickets.tickets.map((ticket) => ticket.id)).toContain('TK-1028');
-    expect(adminTickets.tickets.map((ticket) => ticket.id)).not.toContain('TK-1031');
+    const adminTickets = await firstValueFrom(gateway.listMyTickets({ page: 1, limit: 20 }));
+    expect(adminTickets.items.map((ticket) => ticket.id)).toContain('TK-1028');
+    expect(adminTickets.items.map((ticket) => ticket.id)).not.toContain('TK-1031');
   });
 });

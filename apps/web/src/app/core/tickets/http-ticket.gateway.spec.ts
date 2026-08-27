@@ -86,6 +86,36 @@ describe('HttpTicketGateway', () => {
     expect(createdTicket).toEqual(response);
   });
 
+  it('lists the authenticated user tickets with page, status and priority filters', () => {
+    const paginatedResponse: PaginatedTicketsResponse = {
+      items: [],
+      page: 2,
+      limit: 20,
+      total: 25,
+      totalPages: 2,
+    };
+
+    gateway
+      .listMyTickets({
+        page: 2,
+        limit: 20,
+        status: 'NEW',
+        priority: 'CRITICAL',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url === `${API_BASE_URL}/tickets` &&
+        candidate.params.get('page') === '2' &&
+        candidate.params.get('limit') === '20' &&
+        candidate.params.get('status') === 'NEW' &&
+        candidate.params.get('priority') === 'CRITICAL'
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(paginatedResponse);
+  });
+
   it('lists up to 100 tickets using the supported backend filters', () => {
     const response: PaginatedTicketsResponse = {
       items: [],

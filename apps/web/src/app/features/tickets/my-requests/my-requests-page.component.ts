@@ -4,9 +4,9 @@ import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
-import { MockTicketGateway } from '../../../core/tickets/mock-ticket.gateway';
+import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
-import { TicketListItem, TicketPriority, TicketStatus } from '../../../core/tickets/ticket.models';
+import { TicketPriority, TicketStatus, TicketSummary } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
 
 const TICKET_STATUSES: TicketStatus[] = [
@@ -25,32 +25,32 @@ const TICKET_PRIORITIES: TicketPriority[] = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'
 @Component({
   selector: 'app-my-requests-page',
   imports: [RouterLink, HlmBadgeImports, HlmButtonImports, HlmCardImports],
-  providers: [MockTicketGateway, { provide: TICKET_GATEWAY, useExisting: MockTicketGateway }],
+  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './my-requests-page.component.html',
 })
 export class MyRequestsPageComponent implements OnInit {
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
 
-  readonly tickets = signal<TicketListItem[]>([]);
+  readonly tickets = signal<TicketSummary[]>([]);
   readonly isLoading = signal(true);
   readonly loadError = signal<string | null>(null);
   readonly query = signal('');
   readonly selectedStatus = signal<TicketStatus | ''>('');
   readonly selectedPriority = signal<TicketPriority | ''>('');
+  readonly page = signal(1);
+  readonly pageSize = 20;
+  readonly total = signal(0);
+  readonly totalPages = signal(0);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
   readonly filteredTickets = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('es-CL');
-    const status = this.selectedStatus();
-    const priority = this.selectedPriority();
 
     return this.tickets()
       .filter((ticket) =>
         !query ||
         `${ticket.id} ${ticket.asset}`.toLocaleLowerCase('es-CL').includes(query)
-      )
-      .filter((ticket) => !status || ticket.status === status)
-      .filter((ticket) => !priority || ticket.priority === priority);
+      );
   });
   readonly hasActiveFilters = computed(
     () => Boolean(this.query().trim() || this.selectedStatus() || this.selectedPriority())
@@ -69,18 +69,23 @@ export class MyRequestsPageComponent implements OnInit {
     this.loadError.set(null);
 
     this.ticketGateway
-      .listMyTickets()
+      .listMyTickets({
+        page: this.page(),
+        limit: this.pageSize,
+        status: this.selectedStatus() || undefined,
+        priority: this.selectedPriority() || undefined,
+      })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: ({ tickets }) => {
-          this.tickets.set(
-            [...tickets].sort((first, second) =>
-              second.createdAt.localeCompare(first.createdAt)
-            )
-          );
+        next: ({ items, total, totalPages }) => {
+          this.tickets.set(items);
+          this.total.set(total);
+          this.totalPages.set(totalPages);
         },
         error: () => {
           this.tickets.set([]);
+          this.total.set(0);
+          this.totalPages.set(0);
           this.loadError.set(
             'No fue posible cargar tus solicitudes. Inténtalo nuevamente.'
           );
@@ -94,23 +99,41 @@ export class MyRequestsPageComponent implements OnInit {
 
   updateStatus(status: TicketStatus | ''): void {
     this.selectedStatus.set(status);
+    this.page.set(1);
+    this.loadTickets();
   }
 
   updatePriority(priority: TicketPriority | ''): void {
     this.selectedPriority.set(priority);
+    this.page.set(1);
+    this.loadTickets();
   }
 
   clearFilters(): void {
     this.query.set('');
     this.selectedStatus.set('');
     this.selectedPriority.set('');
+    this.page.set(1);
+    this.loadTickets();
   }
 
-  statusLabel(status: TicketListItem['status']): string {
+  previousPage(): void {
+    if (this.page() <= 1) return;
+    this.page.update((page) => page - 1);
+    this.loadTickets();
+  }
+
+  nextPage(): void {
+    if (this.page() >= this.totalPages()) return;
+    this.page.update((page) => page + 1);
+    this.loadTickets();
+  }
+
+  statusLabel(status: TicketSummary['status']): string {
     return STATUS_LABELS[status];
   }
 
-  priorityLabel(priority: TicketListItem['priority']): string {
+  priorityLabel(priority: TicketSummary['priority']): string {
     return PRIORITY_LABELS[priority];
   }
 
@@ -121,7 +144,7 @@ export class MyRequestsPageComponent implements OnInit {
     }).format(new Date(createdAt));
   }
 
-  statusClass(status: TicketListItem['status']): string {
+  statusClass(status: TicketSummary['status']): string {
     return {
       NEW: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200',
       ASSIGNED: 'border-violet-200 bg-violet-50 text-violet-800 dark:border-violet-800 dark:bg-violet-950 dark:text-violet-200',
@@ -134,7 +157,7 @@ export class MyRequestsPageComponent implements OnInit {
     }[status];
   }
 
-  priorityClass(priority: TicketListItem['priority']): string {
+  priorityClass(priority: TicketSummary['priority']): string {
     return {
       LOW: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200',
       MEDIUM: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',

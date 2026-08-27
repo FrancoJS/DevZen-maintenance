@@ -2,7 +2,6 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
-  ListMyTicketsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   TicketDetail,
@@ -16,10 +15,17 @@ import {
  */
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
-  listMyTickets(): Observable<ListMyTicketsResponse>;
+  listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
+
+export interface ListMyTicketsQuery {
+  page: number;
+  limit: number;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+}
 
 export interface AdminTicketFilters {
   status?: TicketStatus;

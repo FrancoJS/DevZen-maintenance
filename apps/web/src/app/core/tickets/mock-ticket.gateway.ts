@@ -4,10 +4,11 @@ import { PreviewSessionService } from '../preview-session.service';
 import { TicketGateway } from './ticket.gateway';
 import {
   CreateTicketRequest,
-  ListMyTicketsResponse,
+  PaginatedTicketsResponse,
   TicketDetail,
   TicketPriority,
 } from './ticket.models';
+import { ListMyTicketsQuery } from './ticket.gateway';
 import { MockTicketStore } from './mock-ticket.store';
 
 /**
@@ -52,9 +53,29 @@ export class MockTicketGateway implements TicketGateway {
     });
   }
 
-  listMyTickets(): Observable<ListMyTicketsResponse> {
+  listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse> {
+    const tickets = this.store
+      .listForRequester(this.session.user().email)
+      .filter((ticket) => !query.status || ticket.status === query.status)
+      .filter((ticket) => !query.priority || ticket.priority === query.priority)
+      .sort((first, second) => second.createdAt.localeCompare(first.createdAt));
+    const start = (query.page - 1) * query.limit;
+
     return of({
-      tickets: this.store.listForRequester(this.session.user().email),
+      items: tickets.slice(start, start + query.limit).map((ticket) => ({
+        ...ticket,
+        description: 'Solicitud de demostración',
+        location: 'Ubicación de demostración',
+        requester: {
+          id: this.session.user().id,
+          name: this.session.user().name,
+        },
+        updatedAt: ticket.createdAt,
+      })),
+      page: query.page,
+      limit: query.limit,
+      total: tickets.length,
+      totalPages: Math.ceil(tickets.length / query.limit),
     });
   }
 }
