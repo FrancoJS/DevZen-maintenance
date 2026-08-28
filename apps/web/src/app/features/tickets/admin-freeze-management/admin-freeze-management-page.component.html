@@ -1,63 +1,483 @@
-<section class="mx-auto max-w-6xl space-y-6" aria-labelledby="freeze-management-title">
+<section
+  class="mx-auto max-w-6xl space-y-6"
+  aria-labelledby="freeze-management-title"
+>
   <header>
-    <p class="text-sm text-muted-foreground">Administración / Operación</p>
-    <h2 id="freeze-management-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Congelamientos</h2>
-    <p class="mt-1 max-w-3xl text-muted-foreground">Revisa las solicitudes pendientes y los bloqueos que requieren reanudar su flujo de mantención.</p>
+    <h2
+      id="freeze-management-title"
+      class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl"
+    >
+      Congelamientos
+    </h2>
+    <p class="mt-1 max-w-3xl text-muted-foreground">
+      Revisa las solicitudes pendientes y los bloqueos que requieren reanudar su
+      flujo de mantención.
+    </p>
   </header>
 
   @if (successMessage(); as success) {
-    <p class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</p>
+    <p
+      class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100"
+      role="status"
+    >
+      {{ success }}
+    </p>
   }
 
   @if (isLoading() && !hasLoadedOnce()) {
     <article hlmCard aria-busy="true" aria-label="Cargando congelamientos">
-      <div hlmCardContent class="space-y-4 py-8"><div class="h-16 animate-pulse rounded-lg bg-muted"></div><div class="h-16 animate-pulse rounded-lg bg-muted"></div><p class="text-sm text-muted-foreground">Cargando solicitudes de congelamiento…</p></div>
+      <div hlmCardContent class="space-y-4 py-8">
+        <div class="h-16 animate-pulse rounded-lg bg-muted"></div>
+        <div class="h-16 animate-pulse rounded-lg bg-muted"></div>
+        <p class="text-sm text-muted-foreground">
+          Cargando solicitudes de congelamiento…
+        </p>
+      </div>
     </article>
   } @else if (loadError(); as error) {
-    <article hlmCard role="alert"><div hlmCardContent class="py-12 text-center"><p class="font-semibold">No pudimos cargar los congelamientos</p><p class="mt-1 text-sm text-muted-foreground">{{ error }}</p><button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadData()">Reintentar</button></div></article>
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos cargar los congelamientos</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button
+          hlmBtn
+          type="button"
+          variant="outline"
+          class="mt-5"
+          (click)="loadData()"
+        >
+          Reintentar
+        </button>
+      </div>
+    </article>
   } @else if (actionableRequests().length) {
     <article hlmCard class="overflow-hidden">
-      <header hlmCardHeader class="border-b"><h3 hlmCardTitle>Cola de gestión</h3><p hlmCardDescription>{{ actionableRequests().length }} {{ actionableRequests().length === 1 ? 'congelamiento requiere' : 'congelamientos requieren' }} una acción administrativa.</p></header>
-      <div hlmCardContent class="p-0">
+      <header hlmCardHeader class="border-b">
+        <h3 hlmCardTitle>Cola de gestión</h3>
+        <p hlmCardDescription>
+          {{ actionableRequests().length }}
+          {{
+            actionableRequests().length === 1
+              ? 'congelamiento requiere'
+              : 'congelamientos requieren'
+          }}
+          una acción administrativa.
+        </p>
+      </header>
+      <div hlmCardContent class="p-4 sm:p-6">
         <div class="hidden overflow-x-auto md:block">
-          <table class="w-full min-w-225 text-left text-sm">
-            <caption class="sr-only">Congelamientos pendientes de gestión</caption>
-            <thead class="border-b bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"><tr><th scope="col" class="px-5 py-3 font-semibold">Equipo y ticket</th><th scope="col" class="px-5 py-3 font-semibold">Técnico</th><th scope="col" class="px-5 py-3 font-semibold">Motivo</th><th scope="col" class="px-5 py-3 font-semibold">Solicitado</th><th scope="col" class="px-5 py-3 font-semibold">Estado</th><th scope="col" class="px-5 py-3 font-semibold">Prioridad</th><th scope="col" class="px-5 py-3"><span class="sr-only">Acciones</span></th></tr></thead>
-            <tbody class="divide-y">
-              @for (request of actionableRequests(); track request.id) {
-                <tr class="transition-colors hover:bg-muted/35"><td class="px-5 py-4"><p class="font-medium">{{ request.ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ request.ticket.ticketCode ?? request.ticket.id }}</p></td><td class="px-5 py-4">{{ request.technician.name }}</td><td class="px-5 py-4">{{ reasonLabel(request.reasonType) }}</td><td class="px-5 py-4 text-muted-foreground">{{ formatDate(request.requestedAt) }}</td><td class="px-5 py-4"><span hlmBadge variant="outline" [class]="statusClass(request.ticket.status)">{{ statusLabel(request.ticket.status) }}</span></td><td class="px-5 py-4"><span hlmBadge variant="outline" [class]="priorityClass(request.ticket.priority)">{{ priorityLabel(request.ticket.priority) }}</span></td><td class="px-5 py-4 text-right"><button hlmBtn type="button" size="sm" variant="outline" (click)="openRequest(request)">Gestionar</button></td></tr>
-              }
-            </tbody>
-          </table>
+          <div class="overflow-hidden rounded-lg border border-border">
+            <div hlmTableContainer>
+              <table hlmTable class="min-w-225 text-left">
+                <caption hlmCaption class="sr-only">
+                  Congelamientos pendientes de gestión
+                </caption>
+                <thead
+                  hlmTHead
+                  class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"
+                >
+                  <tr hlmTr class="hover:bg-transparent">
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Equipo y ticket
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Técnico
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Motivo
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Solicitado
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Estado
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 font-semibold">
+                      Prioridad
+                    </th>
+                    <th hlmTh scope="col" class="px-5 py-3 !text-center">
+                      Acciones
+                    </th>
+                  </tr>
+                </thead>
+                <tbody hlmTBody>
+                  @for (request of actionableRequests(); track request.id) {
+                    <tr hlmTr class="hover:bg-muted/35">
+                      <td hlmTd class="px-5 py-4">
+                        <p class="font-medium">{{ request.ticket.asset }}</p>
+                        <p class="mt-1 text-xs text-muted-foreground">
+                          {{ request.ticket.ticketCode ?? request.ticket.id }}
+                        </p>
+                      </td>
+                      <td hlmTd class="px-5 py-4">
+                        {{ request.technician.name }}
+                      </td>
+                      <td hlmTd class="px-5 py-4">
+                        {{ reasonLabel(request.reasonType) }}
+                      </td>
+                      <td hlmTd class="px-5 py-4 text-muted-foreground">
+                        {{ formatDate(request.requestedAt) }}
+                      </td>
+                      <td hlmTd class="px-5 py-4">
+                        <span
+                          hlmBadge
+                          variant="outline"
+                          [class]="statusClass(request.ticket.status)"
+                          >{{ statusLabel(request.ticket.status) }}</span
+                        >
+                      </td>
+                      <td hlmTd class="px-5 py-4">
+                        <span
+                          hlmBadge
+                          variant="outline"
+                          [class]="priorityClass(request.ticket.priority)"
+                          >{{ priorityLabel(request.ticket.priority) }}</span
+                        >
+                      </td>
+                      <td hlmTd class="px-5 py-4 !text-center">
+                        <div class="flex justify-center">
+                          <button
+                            hlmBtn
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            (click)="openRequest(request)"
+                          >
+                            Gestionar
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </div>
         </div>
         <div class="grid gap-3 p-4 md:hidden">
           @for (request of actionableRequests(); track request.id) {
-            <article class="rounded-lg border p-4"><div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ request.ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ request.ticket.ticketCode ?? request.ticket.id }}</p></div><span hlmBadge variant="outline" [class]="statusClass(request.ticket.status)">{{ statusLabel(request.ticket.status) }}</span></div><dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Técnico</dt><dd class="mt-1">{{ request.technician.name }}</dd></div><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Motivo</dt><dd class="mt-1">{{ reasonLabel(request.reasonType) }}</dd></div></dl><div class="mt-4 flex items-center justify-between gap-3"><span hlmBadge variant="outline" [class]="priorityClass(request.ticket.priority)">{{ priorityLabel(request.ticket.priority) }}</span><time class="text-xs text-muted-foreground">{{ formatDate(request.requestedAt) }}</time></div><button hlmBtn type="button" variant="outline" class="mt-4 w-full" (click)="openRequest(request)">Gestionar</button></article>
+            <article class="rounded-lg border p-4">
+              <div class="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p class="font-semibold">{{ request.ticket.asset }}</p>
+                  <p class="mt-1 text-xs text-muted-foreground">
+                    {{ request.ticket.ticketCode ?? request.ticket.id }}
+                  </p>
+                </div>
+                <span
+                  hlmBadge
+                  variant="outline"
+                  [class]="statusClass(request.ticket.status)"
+                  >{{ statusLabel(request.ticket.status) }}</span
+                >
+              </div>
+              <dl class="mt-4 grid gap-3 text-sm sm:grid-cols-2">
+                <div>
+                  <dt
+                    class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    Técnico
+                  </dt>
+                  <dd class="mt-1">{{ request.technician.name }}</dd>
+                </div>
+                <div>
+                  <dt
+                    class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                  >
+                    Motivo
+                  </dt>
+                  <dd class="mt-1">{{ reasonLabel(request.reasonType) }}</dd>
+                </div>
+              </dl>
+              <div class="mt-4 flex items-center justify-between gap-3">
+                <span
+                  hlmBadge
+                  variant="outline"
+                  [class]="priorityClass(request.ticket.priority)"
+                  >{{ priorityLabel(request.ticket.priority) }}</span
+                ><time class="text-xs text-muted-foreground">{{
+                  formatDate(request.requestedAt)
+                }}</time>
+              </div>
+              <button
+                hlmBtn
+                type="button"
+                variant="outline"
+                class="mx-auto mt-4 w-full max-w-xs"
+                (click)="openRequest(request)"
+              >
+                Gestionar
+              </button>
+            </article>
           }
         </div>
       </div>
     </article>
   } @else {
-    <article hlmCard><div hlmCardContent class="py-12 text-center"><p class="font-semibold">No hay congelamientos pendientes de gestión</p><p class="mt-1 text-sm text-muted-foreground">Las solicitudes y bloqueos que requieran una acción administrativa aparecerán aquí.</p></div></article>
+    <article hlmCard>
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No hay congelamientos pendientes de gestión</p>
+        <p class="mt-1 text-sm text-muted-foreground">
+          Las solicitudes y bloqueos que requieran una acción administrativa
+          aparecerán aquí.
+        </p>
+      </div>
+    </article>
   }
 
-  <hlm-sheet side="right" [state]="selectedRequest() ? 'open' : 'closed'" (stateChanged)="onSheetStateChange($event)">
-    <hlm-sheet-content *hlmSheetPortal="let ctx" class="w-full! gap-0 overflow-y-auto p-0 sm:max-w-xl!" aria-label="Gestionar congelamiento">
+  <hlm-sheet
+    side="right"
+    [state]="selectedRequest() ? 'open' : 'closed'"
+    (stateChanged)="onSheetStateChange($event)"
+  >
+    <hlm-sheet-content
+      *hlmSheetPortal="let ctx"
+      class="w-full! gap-0 overflow-y-auto p-0 sm:max-w-xl!"
+      aria-label="Gestionar congelamiento"
+    >
       @if (selectedRequest(); as request) {
-        <header class="border-b px-6 py-6 pr-14"><p class="text-sm text-muted-foreground">Gestión de congelamiento</p><h3 hlmSheetTitle class="mt-1 text-xl font-bold">{{ request.ticket.asset }}</h3><p hlmSheetDescription class="mt-1">{{ request.ticket.ticketCode ?? request.ticket.id }} · {{ request.technician.name }}</p></header>
+        <header class="border-b px-6 py-6 pr-14">
+          <p class="text-sm text-muted-foreground">Gestión de congelamiento</p>
+          <h3 hlmSheetTitle class="mt-1 text-xl font-bold">
+            {{ request.ticket.asset }}
+          </h3>
+          <p hlmSheetDescription class="mt-1">
+            {{ request.ticket.ticketCode ?? request.ticket.id }} ·
+            {{ request.technician.name }}
+          </p>
+        </header>
         <div class="space-y-6 px-6 py-6">
-          <div class="flex flex-wrap gap-2"><span hlmBadge variant="outline" [class]="statusClass(request.ticket.status)">{{ statusLabel(request.ticket.status) }}</span><span hlmBadge variant="outline" [class]="priorityClass(request.ticket.priority)">{{ priorityLabel(request.ticket.priority) }}</span></div>
-          <dl class="grid gap-4 rounded-lg border bg-muted/20 p-4 text-sm"><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Motivo</dt><dd class="mt-1 font-medium">{{ reasonLabel(request.reasonType) }}</dd></div><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitado</dt><dd class="mt-1">{{ formatDate(request.requestedAt) }}</dd></div><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción del ticket</dt><dd class="mt-1 whitespace-pre-wrap">{{ request.ticket.description }}</dd></div>@if (request.reasonDetail; as detail) { <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Detalle del motivo</dt><dd class="mt-1 whitespace-pre-wrap">{{ detail }}</dd></div> }</dl>
+          <div class="flex flex-wrap gap-2">
+            <span
+              hlmBadge
+              variant="outline"
+              [class]="statusClass(request.ticket.status)"
+              >{{ statusLabel(request.ticket.status) }}</span
+            ><span
+              hlmBadge
+              variant="outline"
+              [class]="priorityClass(request.ticket.priority)"
+              >{{ priorityLabel(request.ticket.priority) }}</span
+            >
+          </div>
+          <dl class="grid gap-4 rounded-lg border bg-muted/20 p-4 text-sm">
+            <div>
+              <dt
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Motivo
+              </dt>
+              <dd class="mt-1 font-medium">
+                {{ reasonLabel(request.reasonType) }}
+              </dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Solicitado
+              </dt>
+              <dd class="mt-1">{{ formatDate(request.requestedAt) }}</dd>
+            </div>
+            <div>
+              <dt
+                class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+              >
+                Descripción del ticket
+              </dt>
+              <dd class="mt-1 whitespace-pre-wrap">
+                {{ request.ticket.description }}
+              </dd>
+            </div>
+            @if (request.reasonDetail; as detail) {
+              <div>
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Detalle del motivo
+                </dt>
+                <dd class="mt-1 whitespace-pre-wrap">{{ detail }}</dd>
+              </div>
+            }
+          </dl>
 
           @if (request.ticket.status === 'FREEZE_REQUESTED') {
-            <div class="grid gap-4"><div class="grid gap-2"><label [for]="'freeze-review-note-' + request.id" class="text-sm font-medium">Nota de la decisión</label><textarea [id]="'freeze-review-note-' + request.id" rows="4" class="resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="reviewNote(request.id)" [disabled]="isProcessing(request.id)" (input)="updateReviewNote(request.id, $any($event.target).value)"></textarea><p class="text-xs text-muted-foreground">Opcional al aprobar; obligatoria al rechazar.</p></div>@if (actionError(request.id); as error) { <p class="text-sm text-destructive" role="alert">{{ error }}</p> }<div class="grid gap-3 sm:grid-cols-2"><button hlmBtn type="button" variant="outline" [disabled]="isProcessing(request.id)" (click)="reject(request)">{{ isProcessing(request.id) ? 'Procesando…' : 'Rechazar solicitud' }}</button><button hlmBtn type="button" [disabled]="isProcessing(request.id)" (click)="approve(request)">{{ isProcessing(request.id) ? 'Procesando…' : 'Aprobar congelamiento' }}</button></div></div>
+            <div class="grid gap-4">
+              <div class="grid gap-2">
+                <label
+                  [for]="'freeze-review-note-' + request.id"
+                  class="text-sm font-medium"
+                  >Nota de la decisión</label
+                ><textarea
+                  [id]="'freeze-review-note-' + request.id"
+                  rows="4"
+                  class="resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                  [value]="reviewNote(request.id)"
+                  [disabled]="isProcessing(request.id)"
+                  (input)="
+                    updateReviewNote(request.id, $any($event.target).value)
+                  "
+                ></textarea>
+                <p class="text-xs text-muted-foreground">
+                  Opcional al aprobar; obligatoria al rechazar.
+                </p>
+              </div>
+              @if (actionError(request.id); as error) {
+                <p class="text-sm text-destructive" role="alert">{{ error }}</p>
+              }
+              <div class="grid gap-3 sm:grid-cols-2">
+                <button
+                  hlmBtn
+                  type="button"
+                  variant="outline"
+                  [disabled]="isProcessing(request.id)"
+                  (click)="reject(request)"
+                >
+                  {{
+                    isProcessing(request.id)
+                      ? 'Procesando…'
+                      : 'Rechazar solicitud'
+                  }}</button
+                ><button
+                  hlmBtn
+                  type="button"
+                  [disabled]="isProcessing(request.id)"
+                  (click)="approve(request)"
+                >
+                  {{
+                    isProcessing(request.id)
+                      ? 'Procesando…'
+                      : 'Aprobar congelamiento'
+                  }}
+                </button>
+              </div>
+            </div>
           } @else if (request.ticket.status === 'FROZEN') {
-            <div class="grid gap-4 rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/40"><p class="text-sm">Confirma que la causa del bloqueo fue resuelta para habilitar la reasignación.</p>@if (actionError(request.id); as error) { <p class="text-sm text-destructive" role="alert">{{ error }}</p> }<button hlmBtn type="button" [disabled]="isProcessing(request.id)" (click)="resolveBlocker(request)">{{ isProcessing(request.id) ? 'Actualizando…' : 'Marcar bloqueo resuelto' }}</button></div>
+            <div
+              class="grid gap-4 rounded-lg border border-sky-200 bg-sky-50 p-4 dark:border-sky-900 dark:bg-sky-950/40"
+            >
+              <p class="text-sm">
+                Confirma que la causa del bloqueo fue resuelta para habilitar la
+                reasignación.
+              </p>
+              @if (actionError(request.id); as error) {
+                <p class="text-sm text-destructive" role="alert">{{ error }}</p>
+              }
+              <button
+                hlmBtn
+                type="button"
+                [disabled]="isProcessing(request.id)"
+                (click)="resolveBlocker(request)"
+              >
+                {{
+                  isProcessing(request.id)
+                    ? 'Actualizando…'
+                    : 'Marcar bloqueo resuelto'
+                }}
+              </button>
+            </div>
           } @else if (request.ticket.status === 'PENDING_REASSIGNMENT') {
-            <div class="grid gap-4 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900 dark:bg-orange-950/40"><div><p class="font-medium">Reasignar técnico</p><p class="mt-1 text-sm text-muted-foreground">Solo los técnicos disponibles pueden recibir esta mantención.</p></div>@if (isTechniciansLoading()) { <p class="text-sm text-muted-foreground">Cargando disponibilidad técnica…</p> } @else if (techniciansError(); as error) { <div class="flex flex-wrap items-center gap-3"><p class="text-sm text-destructive" role="alert">{{ error }}</p><button hlmBtn type="button" size="sm" variant="outline" (click)="loadTechnicians()">Reintentar</button></div> } @else { <div class="grid gap-2"><label [for]="'reassign-technician-' + request.id" class="text-sm font-medium">Técnico disponible</label><select [id]="'reassign-technician-' + request.id" class="h-10 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedTechnicianId(request.id)" [disabled]="isProcessing(request.id)" (change)="updateSelectedTechnician(request.id, $any($event.target).value)"><option value="">Selecciona un técnico</option>@for (technician of technicians(); track technician.id) { <option [value]="technician.id" [disabled]="technician.availability === 'BUSY'">{{ technician.name }} — {{ technician.availability === 'AVAILABLE' ? 'Disponible' : 'Ocupado: ' + technician.currentTicket?.asset }}</option> }</select><p class="text-xs text-muted-foreground">{{ availableTechnicians().length }} técnicos disponibles de {{ technicians().length }}.</p></div>@if (actionError(request.id); as error) { <p class="text-sm text-destructive" role="alert">{{ error }}</p> }<button hlmBtn type="button" [disabled]="isProcessing(request.id) || !selectedTechnicianId(request.id)" (click)="assignTechnician(request)">{{ isProcessing(request.id) ? 'Reasignando…' : 'Confirmar reasignación' }}</button> }</div>
+            <div
+              class="grid gap-4 rounded-lg border border-orange-200 bg-orange-50 p-4 dark:border-orange-900 dark:bg-orange-950/40"
+            >
+              <div>
+                <p class="font-medium">Reasignar técnico</p>
+                <p class="mt-1 text-sm text-muted-foreground">
+                  Solo los técnicos disponibles pueden recibir esta mantención.
+                </p>
+              </div>
+              @if (isTechniciansLoading()) {
+                <p class="text-sm text-muted-foreground">
+                  Cargando disponibilidad técnica…
+                </p>
+              } @else if (techniciansError(); as error) {
+                <div class="flex flex-wrap items-center gap-3">
+                  <p class="text-sm text-destructive" role="alert">
+                    {{ error }}
+                  </p>
+                  <button
+                    hlmBtn
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    (click)="loadTechnicians()"
+                  >
+                    Reintentar
+                  </button>
+                </div>
+              } @else {
+                <div class="grid gap-2">
+                  <label
+                    [for]="'reassign-technician-' + request.id"
+                    class="text-sm font-medium"
+                    >Técnico disponible</label
+                  ><select
+                    [id]="'reassign-technician-' + request.id"
+                    class="h-10 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50"
+                    [value]="selectedTechnicianId(request.id)"
+                    [disabled]="isProcessing(request.id)"
+                    (change)="
+                      updateSelectedTechnician(
+                        request.id,
+                        $any($event.target).value
+                      )
+                    "
+                  >
+                    <option value="">Selecciona un técnico</option>
+                    @for (technician of technicians(); track technician.id) {
+                      <option
+                        [value]="technician.id"
+                        [disabled]="technician.availability === 'BUSY'"
+                      >
+                        {{ technician.name }} —
+                        {{
+                          technician.availability === 'AVAILABLE'
+                            ? 'Disponible'
+                            : 'Ocupado: ' + technician.currentTicket?.asset
+                        }}
+                      </option>
+                    }
+                  </select>
+                  <p class="text-xs text-muted-foreground">
+                    {{ availableTechnicians().length }} técnicos disponibles de
+                    {{ technicians().length }}.
+                  </p>
+                </div>
+                @if (actionError(request.id); as error) {
+                  <p class="text-sm text-destructive" role="alert">
+                    {{ error }}
+                  </p>
+                }
+                <button
+                  hlmBtn
+                  type="button"
+                  [disabled]="
+                    isProcessing(request.id) ||
+                    !selectedTechnicianId(request.id)
+                  "
+                  (click)="assignTechnician(request)"
+                >
+                  {{
+                    isProcessing(request.id)
+                      ? 'Reasignando…'
+                      : 'Confirmar reasignación'
+                  }}
+                </button>
+              }
+            </div>
           }
         </div>
-        <footer hlmSheetFooter class="border-t px-6 py-4"><button hlmBtn type="button" class="w-full" variant="outline" hlmSheetClose>Cerrar gestión</button></footer>
+        <footer hlmSheetFooter class="border-t px-6 py-4">
+          <button
+            hlmBtn
+            type="button"
+            class="w-full"
+            variant="outline"
+            hlmSheetClose
+          >
+            Cerrar gestión
+          </button>
+        </footer>
       }
     </hlm-sheet-content>
   </hlm-sheet>

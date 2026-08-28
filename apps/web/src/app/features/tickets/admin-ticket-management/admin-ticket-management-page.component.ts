@@ -1,9 +1,13 @@
 import { DOCUMENT } from '@angular/common';
 import { Component, computed, inject, OnDestroy, OnInit, signal } from '@angular/core';
 import { finalize, forkJoin } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideEye } from '@ng-icons/lucide';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmPaginationImports } from '@spartan-ng/helm/pagination';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { AdminTicketDetailPageComponent } from '../admin-ticket-detail/admin-ticket-detail-page.component';
 import {
   ADMIN_TICKET_GATEWAY,
@@ -52,11 +56,15 @@ const TICKET_PRIORITIES: TicketPriority[] = [
     HlmBadgeImports,
     HlmButtonImports,
     HlmCardImports,
+    HlmPaginationImports,
+    HlmTableImports,
     AdminTicketDetailPageComponent,
+    NgIcon,
   ],
   providers: [
     HttpTicketGateway,
     { provide: ADMIN_TICKET_GATEWAY, useExisting: HttpTicketGateway },
+    provideIcons({ lucideEye }),
   ],
   templateUrl: './admin-ticket-management-page.component.html',
   styleUrl: './admin-ticket-management-page.component.css',
@@ -81,6 +89,8 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
   readonly isActionsModalOpen = signal(false);
   readonly isActionsModalClosing = signal(false);
   readonly closureSuccess = signal<string | null>(null);
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
 
@@ -109,6 +119,13 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
       return assignment === 'WITH_TECHNICIAN' ? hasTechnician : !hasTechnician;
     });
   });
+  readonly totalTickets = computed(() => this.filteredTickets().length);
+  readonly visibleTickets = computed(() =>
+    this.filteredTickets().slice(
+      (this.page() - 1) * this.pageSize(),
+      this.page() * this.pageSize()
+    )
+  );
   readonly filteredTechnicians = computed(() => {
     const status = this.selectedStatus();
     const priority = this.selectedPriority();
@@ -174,16 +191,24 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
 
   updateStatus(status: TicketStatus | ''): void {
     this.selectedStatus.set(status);
+    this.page.set(1);
     this.loadData();
   }
 
   updatePriority(priority: TicketPriority | ''): void {
     this.selectedPriority.set(priority);
+    this.page.set(1);
     this.loadData();
   }
 
   updateAssignment(assignment: AssignmentFilter): void {
     this.selectedAssignment.set(assignment);
+    this.page.set(1);
+  }
+
+  updatePageSize(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.page.set(1);
   }
 
   toggleTicketsSection(): void {
@@ -221,6 +246,7 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
     this.selectedStatus.set('');
     this.selectedPriority.set('');
     this.selectedAssignment.set('');
+    this.page.set(1);
     if (requiresReload) this.loadData();
   }
 

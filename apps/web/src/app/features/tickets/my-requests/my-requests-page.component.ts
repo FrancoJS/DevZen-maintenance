@@ -6,7 +6,7 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideEye } from '@ng-icons/lucide';
+import { lucideEdit, lucideEye, lucideWrench } from '@ng-icons/lucide';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -42,7 +42,7 @@ const STATUS_GROUPS: ReadonlyArray<{ label: string; statuses: TicketStatus[] }> 
 @Component({
   selector: 'app-my-requests-page',
   imports: [CdkTrapFocus, CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmPaginationImports, HlmTableImports, NgIcon, ReactiveFormsModule, TicketDetailModalComponent],
-  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }, provideIcons({ lucideEye })],
+  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }, provideIcons({ lucideEdit, lucideEye, lucideWrench })],
   templateUrl: './my-requests-page.component.html',
 })
 export class MyRequestsPageComponent implements OnInit {

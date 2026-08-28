@@ -2,6 +2,8 @@ import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize, forkJoin } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideWrench } from '@ng-icons/lucide';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -47,9 +49,10 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
     HlmButtonImports,
     HlmCardImports,
     HlmInputImports,
+    NgIcon,
     TicketDetailModalComponent,
   ],
-  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
+  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }, provideIcons({ lucideWrench })],
   templateUrl: './create-ticket-page.component.html',
 })
 export class CreateTicketPageComponent {

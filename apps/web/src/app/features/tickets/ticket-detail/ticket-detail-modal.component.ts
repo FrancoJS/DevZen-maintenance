@@ -1,8 +1,7 @@
-import { CdkTrapFocus } from '@angular/cdk/a11y';
 import { Component, EventEmitter, Input, Output } from '@angular/core';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
-import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import {
   EquipmentStopped,
   ProductionImpact,
@@ -41,9 +40,15 @@ const HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
   TICKET_CLOSED: 'Ticket cerrado',
 };
 
+const HISTORY_FIELD_LABELS: Record<string, string> = {
+  description: 'la descripción de la solicitud',
+  assetId: 'la máquina o equipo',
+  impactAssessment: 'la evaluación de impacto',
+};
+
 @Component({
   selector: 'app-ticket-detail-modal',
-  imports: [CdkTrapFocus, HlmBadgeImports, HlmButtonImports, HlmCardImports],
+  imports: [HlmBadgeImports, HlmButtonImports, HlmSheetImports],
   templateUrl: './ticket-detail-modal.component.html',
 })
 export class TicketDetailModalComponent {
@@ -52,6 +57,12 @@ export class TicketDetailModalComponent {
 
   close(): void {
     this.closed.emit();
+  }
+
+  onSheetStateChange(state: 'open' | 'closed'): void {
+    if (state === 'closed') {
+      this.close();
+    }
   }
 
   statusLabel(status: TicketStatus): string {
@@ -106,8 +117,31 @@ export class TicketDetailModalComponent {
   historyDetails(details: Record<string, unknown> | null): string | null {
     if (!details || Object.keys(details).length === 0) return null;
 
-    return Object.entries(details)
-      .map(([key, value]) => `${key}: ${typeof value === 'string' ? value : JSON.stringify(value)}`)
-      .join(' · ');
+    const changedFields = details['changedFields'];
+    if (Array.isArray(changedFields)) {
+      const fields = changedFields
+        .filter((field): field is string => typeof field === 'string')
+        .map((field) => HISTORY_FIELD_LABELS[field])
+        .filter((field): field is string => Boolean(field));
+
+      if (fields.length === 1) return `Se editó ${fields[0]}.`;
+      if (fields.length > 1) return `Se editaron ${fields.join(', ')}.`;
+      return 'Se editaron datos de la solicitud.';
+    }
+
+    const source = details['source'];
+    if (typeof source === 'string') {
+      return `Solicitud creada desde ${source.toLocaleLowerCase('es-CL')}.`;
+    }
+
+    if (details['workPerformedRecorded']) {
+      return 'Se registró el trabajo realizado.';
+    }
+
+    if (details['changes']) {
+      return 'Se actualizó la información de la mantención.';
+    }
+
+    return null;
   }
 }
