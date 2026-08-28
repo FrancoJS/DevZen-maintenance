@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
-import { finalize } from 'rxjs';
+import { finalize, forkJoin } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
@@ -11,7 +11,9 @@ import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gate
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import {
   CreateTicketRequest,
+  AssetSummary,
   EquipmentStopped,
+  LocationSummary,
   ProductionImpact,
   TicketDetail,
 } from '../../../core/tickets/ticket.models';
@@ -61,13 +63,21 @@ export class CreateTicketPageComponent {
   readonly isDetailOpen = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly showValidationErrors = signal(false);
+  readonly locations = signal<LocationSummary[]>([]);
+  readonly assets = signal<AssetSummary[]>([]);
+  readonly isCatalogLoading = signal(true);
+  readonly catalogError = signal<string | null>(null);
+  readonly locationQuery = signal('');
+  readonly assetQuery = signal('');
+  readonly isLocationListOpen = signal(false);
+  readonly isAssetListOpen = signal(false);
 
   @Output() readonly created = new EventEmitter<TicketDetail>();
 
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
-    location: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
-    asset: this.formBuilder.control('', [Validators.required, Validators.maxLength(200)]),
+    locationId: this.formBuilder.control<string | null>(null, [Validators.required]),
+    assetId: this.formBuilder.control<string | null>(null, [Validators.required]),
     impactAssessment: this.formBuilder.group({
       safetyRisk: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
       equipmentStopped: this.formBuilder.control<EquipmentStopped | null>(null, [Validators.required]),
@@ -76,6 +86,73 @@ export class CreateTicketPageComponent {
       affectsOtherAreas: this.formBuilder.control<boolean | null>(null, [requiredBooleanResponse]),
     }),
   });
+
+  constructor() {
+    this.loadCatalogs();
+  }
+
+  loadCatalogs(): void {
+    this.catalogError.set(null);
+    this.isCatalogLoading.set(true);
+    forkJoin({ locations: this.ticketGateway.listLocations(), assets: this.ticketGateway.listAssets() })
+      .pipe(finalize(() => this.isCatalogLoading.set(false)))
+      .subscribe({
+        next: ({ locations, assets }) => {
+          this.locations.set(locations.items);
+          this.assets.set(assets.items);
+        },
+        error: () => this.catalogError.set('No pudimos cargar las ubicaciones y equipos. Intenta nuevamente.'),
+      });
+  }
+
+  filteredLocations(): LocationSummary[] {
+    return this.locations().filter((location) => this.matches(location.name, location.code, this.locationQuery()));
+  }
+
+  filteredAssets(): AssetSummary[] {
+    const locationId = this.form.controls.locationId.value;
+    if (!locationId) return [];
+    return this.assets().filter((asset) => asset.locationId === locationId && this.matches(asset.name, asset.assetCode, this.assetQuery()));
+  }
+
+  updateLocationQuery(value: string): void {
+    this.locationQuery.set(value);
+    this.form.controls.locationId.setValue(null);
+    this.form.controls.assetId.setValue(null);
+    this.assetQuery.set('');
+    this.isLocationListOpen.set(true);
+  }
+
+  selectLocation(location: LocationSummary): void {
+    this.form.controls.locationId.setValue(location.id);
+    this.form.controls.assetId.setValue(null);
+    this.locationQuery.set(this.catalogLabel(location.name, location.code));
+    this.assetQuery.set('');
+    this.isLocationListOpen.set(false);
+  }
+
+  updateAssetQuery(value: string): void {
+    this.assetQuery.set(value);
+    this.form.controls.assetId.setValue(null);
+    this.isAssetListOpen.set(true);
+  }
+
+  selectAsset(asset: AssetSummary): void {
+    this.form.controls.assetId.setValue(asset.id);
+    this.assetQuery.set(this.catalogLabel(asset.name, asset.assetCode));
+    this.isAssetListOpen.set(false);
+  }
+
+  closeLists(): void {
+    setTimeout(() => { this.isLocationListOpen.set(false); this.isAssetListOpen.set(false); });
+  }
+
+  handleAutocompleteKeydown(event: KeyboardEvent, type: 'location' | 'asset'): void {
+    const options = type === 'location' ? this.filteredLocations() : this.filteredAssets();
+    if (event.key === 'Escape') { this.isLocationListOpen.set(false); this.isAssetListOpen.set(false); return; }
+    if (event.key === 'ArrowDown') { event.preventDefault(); type === 'location' ? this.isLocationListOpen.set(true) : this.isAssetListOpen.set(true); return; }
+    if (event.key === 'Enter' && options.length === 1) { event.preventDefault(); type === 'location' ? this.selectLocation(options[0] as LocationSummary) : this.selectAsset(options[0] as AssetSummary); }
+  }
 
   submit(): void {
     if (this.createdTicket() || this.isSubmitting()) {
@@ -141,8 +218,8 @@ export class CreateTicketPageComponent {
     this.form.enable({ emitEvent: false });
     this.form.reset({
       description: '',
-      location: '',
-      asset: '',
+      locationId: null,
+      assetId: null,
       impactAssessment: {
         safetyRisk: null,
         equipmentStopped: null,
@@ -155,7 +232,7 @@ export class CreateTicketPageComponent {
     this.form.markAsUntouched();
   }
 
-  hasError(controlName: 'description' | 'location' | 'asset'): boolean {
+  hasError(controlName: 'description' | 'locationId' | 'assetId'): boolean {
     const control = this.form.controls[controlName];
     return control.invalid && this.showValidationErrors();
   }
@@ -211,8 +288,7 @@ export class CreateTicketPageComponent {
 
     return {
       description: value.description ?? '',
-      location: value.location ?? '',
-      asset: value.asset ?? '',
+      assetId: value.assetId ?? '',
       impactAssessment: {
         safetyRisk: impact.safetyRisk as boolean,
         equipmentStopped: impact.equipmentStopped as EquipmentStopped,
@@ -221,5 +297,18 @@ export class CreateTicketPageComponent {
         affectsOtherAreas: impact.affectsOtherAreas as boolean,
       },
     };
+  }
+
+  private matches(name: string, code: string, search: string): boolean {
+    const normalizedSearch = this.normalize(search);
+    return !normalizedSearch || this.normalize(name).includes(normalizedSearch) || this.normalize(code).includes(normalizedSearch);
+  }
+
+  private normalize(value: string): string {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es-CL').trim();
+  }
+
+  private catalogLabel(name: string, code: string): string {
+    return `${name} · ${code}`;
   }
 }

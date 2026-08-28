@@ -2,11 +2,14 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
+  AssetSummary,
+  CatalogResponse,
   ApproveFreezeRequest,
   CurrentMaintenanceResponse,
   FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
+  LocationSummary,
   RequestFreezeRequest,
   RejectFreezeRequest,
   ResolveMaintenanceRequest,
@@ -23,6 +26,8 @@ import {
  */
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
+  listLocations(): Observable<CatalogResponse<LocationSummary>>;
+  listAssets(): Observable<CatalogResponse<AssetSummary>>;
   listMyTickets(
     query: ListMyTicketsQuery
   ): Observable<PaginatedTicketsResponse>;

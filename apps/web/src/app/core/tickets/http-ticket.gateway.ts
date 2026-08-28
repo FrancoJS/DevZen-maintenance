@@ -13,11 +13,14 @@ import {
 } from './ticket.gateway';
 import {
   CreateTicketRequest,
+  AssetSummary,
+  CatalogResponse,
   ApproveFreezeRequest,
   CurrentMaintenanceResponse,
   FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
+  LocationSummary,
   RequestFreezeRequest,
   RejectFreezeRequest,
   ResolveMaintenanceRequest,
@@ -38,6 +41,14 @@ export class HttpTicketGateway
 
   createTicket(request: CreateTicketRequest): Observable<TicketDetail> {
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets`, request);
+  }
+
+  listLocations(): Observable<CatalogResponse<LocationSummary>> {
+    return this.http.get<CatalogResponse<LocationSummary>>(`${API_BASE_URL}/locations`);
+  }
+
+  listAssets(): Observable<CatalogResponse<AssetSummary>> {
+    return this.http.get<CatalogResponse<AssetSummary>>(`${API_BASE_URL}/assets`);
   }
 
   listMyTickets(

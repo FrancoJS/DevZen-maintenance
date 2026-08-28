@@ -17,8 +17,7 @@ import {
 
 const request: CreateTicketRequest = {
   description: 'La bomba hidráulica no inicia.',
-  location: 'Planta 2',
-  asset: 'Bomba B-02',
+  assetId: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
   impactAssessment: {
     safetyRisk: false,
     equipmentStopped: 'NO',
@@ -31,8 +30,8 @@ const request: CreateTicketRequest = {
 const response: TicketDetail = {
   id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
   description: request.description,
-  location: request.location,
-  asset: request.asset,
+  location: 'Planta 2',
+  asset: 'Bomba B-02',
   status: 'NEW',
   priority: 'LOW',
   requester: { id: 'requester-id', name: 'Camila Rojas' },
