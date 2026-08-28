@@ -9,6 +9,7 @@ Registro fiel de `RN-01` a `RN-21`. “Capa responsable” identifica dónde deb
 - **Capa responsable:** dominio/persistencia.
 - **Frontend:** reutilizar el detalle del mismo ID durante el ciclo.
 - **Backend:** impedir la fragmentación del ciclo en tickets desconectados.
+- **Extensión aprobada:** una máquina solo puede tener un ticket cuyo estado sea distinto de `CLOSED`; la restricción se aplica en PostgreSQL para resistir concurrencia.
 - **Prueba sugerida:** integración del flujo completo verificando identidad estable.
 
 ## `RN-02` — Edición por el creador
@@ -190,4 +191,3 @@ Registro fiel de `RN-01` a `RN-21`. “Capa responsable” identifica dónde deb
 - **Frontend:** acción administrativa en `FROZEN` seguida de asignación separada.
 - **Backend:** validar actor/estado y registrar transición.
 - **Prueba sugerida:** integración; cubre `CA-14`.
-

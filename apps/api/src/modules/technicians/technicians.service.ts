@@ -41,6 +41,7 @@ export class TechniciansService {
         'currentTicket.status IN (:...activeStatuses)',
         { activeStatuses: ACTIVE_TICKET_STATUSES },
       )
+      .leftJoinAndSelect('currentTicket.machine', 'machine')
       .where('user.role = :role', { role: UserRole.TECHNICIAN })
       .orderBy('user.name', 'ASC')
       .addOrderBy('user.id', 'ASC')
@@ -92,7 +93,7 @@ export class TechniciansService {
         ? {
             id: currentTicket.id,
             description: currentTicket.description,
-            asset: currentTicket.asset,
+            asset: currentTicket.machine?.name ?? '',
             priority: currentTicket.priority,
             status: currentTicket.status,
           }

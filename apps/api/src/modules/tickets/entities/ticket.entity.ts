@@ -17,6 +17,8 @@ import { AssignmentHistory } from './assignment-history.entity';
 import { FreezeRequest } from './freeze-request.entity';
 import { ImpactAssessment } from './impact-assessment.entity';
 import { Maintenance } from './maintenance.entity';
+import { Asset } from '../../assets/entities/asset.entity';
+import { TicketEvidence } from './ticket-evidence.entity';
 import { TicketPriority } from '../enums/ticket-priority.enum';
 import { TicketStatus } from '../enums/ticket-status.enum';
 
@@ -41,14 +43,22 @@ export class Ticket {
   @PrimaryGeneratedColumn('uuid')
   id!: string;
 
+  @Index('uq_tickets_ticket_code', { unique: true })
+  @Column({
+    name: 'ticket_code',
+    type: 'varchar',
+    length: 32,
+    unique: true,
+    update: false,
+    default: () => "'TCK-' || nextval('ticket_code_sequence')::text",
+  })
+  ticketCode!: string;
+
   @Column({ type: 'varchar', length: 1000 })
   description!: string;
 
-  @Column({ type: 'varchar', length: 200 })
-  location!: string;
-
-  @Column({ type: 'varchar', length: 200 })
-  asset!: string;
+  @Column({ name: 'asset_id', type: 'uuid' })
+  assetId!: string;
 
   @Column({ type: 'enum', enum: TicketPriority, enumName: 'ticket_priority' })
   priority!: TicketPriority;
@@ -91,6 +101,12 @@ export class Ticket {
   @JoinColumn({ name: 'requester_id' })
   requester!: User;
 
+  @ManyToOne(() => Asset, (asset) => asset.tickets, {
+    onDelete: 'RESTRICT',
+  })
+  @JoinColumn({ name: 'asset_id' })
+  machine!: Asset;
+
   @ManyToOne(() => User, (user) => user.currentTickets, {
     onDelete: 'RESTRICT',
     nullable: true,
@@ -126,4 +142,7 @@ export class Ticket {
 
   @OneToMany(() => TicketHistory, (history) => history.ticket)
   history!: TicketHistory[];
+
+  @OneToMany(() => TicketEvidence, (evidence) => evidence.ticket)
+  evidences!: TicketEvidence[];
 }

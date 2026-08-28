@@ -130,10 +130,14 @@ export class MaintenanceResponseDto {
   @ApiPropertyOptional({ nullable: true })
   notes!: string | null;
 }
+export class TicketEvidenceResponseDto { @ApiProperty({ format: 'uuid' }) id!: string; @ApiProperty() publicId!: string; @ApiProperty() mimeType!: string; @ApiProperty() size!: number; @ApiProperty() originalFilename!: string; @ApiProperty({ format: 'date-time' }) createdAt!: Date; @ApiProperty({ type: () => TicketUserResponseDto }) technician!: TicketUserResponseDto; @ApiPropertyOptional({ nullable: true }) accessUrl!: string | null; }
 
 export class TicketSummaryResponseDto {
   @ApiProperty({ format: 'uuid' })
   id!: string;
+
+  @ApiProperty()
+  ticketCode!: string;
 
   @ApiProperty()
   description!: string;
@@ -144,6 +148,11 @@ export class TicketSummaryResponseDto {
   @ApiProperty()
   asset!: string;
 
+  @ApiProperty({ format: 'uuid' }) assetId!: string;
+  @ApiProperty() assetCode!: string;
+  @ApiProperty({ format: 'uuid' }) locationId!: string;
+  @ApiProperty() locationCode!: string;
+
   @ApiProperty({ enum: TicketPriority, enumName: 'TicketPriority' })
   priority!: TicketPriority;
 
@@ -153,6 +162,9 @@ export class TicketSummaryResponseDto {
   @ApiProperty({ type: () => TicketUserResponseDto })
   requester!: TicketUserResponseDto;
 
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  currentTechnician!: TicketUserResponseDto | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 
@@ -161,8 +173,6 @@ export class TicketSummaryResponseDto {
 }
 
 export class TicketDetailResponseDto extends TicketSummaryResponseDto {
-  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
-  currentTechnician!: TicketUserResponseDto | null;
 
   @ApiPropertyOptional({ type: () => TicketUserResponseDto })
   resolvedBy!: TicketUserResponseDto | null;
@@ -188,6 +198,9 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
   @ApiPropertyOptional({ type: () => MaintenanceResponseDto })
   maintenance!: MaintenanceResponseDto | null;
 
+  @ApiProperty({ type: () => TicketEvidenceResponseDto, isArray: true })
+  finalEvidence!: TicketEvidenceResponseDto[];
+
   @ApiProperty({ type: () => TicketHistoryResponseDto, isArray: true })
   history!: TicketHistoryResponseDto[];
 }
@@ -207,4 +220,10 @@ export class PaginatedTicketsResponseDto {
 
   @ApiProperty()
   totalPages!: number;
+}
+
+export class GlobalTicketHistoryResponseDto {
+  @ApiProperty({ type: () => TicketDetailResponseDto, isArray: true })
+  items!: TicketDetailResponseDto[];
+  @ApiProperty() total!: number;
 }

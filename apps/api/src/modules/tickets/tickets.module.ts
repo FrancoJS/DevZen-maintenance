@@ -6,9 +6,13 @@ import { FreezeRequest } from './entities/freeze-request.entity';
 import { ImpactAssessment } from './entities/impact-assessment.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { Ticket } from './entities/ticket.entity';
+import { TicketEvidence } from './entities/ticket-evidence.entity';
+import { Asset } from '../assets/entities/asset.entity';
+import { Location } from '../locations/entities/location.entity';
 import { TicketsController } from './tickets.controller';
 import { FreezeRequestsController } from './freeze-requests.controller';
 import { TicketsService } from './tickets.service';
+import { EvidenceService } from './evidence.service';
 
 @Module({
   imports: [
@@ -19,9 +23,12 @@ import { TicketsService } from './tickets.service';
       Maintenance,
       FreezeRequest,
       AssignmentHistory,
+      TicketEvidence,
+      Asset,
+      Location,
     ]),
   ],
   controllers: [TicketsController, FreezeRequestsController],
-  providers: [TicketsService],
+  providers: [TicketsService, EvidenceService],
 })
 export class TicketsModule {}
