@@ -24,6 +24,9 @@ export class AssetSummaryDto {
 
   @ApiProperty({ format: 'uuid' })
   locationId!: string;
+
+  @ApiProperty({ description: 'Existe un ticket no cerrado para esta máquina, sin importar su solicitante.' })
+  hasOpenTicket!: boolean;
 }
 
 export class AssetCatalogResponseDto {

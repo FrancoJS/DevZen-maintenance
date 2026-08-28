@@ -65,8 +65,14 @@ remota; el cliente puede filtrarlos localmente.
 - **Orden:** `assetCode ASC`.
 - **Respuesta `200`:** `{ items, total }`, donde cada elemento contiene
   exclusivamente `{ id, assetCode, name, brand, model, serialNumber, category,
-  locationId }`. `locationId` identifica la ubicación derivada de la máquina;
+  locationId, hasOpenTicket }`. `locationId` identifica la ubicación derivada de la máquina;
   el cliente puede resolver su código y nombre mediante `GET /api/locations`.
+- **Disponibilidad:** `hasOpenTicket` es un booleano calculado globalmente: `true`
+  si existe cualquier ticket de la máquina cuyo estado no sea `CLOSED` (incluye
+  `FROZEN` y `RESOLVED`), independientemente de quién lo creó. Está disponible
+  para los tres roles autenticados; no revela identificadores ni detalles de tickets ajenos.
+  El formulario muestra «Solicitud en curso» y deshabilita esa sugerencia.
+  Es informativo: la API sigue validando la unicidad al crear, incluso ante concurrencia.
 - **Errores:** `401` cuando no existe una sesión autenticada válida.
 
 ## Tickets

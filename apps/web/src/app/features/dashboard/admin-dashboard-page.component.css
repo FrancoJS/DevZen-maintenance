@@ -1,0 +1,23 @@
+.kpi-card {
+  border-top-width: 0.25rem;
+}
+
+.kpi-card[data-tone='primary'] {
+  border-top-color: var(--primary);
+}
+
+.kpi-card[data-tone='destructive'] {
+  border-top-color: var(--destructive);
+}
+
+.kpi-card[data-tone='accent'] {
+  border-top-color: var(--accent-foreground);
+}
+
+.kpi-card[data-tone='muted'] {
+  border-top-color: var(--muted-foreground);
+}
+
+.kpi-card[data-tone='secondary'] {
+  border-top-color: var(--secondary-foreground);
+}

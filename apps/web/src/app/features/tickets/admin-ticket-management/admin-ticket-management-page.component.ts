@@ -93,13 +93,19 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
   readonly pageSize = signal(10);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
-
   readonly availableTechnicians = computed(
-    () => this.technicians().filter(({ availability }) => availability === 'AVAILABLE').length
+    () =>
+      this.technicians().filter(
+        ({ availability }) => availability === 'AVAILABLE',
+      ).length,
   );
   readonly busyTechnicians = computed(
-    () => this.technicians().filter(({ availability }) => availability === 'BUSY').length
+    () =>
+      this.technicians().filter(
+        ({ availability }) => availability === 'BUSY',
+      ).length,
   );
+
   readonly hasActiveFilters = computed(() =>
     Boolean(
       this.selectedStatus() ||

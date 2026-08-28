@@ -100,6 +100,11 @@ export class CreateTicketPageComponent {
       .subscribe({
         next: ({ locations, assets }) => {
           this.locations.set(locations.items);
+          if (assets.items.some((asset) => typeof asset.hasOpenTicket !== 'boolean')) {
+            this.assets.set([]);
+            this.catalogError.set('El catálogo no informa si las máquinas tienen solicitudes en curso. Actualiza la API y reintenta.');
+            return;
+          }
           this.assets.set(assets.items);
         },
         error: () => this.catalogError.set('No pudimos cargar las ubicaciones y equipos. Intenta nuevamente.'),
@@ -118,6 +123,9 @@ export class CreateTicketPageComponent {
   }
 
   selectAsset(asset: AssetSummary): void {
+    if (this.isCatalogLoading() || this.catalogError() || asset.hasOpenTicket !== false) {
+      return;
+    }
     this.form.controls.assetId.setValue(asset.id);
     this.form.controls.locationId.setValue(asset.locationId);
     this.assetQuery.set(asset.assetCode);
@@ -156,6 +164,15 @@ export class CreateTicketPageComponent {
     this.form.markAllAsTouched();
 
     if (this.form.invalid || this.isSubmitting()) {
+      return;
+    }
+
+    if (this.isCatalogLoading() || this.catalogError()) {
+      this.submitError.set('Espera a que se cargue el catálogo de máquinas e inténtalo nuevamente.');
+      return;
+    }
+    if (this.selectedAsset()?.hasOpenTicket !== false) {
+      this.submitError.set('Selecciona una máquina disponible, sin una solicitud en curso.');
       return;
     }
 
@@ -223,6 +240,7 @@ export class CreateTicketPageComponent {
     this.form.markAsUntouched();
     this.assetQuery.set('');
     this.isAssetListOpen.set(false);
+    this.loadCatalogs();
   }
 
   hasError(controlName: 'description' | 'locationId' | 'assetId'): boolean {

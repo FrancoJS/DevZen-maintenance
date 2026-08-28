@@ -105,19 +105,25 @@
                 @for (asset of filteredAssets(); track asset.id) {
                   <li
                     role="option"
+                    [attr.aria-disabled]="asset.hasOpenTicket"
                     [attr.aria-selected]="
                       form.controls.assetId.value === asset.id
                     "
                   >
                     <button
                       type="button"
-                      class="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none"
+                      [disabled]="asset.hasOpenTicket"
+                      class="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left enabled:hover:bg-accent focus:bg-accent focus:outline-none disabled:cursor-not-allowed"
                       (mousedown)="$event.preventDefault()"
                       (click)="selectAsset(asset)"
                     >
-                      <span class="font-medium"
-                        >{{ asset.assetCode }} · {{ asset.name }}</span
-                      ><span class="text-xs text-muted-foreground"
+                      <span class="flex w-full flex-wrap items-center justify-between gap-2">
+                        <span class="font-medium">{{ asset.assetCode }} · {{ asset.name }}</span>
+                        @if (asset.hasOpenTicket) {
+                          <span hlmBadge variant="secondary" class="shrink-0">Solicitud en curso</span>
+                        }
+                      </span>
+                      <span class="text-xs text-muted-foreground"
                         >{{ asset.brand }} · {{ asset.model }} ·
                         {{ asset.category }}</span
                       >
@@ -133,6 +139,7 @@
           </div>
           <p id="asset-help" class="text-xs text-muted-foreground">
             Busca únicamente por el código de una máquina activa.
+            Las máquinas con solicitud en curso no se pueden seleccionar.
           </p>
           @if (hasError('assetId')) {
             <p id="asset-error" class="text-sm text-destructive">

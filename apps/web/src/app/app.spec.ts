@@ -1,4 +1,7 @@
 import { TestBed } from '@angular/core/testing';
+import { provideHttpClient } from '@angular/common/http';
+import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
+import { API_BASE_URL } from './core/api.config';
 import { provideRouter, Router } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { App } from './app';
@@ -14,7 +17,7 @@ describe('App', () => {
     localStorage.removeItem('devzen-mock-session');
     await TestBed.configureTestingModule({
       imports: [App],
-      providers: [provideRouter(appRoutes)],
+      providers: [provideRouter(appRoutes), provideHttpClient(), provideHttpClientTesting()],
     }).compileComponents();
   });
 
@@ -34,9 +37,9 @@ describe('App', () => {
     await harness.navigateByUrl('/inicio', AppShellComponent);
 
     expect(harness.routeNativeElement?.textContent).toContain(
-      'Resumen de actividad y próximos pasos.',
+      'Estado de los tickets, capacidad del equipo y tareas pendientes.',
     );
-    expect(harness.routeNativeElement?.textContent).toContain(
+    expect(harness.routeNativeElement?.textContent).not.toContain(
       'Datos de demostración',
     );
   });
@@ -102,7 +105,6 @@ describe('App', () => {
 
     const shell = harness.routeNativeElement as HTMLElement;
     expect(shell.textContent).toContain('Matías Vega');
-    expect(shell.textContent).toContain('Rol');
     expect(shell.textContent).toContain('Administrador');
     expect(shell.textContent).toContain('MV');
     expect(
@@ -133,6 +135,33 @@ describe('App', () => {
     expect(profile!.compareDocumentPosition(requestsLink!)).toBe(
       Node.DOCUMENT_POSITION_FOLLOWING,
     );
+  });
+
+  it('lands requesters in their requests without a dashboard or maintenance link', async () => {
+    TestBed.inject(PreviewSessionService).login('camila.rojas@devzen.test', 'Solicitante123!');
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/inicio');
+    expect(TestBed.inject(Router).url).toBe('/mis-solicitudes');
+    const sidebar = harness.routeNativeElement?.querySelector('aside');
+    expect(sidebar?.querySelector('a[href="/inicio"]')).toBeNull();
+    expect(sidebar?.querySelector('a[href="/mi-mantencion"]')).toBeNull();
+    TestBed.inject(HttpTestingController).expectNone(`${API_BASE_URL}/dashboard/admin`);
+    TestBed.inject(HttpTestingController).expectNone(`${API_BASE_URL}/tickets/my-maintenance`);
+  });
+
+  it('lands technicians in their maintenance and shares availability with the sidebar', async () => {
+    TestBed.inject(PreviewSessionService).login('diego.perez@devzen.test', 'Tecnico123!');
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/inicio');
+    expect(TestBed.inject(Router).url).toBe('/mi-mantencion');
+    const http = TestBed.inject(HttpTestingController);
+    http.expectOne(`${API_BASE_URL}/tickets/my-maintenance`).flush({ ticket: null });
+    harness.detectChanges();
+    const sidebar = harness.routeNativeElement?.querySelector('aside');
+    expect(sidebar?.querySelector('a[href="/inicio"]')).toBeNull();
+    expect(sidebar?.querySelector('a[href="/mi-mantencion"]')).not.toBeNull();
+    expect(sidebar?.textContent).toContain('Disponible');
+    http.expectNone(`${API_BASE_URL}/dashboard/admin`);
   });
 
   it('removes the standalone technicians destination from routes and navigation', () => {

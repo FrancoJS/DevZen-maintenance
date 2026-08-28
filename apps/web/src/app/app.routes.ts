@@ -1,7 +1,7 @@
 import { Route } from '@angular/router';
 import { AppShellComponent } from './layout/app-shell.component';
 import { LoginPageComponent } from './features/auth/login/login-page.component';
-import { HomePage } from './features/home/home-page';
+import { homeGuard } from './core/home.guard';
 import { authGuard, guestGuard } from './core/auth.guard';
 import { roleGuard } from './core/role.guard';
 import { UserRole } from './shared/navigation/navigation.model';
@@ -12,7 +12,7 @@ export const appRoutes: Route[] = [
   {
     path: 'login',
     component: LoginPageComponent,
-    title: 'Iniciar sesión | DevZen Maintenance',
+    title: 'Iniciar sesión | DevZen Ops',
     canActivate: [guestGuard],
   },
   {
@@ -20,10 +20,16 @@ export const appRoutes: Route[] = [
     component: AppShellComponent,
     canActivate: [authGuard],
     children: [
-      { path: 'inicio', component: HomePage, title: 'Inicio | DevZen Maintenance', canActivate: [roleGuard], data: { roles: ALL_ROLES } },
+      {
+        path: 'inicio',
+        title: 'Panel de control | DevZen Ops',
+        canActivate: [homeGuard],
+        loadComponent: () => import('./features/dashboard/admin-dashboard-page.component')
+          .then((module) => module.AdminDashboardPageComponent),
+      },
       {
         path: 'mis-solicitudes',
-        title: 'Mis solicitudes | DevZen Maintenance',
+        title: 'Mis tickets | DevZen Ops',
         canActivate: [roleGuard],
         data: { roles: ALL_ROLES },
         loadComponent: () =>
@@ -46,7 +52,7 @@ export const appRoutes: Route[] = [
           },
           {
             path: ':id',
-            title: 'Detalle del ticket | DevZen Maintenance',
+            title: 'Detalle del ticket | DevZen Ops',
             canActivate: [roleGuard],
             data: { roles: ['ADMIN'] },
             loadComponent: () =>
@@ -58,7 +64,7 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'mi-mantencion',
-        title: 'Mi mantención | DevZen Maintenance',
+        title: 'Mi mantención | DevZen Ops',
         canActivate: [roleGuard],
         data: { roles: ['TECHNICIAN'] },
         loadComponent: () =>
@@ -68,7 +74,7 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'historial-mantenciones',
-        title: 'Historial de mantenciones | DevZen Maintenance',
+        title: 'Historial de mantenciones | DevZen Ops',
         canActivate: [roleGuard],
         data: { roles: ['TECHNICIAN'] },
         loadComponent: () =>
@@ -80,7 +86,7 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'gestion-tickets',
-        title: 'Gestión de tickets | DevZen Maintenance',
+        title: 'Gestión de tickets | DevZen Ops',
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] },
         loadComponent: () =>
@@ -90,7 +96,7 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'congelamientos',
-        title: 'Congelamientos | DevZen Maintenance',
+        title: 'Congelamientos | DevZen Ops',
         canActivate: [roleGuard],
         data: { roles: ['ADMIN'] },
         loadComponent: () =>
@@ -100,7 +106,7 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'historial-global',
-        title: 'Historial global | DevZen Maintenance',
+        title: 'Historial global | DevZen Ops',
         canActivate: [roleGuard],
         data: { historyScope: 'global', roles: ['ADMIN'] },
         loadComponent: () =>

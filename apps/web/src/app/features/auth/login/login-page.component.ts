@@ -2,12 +2,13 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { DEMO_USERS, PreviewSessionService } from '../../../core/preview-session.service';
+import { PreviewSessionService } from '../../../core/preview-session.service';
 import { AuthApiService } from '../../../core/auth/auth-api.service';
+import { AppFooterComponent } from '../../../shared/components/app-footer/app-footer.component';
 
 @Component({
   selector: 'app-login-page',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, AppFooterComponent],
   templateUrl: './login-page.component.html',
   styleUrl: './login-page.component.css',
 })
@@ -18,7 +19,6 @@ export class LoginPageComponent {
   private readonly session = inject(PreviewSessionService);
   readonly submitted = signal(false);
   readonly submitError = signal<string | null>(null);
-  readonly demoUsers = Object.values(DEMO_USERS);
   readonly form = this.formBuilder.nonNullable.group({
     email: ['', [Validators.required]],
     password: ['', [Validators.required]],

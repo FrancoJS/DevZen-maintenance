@@ -58,8 +58,8 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Decisión aprobada:** exponer el resumen administrativo mínimo mediante
   `GET /api/dashboard/admin`; no incluye gráficos ni tiempo promedio de
   resolución.
-- **Alcance pendiente:** la pantalla frontend, gráficos y KPI de tiempo siguen
-  siendo valor adicional y requieren una fase autorizada.
+- **Frontend aprobado (28 de agosto de 2026):** panel exclusivo de administración que consume estos agregados. Solicitantes entran a Mis solicitudes y técnicos a Mi mantención, con disponibilidad de solo lectura en el sidebar.
+- **Alcance pendiente:** gráficos y KPI de tiempo siguen siendo valor adicional.
 
 ## `PD-009` — Alcance de filtros básicos frente a completos — Parcialmente resuelta
 
@@ -88,9 +88,9 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Implementación:** UI pública en `/api/docs` y documento JSON en `/api/docs-json`; fuera de desarrollo las rutas no se registran.
 - **Seguridad documentada:** Bearer JWT global con nombre `access-token`; el login declara `security: []` y `/api/auth/me` permanece protegido.
 
-## `PD-013` — Unificación de Gestión de tickets y Técnicos — Resuelta
+## `PD-013` — Ubicación de la capacidad técnica — Resuelta
 
-- **Decisión aprobada:** la información de disponibilidad técnica se integra en Gestión de tickets y se elimina la pantalla/ruta administrativa independiente de Técnicos.
+- **Decisión aprobada:** la información de disponibilidad técnica se integra en Capacidad del equipo del panel de control de Administración. No existe una pantalla/ruta administrativa independiente de Técnicos.
 - **Filtros MVP:** estado, prioridad y presencia de técnico actual; el último se deriva en frontend sobre un máximo de 100 tickets obtenidos desde el contrato vigente.
 - **Límite:** Congelamientos permanece como apartado independiente y solo se implementan acciones respaldadas por el backend existente.
 - **Implementación frontend:** Gestión de tickets enlaza a `/tickets/:id`; el detalle permite la asignación inicial desde `NEW` y muestra técnicos ocupados como no seleccionables.
@@ -101,7 +101,7 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Implementación:** el filtro por `requesterId` se aplica en backend antes de los filtros de estado/prioridad, la paginación y el conteo; no se acepta un solicitante alternativo desde el cliente.
 - **Sin cambios:** el administrador conserva acceso al detalle de cualquier ticket y las acciones administrativas existentes.
 - **Pendiente fuera de esta fase:** el listado/historial global exclusivo de administración tendrá un contrato separado. No se crea su endpoint en esta fase.
-- **Compatibilidad:** Gestión de tickets actualmente consume este listado; ahora verá solo solicitudes propias hasta conectarse al futuro contrato global. Esta decisión sustituye el alcance global anterior de ese endpoint, sin modificar el frontend en esta fase.
+- **Actualización (28 de agosto de 2026):** Gestión de tickets consume el contrato ya existente `GET /api/tickets/admin`, que excluye cerrados; Mis solicitudes conserva `GET /api/tickets`. El historial de cerrados usa `GET /api/tickets/admin/history`. Se conserva el límite actual de 100 registros en Gestión; sus conteos locales no reemplazan los KPI agregados.
 
 ## `PD-015` — Tiempo promedio de resolución — Pendiente
 
@@ -119,6 +119,11 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Catálogos:** `Location` y `Asset` son de solo lectura; una máquina pertenece a una ubicación y la ubicación de un ticket se deriva de esa relación.
 - **Exclusividad:** PostgreSQL impide más de un ticket por máquina mientras su estado sea distinto de `CLOSED`, incluidos `RESOLVED`, `FROZEN` y los estados de trabajo.
 - **Migración local:** por decisión explícita se eliminaron los tres tickets de desarrollo anteriores, con respaldo SQL temporal, antes de aplicar el esquema. La migración aborta si encuentra tickets heredados en otro entorno para evitar una pérdida silenciosa.
+
+## `PD-017` — Contrato de corrección manual de prioridad — Pendiente
+
+- **Revisión del 28 de agosto de 2026:** `RN-04` exige corrección administrativa con motivo e historial, pero `API_CONTRACTS.md` mantiene el contrato pendiente y el controlador de tickets no expone esta operación.
+- **Decisión requerida:** aprobar ruta, DTO, respuesta y errores antes de implementar la acción. El panel de KPI no incorpora ni simula esta capacidad.
 
 ## Diferencias documentales ya resueltas por precedencia
 

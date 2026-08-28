@@ -1,11 +1,13 @@
 <main class="login-page" aria-labelledby="login-title">
   <section class="login-card">
-    <section class="login-card__visual" aria-label="DevZen Maintenance">
-      <div class="login-brand" aria-label="DevZen Maintenance">
-        <span class="login-brand__mark" aria-hidden="true"><span>⚒</span><small>✓</small></span>
+    <section class="login-card__visual" aria-label="DevZen Ops">
+      <div class="login-brand" aria-label="DevZen Ops">
+        <span class="login-brand__mark" aria-hidden="true"
+          ><span>⚒</span><small>✓</small></span
+        >
         <span>
           <strong>DevZen</strong>
-          <small>Maintenance</small>
+          <small>Ops</small>
         </span>
       </div>
 
@@ -17,19 +19,53 @@
 
       <svg class="login-illustration" viewBox="0 0 560 320" aria-hidden="true">
         <g transform="translate(36 36)">
-          <ellipse cx="244" cy="253" rx="205" ry="13" fill="#101e31" opacity="0.45" />
+          <ellipse
+            cx="244"
+            cy="253"
+            rx="205"
+            ry="13"
+            fill="#101e31"
+            opacity="0.45"
+          />
 
-          <path fill="none" stroke="#9aa9bb" stroke-linecap="round" stroke-width="16" d="M151 111V62c0-18 14-32 32-32h122c18 0 32 14 32 32v49" />
-          <path fill="none" stroke="#182a40" stroke-linecap="round" stroke-width="9" d="M151 111V62c0-18 14-32 32-32h122c18 0 32 14 32 32v49" />
+          <path
+            fill="none"
+            stroke="#9aa9bb"
+            stroke-linecap="round"
+            stroke-width="16"
+            d="M151 111V62c0-18 14-32 32-32h122c18 0 32 14 32 32v49"
+          />
+          <path
+            fill="none"
+            stroke="#182a40"
+            stroke-linecap="round"
+            stroke-width="9"
+            d="M151 111V62c0-18 14-32 32-32h122c18 0 32 14 32 32v49"
+          />
 
-          <path fill="#536b88" d="M45 125c0-20 16-36 36-36h326c20 0 36 16 36 36v43H45Z" />
-          <path fill="#7890ac" d="M45 125c0-20 16-36 36-36h326c20 0 36 16 36 36v17H45Z" />
-          <path fill="#a8b6c9" d="M82 99h324c12 0 22 7 28 17H54c6-10 16-17 28-17Z" />
+          <path
+            fill="#536b88"
+            d="M45 125c0-20 16-36 36-36h326c20 0 36 16 36 36v43H45Z"
+          />
+          <path
+            fill="#7890ac"
+            d="M45 125c0-20 16-36 36-36h326c20 0 36 16 36 36v17H45Z"
+          />
+          <path
+            fill="#a8b6c9"
+            d="M82 99h324c12 0 22 7 28 17H54c6-10 16-17 28-17Z"
+          />
           <path fill="#617895" d="M45 142h398v27H45Z" />
           <path fill="#1b2d43" d="M45 161h398v14H45Z" />
 
-          <path fill="#334a67" d="M45 175h398v66c0 18-14 32-32 32H77c-18 0-32-14-32-32Z" />
-          <path fill="#3d5572" d="M61 181h366v54c0 13-10 23-23 23H84c-13 0-23-10-23-23Z" />
+          <path
+            fill="#334a67"
+            d="M45 175h398v66c0 18-14 32-32 32H77c-18 0-32-14-32-32Z"
+          />
+          <path
+            fill="#3d5572"
+            d="M61 181h366v54c0 13-10 23-23 23H84c-13 0-23-10-23-23Z"
+          />
           <path fill="#293d59" d="M61 236h366v16H61Z" />
           <path fill="#46617e" d="M78 181h27v90H78zm313 0h27v90h-27Z" />
 
@@ -45,7 +81,10 @@
       <header class="login-card__header">
         <p class="login-card__eyebrow">Bienvenido</p>
         <h1 id="login-title">Inicia sesión para continuar</h1>
-        <p>Accede a tu espacio de trabajo para gestionar solicitudes y mantenciones.</p>
+        <p>
+          Accede a tu espacio de trabajo para gestionar solicitudes y
+          mantenciones.
+        </p>
       </header>
 
       <form [formGroup]="form" (ngSubmit)="submit()" novalidate>
@@ -63,7 +102,9 @@
             <span aria-hidden="true">✉</span>
           </div>
           @if (hasError('email')) {
-            <p id="email-error" class="field-error">El correo electrónico es obligatorio.</p>
+            <p id="email-error" class="field-error">
+              El correo electrónico es obligatorio.
+            </p>
           }
         </div>
 
@@ -81,7 +122,9 @@
             <span aria-hidden="true">▣</span>
           </div>
           @if (hasError('password')) {
-            <p id="password-error" class="field-error">La contraseña es obligatoria.</p>
+            <p id="password-error" class="field-error">
+              La contraseña es obligatoria.
+            </p>
           }
         </div>
 
@@ -91,16 +134,7 @@
 
         <button type="submit">Iniciar sesión</button>
       </form>
-
-      <details class="demo-accounts">
-        <summary>Cuentas de demostración</summary>
-        <div aria-labelledby="demo-accounts-title">
-          <h2 id="demo-accounts-title" class="sr-only">Cuentas de demostración</h2>
-          @for (demoUser of demoUsers; track demoUser.role) {
-            <p><strong>{{ demoUser.roleLabel }}:</strong> {{ demoUser.email }}<br />Contraseña: {{ demoUser.password }}</p>
-          }
-        </div>
-      </details>
     </section>
   </section>
 </main>
+<app-footer />

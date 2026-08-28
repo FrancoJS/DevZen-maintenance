@@ -91,7 +91,7 @@ describe('HttpTicketGateway', () => {
 
   it('lists the complete active-machine catalog contract', () => {
     const catalog = {
-      items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id' }],
+      items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id', hasOpenTicket: true }],
       total: 1,
     };
 
@@ -132,7 +132,7 @@ describe('HttpTicketGateway', () => {
     pendingRequest.flush(paginatedResponse);
   });
 
-  it('lists up to 100 tickets using the supported backend filters', () => {
+  it('lists up to 100 administrative tickets using the supported backend filters', () => {
     const response: PaginatedTicketsResponse = {
       items: [],
       page: 1,
@@ -147,7 +147,7 @@ describe('HttpTicketGateway', () => {
 
     const pendingRequest = httpTesting.expectOne(
       (candidate) =>
-        candidate.url === `${API_BASE_URL}/tickets` &&
+        candidate.url === `${API_BASE_URL}/tickets/admin` &&
         candidate.params.get('page') === '1' &&
         candidate.params.get('limit') === '100' &&
         candidate.params.get('status') === 'NEW' &&

@@ -14,6 +14,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInputImports } from '@spartan-ng/helm/input';
+import { HlmPaginationImports } from '@spartan-ng/helm/pagination';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
 import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
@@ -104,6 +105,7 @@ const RELEASE_REASON_LABELS: Record<AssignmentReleaseReason, string> = {
     HlmButtonImports,
     HlmCardImports,
     HlmInputImports,
+    HlmPaginationImports,
     HlmSheetImports,
     HlmSkeletonImports,
     HlmTableImports,
@@ -130,6 +132,8 @@ export class MaintenanceHistoryPageComponent implements OnInit {
   readonly filters = signal<MaintenanceHistoryFilters>({ ...INITIAL_FILTERS });
   readonly tickets = signal<TicketDetail[]>([]);
   readonly total = signal(0);
+  readonly page = signal(1);
+  readonly pageSize = signal(10);
   readonly isLoading = signal(false);
   readonly loadError = signal<string | null>(null);
   readonly selectedTicket = signal<TicketDetail | null>(null);
@@ -175,6 +179,13 @@ export class MaintenanceHistoryPageComponent implements OnInit {
     const filters = this.filters();
     return Boolean(filters.query || filters.priority || filters.technicianId);
   });
+  readonly totalPages = computed(() =>
+    Math.max(1, Math.ceil(this.records().length / this.pageSize())),
+  );
+  readonly visibleRecords = computed(() => {
+    const start = (this.page() - 1) * this.pageSize();
+    return this.records().slice(start, start + this.pageSize());
+  });
 
   ngOnInit(): void {
     this.loadHistory();
@@ -202,18 +213,27 @@ export class MaintenanceHistoryPageComponent implements OnInit {
 
   updateQuery(query: string): void {
     this.filters.update((filters) => ({ ...filters, query }));
+    this.page.set(1);
   }
 
   updatePriority(priority: MaintenanceHistoryFilters['priority']): void {
     this.filters.update((filters) => ({ ...filters, priority }));
+    this.page.set(1);
   }
 
   updateTechnician(technicianId: string): void {
     this.filters.update((filters) => ({ ...filters, technicianId }));
+    this.page.set(1);
   }
 
   clearFilters(): void {
     this.filters.set({ ...INITIAL_FILTERS });
+    this.page.set(1);
+  }
+
+  updatePageSize(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.page.set(1);
   }
 
   openTicket(ticket: TicketDetail): void {

@@ -222,28 +222,6 @@ button:hover { filter: brightness(1.08); }
   font-size: 0.85rem;
 }
 
-.demo-accounts {
-  margin-top: 2rem;
-  padding-top: 1rem;
-  border-top: 1px solid #34465e;
-  color: #9cacbf;
-  font-size: 0.75rem;
-}
-
-.demo-accounts summary {
-  color: #b8c4d5;
-  cursor: pointer;
-  font-size: 0.8rem;
-}
-
-.demo-accounts p {
-  margin: 0.7rem 0 0;
-  line-height: 1.45;
-  overflow-wrap: anywhere;
-}
-
-.demo-accounts strong { color: #e7edf5; }
-
 @media (max-width: 52rem) {
   .login-page { padding: 1rem; }
   .login-card { grid-template-columns: 1fr; }

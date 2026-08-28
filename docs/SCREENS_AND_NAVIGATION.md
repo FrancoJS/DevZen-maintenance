@@ -4,12 +4,19 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 ## Compartidas
 
+### Footer de aplicación
+
+- **Propósito:** identificar el producto y contexto del desafío de forma consistente.
+- **Acceso:** aparece al final de las páginas autenticadas y del login.
+- **Información:** DevZen Ops y Hackaton LuxNova INACAP 2026.
+
 ### Login
 
 - **Propósito:** autenticar usuarios de los tres roles.
 - **Información mínima:** credenciales según contrato pendiente.
 - **Acciones:** iniciar sesión.
 - **Restricciones:** rol efectivo proviene del backend.
+- **Seguridad UX:** no expone cuentas ni contraseñas de demostración.
 
 ### Crear solicitud
 
@@ -35,12 +42,10 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 ## Solicitante
 
-### Inicio
+### Entrada por rol
 
-- **Propósito:** resumen de tickets propios y acceso a creación.
-- **Información mínima:** tickets propios por situación general.
-- **Acciones:** abrir listado, crear y consultar detalle.
-- **Restricciones:** nunca muestra tickets ajenos.
+- El solicitante entra directamente a **Mis solicitudes**, sin panel de control.
+- `/inicio` y el inicio de sesión redirigen a `/mis-solicitudes` para este rol.
 
 ### Mis solicitudes
 
@@ -58,12 +63,12 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 ## Técnico
 
-### Inicio
+### Entrada por rol y disponibilidad
 
-- **Propósito:** visualizar disponibilidad personal y trabajo actual.
-- **Información mínima:** `AVAILABLE`/`BUSY`, mantención asignada y resumen de historial.
-- **Acciones:** abrir mantención o historial.
-- **Restricciones:** disponibilidad derivada, no editable.
+- El técnico entra directamente a **Mi mantención**, sin panel de control separado.
+- El sidebar enlaza a la mantención actual, Mis solicitudes e Historial de mantenciones.
+- Un badge de solo lectura indica **Ocupado** o **Disponible**, según la presencia de un ticket en `GET /api/tickets/my-maintenance`; mientras se consulta indica **Consultando**, y ante error **Sin confirmar**.
+- La consulta se actualiza al navegar, volver a enfocar la ventana y recargar Mi mantención (incluida la recarga posterior a resolver). Durante una recarga conserva el último estado confirmado, para no alternar visualmente entre disponible y ocupado. No hay sincronización push ni edición manual de disponibilidad.
 
 ### Mi mantención
 
@@ -96,16 +101,19 @@ Este documento describe propósito, información mínima, acciones y restriccion
 ### Dashboard
 
 - **Propósito:** resumen operativo.
-- **Información mínima si se implementa:** totales por estado/prioridad, críticos y sin asignar; gráficos y tiempo promedio son opcionales.
+- **Información implementada:** agregaciones de `GET /api/dashboard/admin`: tickets totales, nuevos, críticos activos (excluye `RESOLVED` y `CLOSED`), en proceso y congelados; técnicos totales, disponibles y ocupados; pendientes de asignar, aprobar congelamiento, reasignar y cerrar.
+- **Orden visual:** KPI principales con borde superior semántico e ícono, Requiere atención y Capacidad del equipo.
+- **Actualización:** al entrar y mediante el botón Actualizar indicadores; estados de carga, error/reintento y sistema vacío, sin cifras ficticias ni cálculo desde listas paginadas.
 - **Acciones:** consulta/navegación a tickets.
 - **Restricciones:** no tratar métricas opcionales como bloqueo del MVP.
+- **Capacidad del equipo:** muestra el resumen derivado y la tabla de técnicos, con disponibilidad, ticket activo, estado y prioridad; esta última consume `GET /api/technicians` paginado.
 
 ### Gestión de tickets
 
-- **Propósito:** listar y gestionar todos los tickets y consultar la capacidad técnica necesaria para asignarlos.
-- **Información mínima:** estado, prioridad, máquina, solicitante, técnico actual cuando exista y resumen de técnicos `AVAILABLE`/`BUSY`.
+- **Propósito:** listar y gestionar todos los tickets.
+- **Información mínima:** estado, prioridad, máquina, solicitante y técnico actual cuando exista.
 - **Acciones:** abrir detalle y acciones administrativas permitidas.
-- **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y disponibilidad/asignación; filtros completos son valor adicional. Se aplican a tickets y técnicos según el ticket activo de cada técnico. La disponibilidad es derivada y no editable. La vista se organiza en dos secciones desplegables independientes, inicialmente cerradas, con transición de apertura y cierre.
+- **Restricciones:** los filtros disponibles en el MVP son estado, prioridad y disponibilidad/asignación; filtros completos son valor adicional. La disponibilidad es derivada y no editable. La información detallada del equipo se consulta desde Capacidad del equipo en el Panel de control.
 
 ### Mis solicitudes
 

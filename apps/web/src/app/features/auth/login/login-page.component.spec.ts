@@ -37,7 +37,12 @@ describe('LoginPageComponent', () => {
     expect(element.querySelector('h1')?.textContent).toContain('Inicia sesión');
     expect(element.querySelector('input[type="email"]')).not.toBeNull();
     expect(element.querySelector('input[type="password"]')).not.toBeNull();
-    expect(element.querySelector('button[type="submit"]')?.textContent).toContain('Iniciar sesión');
+    expect(
+      element.querySelector('button[type="submit"]')?.textContent,
+    ).toContain('Iniciar sesión');
+    expect(element.textContent).not.toContain('Cuentas de demostración');
+    expect(element.textContent).not.toContain('Contraseña:');
+    expect(element.querySelector('app-footer')).not.toBeNull();
   });
 
   it('shows required errors after submitting an empty form', () => {
@@ -72,9 +77,9 @@ describe('LoginPageComponent', () => {
     fixture.componentInstance.submit();
     fixture.detectChanges();
 
-    expect(fixture.nativeElement.querySelector('[role="alert"]')?.textContent).toContain(
-      'no son correctos',
-    );
+    expect(
+      fixture.nativeElement.querySelector('[role="alert"]')?.textContent,
+    ).toContain('no son correctos');
   });
 
   it('stores the authenticated API user and redirects after valid credentials', () => {
@@ -91,7 +96,9 @@ describe('LoginPageComponent', () => {
     );
     const fixture = TestBed.createComponent(LoginPageComponent);
     const router = TestBed.inject(Router);
-    const navigateByUrl = vi.spyOn(router, 'navigateByUrl').mockResolvedValue(true);
+    const navigateByUrl = vi
+      .spyOn(router, 'navigateByUrl')
+      .mockResolvedValue(true);
     fixture.componentInstance.form.setValue({
       email: 'administrador@luxnova.demo',
       password: 'SeedPassword123!',

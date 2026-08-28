@@ -98,13 +98,11 @@
           }
         </div>
       </div>
-      @if (totalPages() > 1) {
-        <footer hlmCardFooter class="flex items-center justify-between border-t">
-          <button hlmBtn type="button" variant="outline" [disabled]="page() <= 1 || isLoading()" (click)="goToPage(page() - 1)">Anterior</button>
-          <p class="text-sm text-muted-foreground">Página {{ page() }} de {{ totalPages() }}</p>
-          <button hlmBtn type="button" variant="outline" [disabled]="page() >= totalPages() || isLoading()" (click)="goToPage(page() + 1)">Siguiente</button>
-        </footer>
-      }
+      <footer hlmCardFooter class="flex items-center justify-between border-t">
+        <button hlmBtn type="button" variant="outline" [disabled]="page() <= 1 || isLoading()" (click)="goToPage(page() - 1)">Anterior</button>
+        <p class="text-sm text-muted-foreground">Página {{ page() }} de {{ totalPages() || 1 }}</p>
+        <button hlmBtn type="button" variant="outline" [disabled]="page() >= totalPages() || isLoading()" (click)="goToPage(page() + 1)">Siguiente</button>
+      </footer>
     </article>
   } @else {
     <article hlmCard>

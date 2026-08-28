@@ -16,7 +16,7 @@ describe('CreateTicketPageComponent', () => {
   beforeEach(async () => {
     gateway = {
       listLocations: vi.fn(() => of({ items: [{ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' }], total: 1 })),
-      listAssets: vi.fn(() => of({ items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id' }], total: 1 })),
+      listAssets: vi.fn(() => of({ items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id', hasOpenTicket: false }], total: 1 })),
       createTicket: vi.fn(() =>
         of({
           id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
@@ -110,11 +110,10 @@ describe('CreateTicketPageComponent', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     const asset = fixture.nativeElement.querySelector('#asset') as HTMLInputElement;
-    const location = fixture.nativeElement.querySelector('#location') as HTMLInputElement;
     const description = fixture.nativeElement.querySelector('#description') as HTMLTextAreaElement;
 
     expect(asset.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(location.readOnly).toBe(true);
+    expect(fixture.nativeElement.querySelector('#location')).toBeNull();
 
     asset.dispatchEvent(new FocusEvent('focus'));
     fixture.detectChanges();
@@ -134,7 +133,7 @@ describe('CreateTicketPageComponent', () => {
     fixture.detectChanges();
     expect(component.form.controls.assetId.value).toBe('asset-id');
     expect(component.form.controls.locationId.value).toBe('location-id');
-    expect(location.value).toContain('Planta 1');
+    expect(fixture.nativeElement.textContent).toContain('Planta 1');
     expect(fixture.nativeElement.textContent).toContain('Atlas');
     expect(fixture.nativeElement.textContent).toContain('AT-EX04-001');
 
@@ -144,10 +143,71 @@ describe('CreateTicketPageComponent', () => {
     expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
     expect(component.form.controls.assetId.value).toBeNull();
     expect(component.form.controls.locationId.value).toBeNull();
-    expect(location.value).toBe('');
+    expect(fixture.nativeElement.textContent).not.toContain('Ficha de la máquina');
   });
 
-  it('envía el payload completo y muestra la prioridad respondida en español', () => {
+  it('shows the global open-ticket badge and disables only occupied suggestions', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    const freeAsset = component.assets()[0];
+    component.assets.set([
+      { ...freeAsset, id: 'busy-asset', assetCode: 'LXN-002', hasOpenTicket: true },
+      freeAsset,
+    ]);
+    const input = fixture.nativeElement.querySelector('#asset') as HTMLInputElement;
+    input.value = 'LXN';
+    input.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+
+    const options = fixture.nativeElement.querySelectorAll('#asset-options button') as NodeListOf<HTMLButtonElement>;
+    expect(options).toHaveLength(2);
+    expect(options[0].querySelector('[hlmBadge]')?.textContent).toContain('Solicitud en curso');
+    expect(options[0].disabled).toBe(true);
+    expect(options[0].parentElement?.getAttribute('aria-disabled')).toBe('true');
+    options[0].click();
+    expect(component.form.controls.assetId.value).toBeNull();
+    expect(options[1].disabled).toBe(false);
+    expect(options[1].querySelector('[hlmBadge]')).toBeNull();
+    options[1].click();
+    expect(component.form.controls.assetId.value).toBe('asset-id');
+    expect(component.form.controls.locationId.value).toBe('location-id');
+  });
+
+  it('does not select an occupied asset with Enter or submit it through form values', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    component.assets.set([{ ...component.assets()[0], hasOpenTicket: true }]);
+    component.updateAssetQuery('LXN-001');
+    component.handleAutocompleteKeydown(new KeyboardEvent('keydown', { key: 'Enter' }));
+    expect(component.form.controls.assetId.value).toBeNull();
+    fillValidForm(component);
+    component.submit();
+    expect(gateway.createTicket).not.toHaveBeenCalled();
+    expect(component.submitError()).toContain('sin una solicitud en curso');
+  });
+
+  it('reports an outdated catalog contract instead of silently hiding all badges', () => {
+    gateway.listAssets.mockReturnValue(of({ items: [{ id: 'old-api-asset' }], total: 1 }));
+    const fixture = createComponent();
+    expect(fixture.componentInstance.catalogError()).toContain('Actualiza la API');
+    expect(fixture.componentInstance.assets()).toEqual([]);
+    expect((fixture.nativeElement.querySelector('#asset') as HTMLInputElement).disabled).toBe(true);
+  });
+
+  it('refreshes availability when starting another request after creation', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    fillValidForm(component);
+    component.submit();
+    gateway.listAssets.mockReturnValue(of({ items: [{ ...component.assets()[0], hasOpenTicket: true }], total: 1 }));
+    component.startNewTicket();
+    expect(gateway.listAssets).toHaveBeenCalledTimes(2);
+    component.updateAssetQuery('LXN');
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options [hlmBadge]')?.textContent).toContain('Solicitud en curso');
+  });
+
+  it('envía el payload completo y muestra la prioridad respondida en español', async () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     fillValidForm(component);
@@ -174,8 +234,10 @@ describe('CreateTicketPageComponent', () => {
       .find((button) => button.textContent?.includes('Ver detalle')) as HTMLButtonElement;
     detailButton.click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.textContent).toContain('Crítica');
-    expect(fixture.nativeElement.textContent).toContain('Nueva');
+    await fixture.whenStable();
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(dialog?.textContent).toContain('Crítica');
+    expect(dialog?.textContent).toContain('Nueva');
   });
 
   it('muestra una confirmación flotante y descartable al crear la solicitud', () => {
@@ -223,7 +285,7 @@ describe('CreateTicketPageComponent', () => {
     expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('abre el detalle reutilizable del ticket creado y permite cerrarlo', () => {
+  it('abre el detalle reutilizable del ticket creado y permite cerrarlo', async () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     fillValidForm(component);
@@ -232,17 +294,19 @@ describe('CreateTicketPageComponent', () => {
     fixture.detectChanges();
     (fixture.nativeElement.querySelector('button[type="button"]') as HTMLButtonElement).click();
     fixture.detectChanges();
-
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).not.toBeNull();
-    expect(fixture.nativeElement.textContent).toContain('54f1c1b7-2acf-4428-a2f7-58b2943fb044');
-    expect(fixture.nativeElement.textContent).toContain('No inicia el sistema hidráulico.');
-    expect(fixture.nativeElement.textContent).toContain('No, continúa funcionando');
-    expect(fixture.nativeElement.textContent).toContain('No afecta la producción');
+    await fixture.whenStable();
+    const dialog = document.body.querySelector('[role="dialog"]');
+    expect(dialog).not.toBeNull();
+    expect(dialog?.textContent).toContain('54f1c1b7-2acf-4428-a2f7-58b2943fb044');
+    expect(dialog?.textContent).toContain('No inicia el sistema hidráulico.');
+    expect(dialog?.textContent).toContain('No, continúa funcionando');
+    expect(dialog?.textContent).toContain('No afecta la producción');
     expect(fixture.nativeElement.querySelector('app-ticket-detail-modal')).not.toBeNull();
 
-    (fixture.nativeElement.querySelector('button[aria-label="Cerrar detalle del ticket"]') as HTMLButtonElement).click();
+    (dialog?.querySelector('button[hlmSheetClose]') as HTMLButtonElement).click();
     fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
+    await fixture.whenStable();
+    expect(document.body.querySelector('[role="dialog"]')).toBeNull();
   });
 
   it('evita envíos duplicados mientras la solicitud está pendiente', () => {

@@ -1,7 +1,8 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable } from '@angular/core';
-import { Observable } from 'rxjs';
+import { Observable, tap } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
+import { CurrentMaintenanceStatusService } from '../current-maintenance-status.service';
 import {
   AdminTicketFilters,
   AdminFreezeGateway,
@@ -41,6 +42,7 @@ export class HttpTicketGateway
     TechnicianMaintenanceGateway
 {
   private readonly http = inject(HttpClient);
+  private readonly maintenanceStatus = inject(CurrentMaintenanceStatusService);
 
   createTicket(request: CreateTicketRequest): Observable<TicketDetail> {
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets`, request);
@@ -76,7 +78,7 @@ export class HttpTicketGateway
     if (filters.status) params['status'] = filters.status;
     if (filters.priority) params['priority'] = filters.priority;
 
-    return this.http.get<PaginatedTicketsResponse>(`${API_BASE_URL}/tickets`, {
+    return this.http.get<PaginatedTicketsResponse>(`${API_BASE_URL}/tickets/admin`, {
       params,
     });
   }
@@ -154,9 +156,7 @@ export class HttpTicketGateway
   }
 
   getCurrentMaintenance(): Observable<CurrentMaintenanceResponse> {
-    return this.http.get<CurrentMaintenanceResponse>(
-      `${API_BASE_URL}/tickets/my-maintenance`
-    );
+    return this.maintenanceStatus.load();
   }
 
   startMaintenance(id: string): Observable<TicketDetail> {
@@ -203,7 +203,7 @@ export class HttpTicketGateway
     return this.http.post<TicketDetail>(
       `${API_BASE_URL}/tickets/${id}/resolve`,
       request
-    );
+    ).pipe(tap(() => this.maintenanceStatus.invalidate()));
   }
 
   listMaintenanceHistory(

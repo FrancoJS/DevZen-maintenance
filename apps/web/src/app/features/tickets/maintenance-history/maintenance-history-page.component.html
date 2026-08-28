@@ -12,7 +12,7 @@
     </span>
   </header>
 
-  <article hlmCard>
+  <article hidden hlmCard>
     <header hlmCardHeader class="border-b">
       <h3 hlmCardTitle>Buscar y filtrar</h3>
       <p hlmCardDescription>Los filtros se aplican sobre los tickets cerrados cargados.</p>
@@ -86,36 +86,61 @@
   } @else if (records().length) {
     <article hlmCard>
       <header hlmCardHeader class="border-b">
-        <h3 hlmCardTitle>Intervenciones cerradas</h3>
-        <p hlmCardDescription>Selecciona un ticket para revisar su trazabilidad.</p>
+        <h3 hlmCardTitle>Todos los tickets cerrados</h3>
+        <p hlmCardDescription>Busca, filtra y revisa la trazabilidad de las intervenciones cerradas.</p>
       </header>
-      <div hlmCardContent class="p-4 sm:p-6">
+      <div hlmCardContent class="grid gap-6 p-4 sm:p-6">
+        <section class="grid gap-4" aria-label="Buscar y filtrar historial">
+          <div class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
+            <div class="grid gap-2">
+              <label for="history-search-table" class="text-sm font-medium">Buscar por ticket, equipo o ubicación</label>
+              <input hlmInput id="history-search-table" type="search" placeholder="Ej.: TCK-2048 o Compresor" [value]="filters().query" (input)="updateQuery($any($event.target).value)" />
+            </div>
+            <div class="grid gap-2">
+              <label for="history-priority-table" class="text-sm font-medium">Prioridad</label>
+              <select id="history-priority-table" class="h-9 rounded-md border border-input bg-card px-3 text-sm text-foreground" [value]="filters().priority" (change)="updatePriority($any($event.target).value)">
+                <option value="">Todas las prioridades</option>
+                <option value="LOW">Baja</option><option value="MEDIUM">Media</option><option value="HIGH">Alta</option><option value="CRITICAL">Crítica</option>
+              </select>
+            </div>
+            <div class="grid gap-2">
+              <label for="history-technician-table" class="text-sm font-medium">Técnico participante</label>
+              <select id="history-technician-table" class="h-9 rounded-md border border-input bg-card px-3 text-sm text-foreground" [value]="filters().technicianId" (change)="updateTechnician($any($event.target).value)">
+                <option value="">Todos los técnicos</option>
+                @for (technician of technicianOptions(); track technician.id) { <option [value]="technician.id">{{ technician.name }}</option> }
+              </select>
+            </div>
+            <div class="flex items-end"><button hlmBtn type="button" variant="outline" class="w-full" [disabled]="!hasActiveFilters()" (click)="clearFilters()">Limpiar filtros</button></div>
+          </div>
+        </section>
         <div class="hidden overflow-hidden rounded-lg border border-border md:block">
           <div hlmTableContainer>
             <table hlmTable class="min-w-220 text-left">
               <caption hlmCaption class="sr-only">Listado de tickets cerrados</caption>
               <thead hlmTHead class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr hlmTr class="hover:bg-transparent">
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Ticket y equipo</th>
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Participantes</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Ticket</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Máquina</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Solicitante</th>
                   <th hlmTh scope="col" class="px-6 py-3 font-semibold">Estado</th>
                   <th hlmTh scope="col" class="px-6 py-3 font-semibold">Prioridad</th>
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Cerrado</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Técnico actual</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Creación</th>
                   <th hlmTh scope="col" class="px-6 py-3 !text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody hlmTBody>
-                @for (ticket of records(); track ticket.id) {
+                @for (ticket of visibleRecords(); track ticket.id) {
                   <tr hlmTr class="hover:bg-muted/35">
                     <td hlmTd class="px-6 py-4">
                       <p class="font-semibold">{{ ticketLabel(ticket) }}</p>
-                      <p class="mt-1 text-muted-foreground">{{ ticket.asset }}</p>
-                      <p class="mt-1 text-xs text-muted-foreground">{{ ticket.location }}</p>
                     </td>
-                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ participantsLabel(ticket) }}</td>
+                    <td hlmTd class="px-6 py-4"><p class="font-medium">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.description }}</p></td>
+                    <td hlmTd class="px-6 py-4">{{ ticket.requester.name }}</td>
                     <td hlmTd class="px-6 py-4"><span hlmBadge variant="outline">{{ statusLabel(ticket.status) }}</span></td>
                     <td hlmTd class="px-6 py-4"><span hlmBadge variant="outline">{{ priorityLabel(ticket.priority) }}</span></td>
-                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ formatDate(activityDate(ticket)) }}</td>
+                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ participantsLabel(ticket) }}</td>
+                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ formatDate(ticket.createdAt) }}</td>
                     <td hlmTd class="px-6 py-4 !text-center">
                       <button hlmBtn type="button" size="sm" variant="outline" (click)="openTicket(ticket)">Ver detalle</button>
                     </td>
@@ -127,7 +152,7 @@
         </div>
 
         <div class="grid gap-3 md:hidden">
-          @for (ticket of records(); track ticket.id) {
+          @for (ticket of visibleRecords(); track ticket.id) {
             <article class="rounded-lg border border-border p-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
@@ -143,6 +168,9 @@
           }
         </div>
       </div>
+      <footer hlmCardFooter class="mt-auto justify-center border-t">
+        <hlm-numbered-pagination [currentPage]="page()" (currentPageChange)="page.set($event)" [itemsPerPage]="pageSize()" (itemsPerPageChange)="updatePageSize($event)" [totalItems]="records().length" [pageSizes]="[5, 10, 15]" />
+      </footer>
     </article>
   } @else {
     <article hlmCard>

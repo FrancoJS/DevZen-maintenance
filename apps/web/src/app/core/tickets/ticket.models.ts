@@ -59,6 +59,7 @@ export interface AssetSummary {
   serialNumber: string;
   category: string;
   locationId: string;
+  hasOpenTicket: boolean;
 }
 
 export interface CatalogResponse<T> {

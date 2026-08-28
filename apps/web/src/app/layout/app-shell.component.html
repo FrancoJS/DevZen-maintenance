@@ -33,7 +33,7 @@
           <p class="text-[10px] font-bold tracking-[0.22em] text-blue-200">
             DEVZEN
           </p>
-          <p class="truncate text-sm font-semibold">Maintenance</p>
+          <p class="truncate text-sm font-semibold">Ops</p>
         </div>
       }
     </div>
@@ -44,13 +44,55 @@
         </hlm-avatar>
         @if (!sidebarCollapsed) {
           <div class="min-w-0">
-            <p class="truncate text-sm font-semibold">{{ user().name }}</p>
+            <div class="flex items-center gap-2">
+              <p class="truncate text-sm font-semibold">{{ user().name }}</p>
+              @if (role() === 'TECHNICIAN') {
+                <span
+                  hlmBadge
+                  [variant]="
+                    maintenanceStatus.availability() === 'BUSY'
+                      ? 'default'
+                      : 'secondary'
+                  "
+                  [attr.title]="'Disponibilidad: ' + availabilityLabel()"
+                  [attr.aria-label]="'Disponibilidad: ' + availabilityLabel()"
+                  >{{ availabilityLabel() }}</span
+                >
+              }
+            </div>
             <p class="truncate text-xs text-slate-400">
               {{ user().roleLabel }}
             </p>
           </div>
         }
       </div>
+      @if (role() === 'TECHNICIAN') {
+        <div
+          class="mt-3 flex justify-center"
+          aria-live="polite"
+          [class.hidden]="!sidebarCollapsed"
+        >
+          <span
+            hlmBadge
+            [variant]="
+              maintenanceStatus.availability() === 'BUSY'
+                ? 'default'
+                : 'secondary'
+            "
+            [attr.title]="'Disponibilidad: ' + availabilityLabel()"
+            [attr.aria-label]="'Disponibilidad: ' + availabilityLabel()"
+            >{{
+              sidebarCollapsed
+                ? availabilityLabel() === 'Disponible'
+                  ? 'Disp.'
+                  : availabilityLabel() === 'Ocupado'
+                    ? 'Ocup.'
+                    : '…'
+                : availabilityLabel()
+            }}</span
+          >
+        </div>
+      }
     </section>
     <div hlmSeparator orientation="horizontal" class="bg-sidebar-border"></div>
     <nav
@@ -117,8 +159,8 @@
   <div
     [class]="
       sidebarCollapsed
-        ? 'min-h-screen transition-[padding] duration-200 lg:pl-20'
-        : 'min-h-screen transition-[padding] duration-200 lg:pl-72'
+        ? 'flex min-h-screen flex-col transition-[padding] duration-200 lg:pl-20'
+        : 'flex min-h-screen flex-col transition-[padding] duration-200 lg:pl-72'
     "
   >
     <header
@@ -159,8 +201,12 @@
         </button>
       </div>
     </header>
-    <main id="contenido" class="min-h-[calc(100vh-5rem)] p-4 sm:p-6 lg:p-8">
+    <main
+      id="contenido"
+      class="min-h-[calc(100vh-5rem)] flex-1 p-4 sm:p-6 lg:p-8"
+    >
       <router-outlet></router-outlet>
     </main>
+    <app-footer />
   </div>
 </div>
