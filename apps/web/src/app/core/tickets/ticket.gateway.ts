@@ -114,6 +114,7 @@ export interface TechnicianMaintenanceGateway {
     id: string,
     request: RequestFreezeRequest
   ): Observable<TicketDetail>;
+  uploadFinalEvidence(id: string, file: File): Observable<TicketDetail>;
   resolveMaintenance(
     id: string,
     request: ResolveMaintenanceRequest

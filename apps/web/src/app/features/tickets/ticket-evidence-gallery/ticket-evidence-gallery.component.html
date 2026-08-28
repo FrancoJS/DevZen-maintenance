@@ -1,0 +1,64 @@
+@if (evidence.length) {
+  <ul class="grid gap-3 sm:grid-cols-2">
+    @for (item of evidence; track item.id) {
+      <li>
+        <figure
+          class="grid h-full gap-3 rounded-lg border border-border bg-muted/20 p-3"
+        >
+          @if (imageUrl(item); as accessUrl) {
+            <a
+              class="block overflow-hidden rounded-md border border-border bg-muted/30"
+              [href]="accessUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              [attr.aria-label]="'Abrir evidencia ' + item.originalFilename"
+            >
+              <img
+                class="aspect-video w-full object-contain"
+                [src]="accessUrl"
+                [alt]="'Evidencia final: ' + item.originalFilename"
+                loading="lazy"
+                decoding="async"
+                referrerpolicy="no-referrer"
+                (error)="markImageUnavailable(accessUrl)"
+              />
+            </a>
+          } @else {
+            <div
+              class="grid aspect-video place-items-center rounded-md border border-dashed border-border bg-muted/30 p-4 text-center text-sm text-muted-foreground"
+            >
+              La imagen no está disponible. Vuelve a cargar el detalle para
+              renovar su enlace temporal.
+            </div>
+          }
+
+          <figcaption class="grid gap-1 text-sm">
+            <p class="break-all font-medium">{{ item.originalFilename }}</p>
+            <p class="text-muted-foreground">
+              {{ item.mimeType }} · {{ formatFileSize(item.size) }}
+            </p>
+            <p class="text-muted-foreground">
+              Cargada por {{ item.technician.name }} ·
+              {{ formatDate(item.createdAt) }}
+            </p>
+          </figcaption>
+
+          @if (imageUrl(item); as accessUrl) {
+            <a
+              hlmBtn
+              variant="outline"
+              size="sm"
+              class="w-fit"
+              [href]="accessUrl"
+              target="_blank"
+              rel="noopener noreferrer"
+              >Abrir imagen completa</a
+            >
+          }
+        </figure>
+      </li>
+    }
+  </ul>
+} @else {
+  <p class="text-sm text-muted-foreground">{{ emptyMessage }}</p>
+}

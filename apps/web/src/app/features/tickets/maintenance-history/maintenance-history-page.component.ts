@@ -23,6 +23,11 @@ import {
 } from '../../../core/tickets/ticket.gateway';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import {
+  AssignmentReleaseReason,
+  EquipmentStopped,
+  FreezeReasonType,
+  FreezeRequestStatus,
+  ProductionImpact,
   TicketDetail,
   TicketHistoryAction,
   TicketHistoryEntry,
@@ -30,6 +35,7 @@ import {
   TicketStatus,
 } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
 
 interface MaintenanceHistoryFilters {
   query: string;
@@ -59,6 +65,37 @@ const ACTION_LABELS: Record<TicketHistoryAction, string> = {
   TICKET_CLOSED: 'Ticket cerrado',
 };
 
+const EQUIPMENT_STOPPED_LABELS: Record<EquipmentStopped, string> = {
+  YES: 'Sí, completamente',
+  PARTIAL: 'Parcialmente',
+  NO: 'No',
+};
+
+const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
+  STOPPED: 'Producción detenida',
+  REDUCED: 'Producción reducida',
+  NONE: 'Sin impacto productivo',
+};
+
+const FREEZE_REASON_LABELS: Record<FreezeReasonType, string> = {
+  SPARE_PART_UNAVAILABLE: 'Falta de repuesto',
+  AWAITING_AUTHORIZATION: 'Esperando autorización',
+  SPECIALIST_UNAVAILABLE: 'Falta de personal especializado',
+  EQUIPMENT_OR_AREA_UNAVAILABLE: 'Equipo o área no disponible',
+  OTHER: 'Otro motivo',
+};
+
+const FREEZE_STATUS_LABELS: Record<FreezeRequestStatus, string> = {
+  PENDING: 'Pendiente',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
+};
+
+const RELEASE_REASON_LABELS: Record<AssignmentReleaseReason, string> = {
+  FREEZE_APPROVED: 'Congelamiento aprobado',
+  RESOLVED: 'Mantención resuelta',
+};
+
 @Component({
   selector: 'app-maintenance-history-page',
   imports: [
@@ -70,6 +107,7 @@ const ACTION_LABELS: Record<TicketHistoryAction, string> = {
     HlmSheetImports,
     HlmSkeletonImports,
     HlmTableImports,
+    TicketEvidenceGalleryComponent,
   ],
   providers: [
     HttpTicketGateway,
@@ -241,6 +279,30 @@ export class MaintenanceHistoryPageComponent implements OnInit {
     return ticket.assignments.length
       ? ticket.assignments.map((assignment) => assignment.technician.name).join(', ')
       : 'Sin técnicos registrados';
+  }
+
+  booleanLabel(value: boolean): string {
+    return value ? 'Sí' : 'No';
+  }
+
+  equipmentStoppedLabel(value: EquipmentStopped): string {
+    return EQUIPMENT_STOPPED_LABELS[value];
+  }
+
+  productionImpactLabel(value: ProductionImpact): string {
+    return PRODUCTION_IMPACT_LABELS[value];
+  }
+
+  freezeReasonLabel(reason: FreezeReasonType): string {
+    return FREEZE_REASON_LABELS[reason];
+  }
+
+  freezeStatusLabel(status: FreezeRequestStatus): string {
+    return FREEZE_STATUS_LABELS[status];
+  }
+
+  releaseReasonLabel(reason: AssignmentReleaseReason | null): string {
+    return reason ? RELEASE_REASON_LABELS[reason] : 'Sin motivo registrado';
   }
 
   private loadErrorMessage(error: HttpErrorResponse): string {

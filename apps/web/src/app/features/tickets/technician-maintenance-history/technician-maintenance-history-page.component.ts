@@ -26,6 +26,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
 
 const PAGE_SIZE = 20;
 
@@ -72,6 +73,7 @@ const RELEASE_REASON_LABELS: Record<AssignmentReleaseReason, string> = {
     HlmCardImports,
     HlmSheetImports,
     HlmTableImports,
+    TicketEvidenceGalleryComponent,
   ],
   providers: [
     HttpTicketGateway,

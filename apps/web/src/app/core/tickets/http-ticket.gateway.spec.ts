@@ -365,6 +365,22 @@ describe('HttpTicketGateway', () => {
     pendingRequest.flush({ ...response, status: 'FREEZE_REQUESTED' });
   });
 
+  it('uploads final evidence as multipart data using the documented file field', () => {
+    const file = new File(['evidencia'], 'reparacion.webp', {
+      type: 'image/webp',
+    });
+
+    gateway.uploadFinalEvidence(response.id, file).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/final-evidence`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toBeInstanceOf(FormData);
+    expect((pendingRequest.request.body as FormData).get('file')).toBe(file);
+    pendingRequest.flush({ ...response, status: 'IN_PROGRESS' });
+  });
+
   it('resolves a maintenance with only the final work performed', () => {
     gateway
       .resolveMaintenance(response.id, {

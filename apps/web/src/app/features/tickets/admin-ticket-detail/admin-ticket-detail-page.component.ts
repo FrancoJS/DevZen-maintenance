@@ -24,6 +24,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
 
 const HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
   TICKET_CREATED: 'Ticket creado',
@@ -55,7 +56,13 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
 
 @Component({
   selector: 'app-admin-ticket-detail-page',
-  imports: [RouterLink, HlmBadgeImports, HlmButtonImports, HlmCardImports],
+  imports: [
+    RouterLink,
+    HlmBadgeImports,
+    HlmButtonImports,
+    HlmCardImports,
+    TicketEvidenceGalleryComponent,
+  ],
   providers: [
     HttpTicketGateway,
     { provide: ADMIN_TICKET_GATEWAY, useExisting: HttpTicketGateway },

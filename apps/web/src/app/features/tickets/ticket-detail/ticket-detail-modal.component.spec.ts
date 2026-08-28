@@ -29,7 +29,18 @@ const ticket: TicketDetail = {
   assignments: [],
   freezeRequests: [],
   maintenance: null,
-  finalEvidence: [],
+  finalEvidence: [
+    {
+      id: 'evidence-id',
+      publicId: 'tickets/ticket-id/final/evidence-id',
+      mimeType: 'image/jpeg',
+      size: 2048,
+      originalFilename: 'reparacion.jpg',
+      createdAt: '2026-08-27T13:00:00.000Z',
+      technician: { id: 'technician-id', name: 'Diego Pérez' },
+      accessUrl: 'https://example.test/requester-evidence.jpg',
+    },
+  ],
   history: [
     {
       id: 'history-id',
@@ -58,6 +69,9 @@ describe('TicketDetailModalComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('Sí, se detiene completamente');
     expect(fixture.nativeElement.textContent).toContain('Solicitud creada');
     expect(fixture.nativeElement.textContent).toContain('source: Formulario web');
+    expect(fixture.nativeElement.querySelector('img')?.src).toBe(
+      'https://example.test/requester-evidence.jpg'
+    );
   });
 
   it('emite el cierre desde el botón del modal', async () => {

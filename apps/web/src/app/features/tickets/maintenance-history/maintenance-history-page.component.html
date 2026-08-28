@@ -177,7 +177,19 @@
             <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm">
               <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1 font-medium">{{ ticket.location }}</dd></div>
               <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1 font-medium">{{ ticket.requester.name }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</dt><dd class="mt-1 whitespace-pre-wrap">{{ ticket.description }}</dd></div>
               <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cerrado</dt><dd class="mt-1 font-medium">{{ formatDate(activityDate(ticket)) }}</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="impact-title">
+            <h4 id="impact-title" class="font-semibold">Evaluación de impacto</h4>
+            <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Riesgo de seguridad</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.safetyRisk) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Equipo detenido</dt><dd class="mt-1">{{ equipmentStoppedLabel(ticket.impactAssessment.equipmentStopped) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impacto productivo</dt><dd class="mt-1">{{ productionImpactLabel(ticket.impactAssessment.productionImpact) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Alternativa disponible</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.workaroundAvailable) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Afecta otras áreas</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.affectsOtherAreas) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad calculada</dt><dd class="mt-1">{{ priorityLabel(ticket.impactAssessment.calculatedPriority) }}</dd></div>
             </dl>
           </section>
           <section aria-labelledby="participants-title">
@@ -189,12 +201,56 @@
                     <p class="font-medium">{{ assignment.technician.name }}</p>
                     <p class="mt-1 text-sm text-muted-foreground">Asignado: {{ formatDate(assignment.assignedAt) }}</p>
                     <p class="mt-1 text-sm text-muted-foreground">Liberado: {{ formatDate(assignment.releasedAt) }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Motivo: {{ releaseReasonLabel(assignment.releaseReason) }}</p>
                   </li>
                 }
               </ul>
             } @else {
               <p class="mt-3 text-sm text-muted-foreground">No hay asignaciones registradas.</p>
             }
+          </section>
+          <section aria-labelledby="maintenance-title">
+            <h4 id="maintenance-title" class="font-semibold">Trabajo técnico</h4>
+            @if (ticket.maintenance; as maintenance) {
+              <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm">
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Diagnóstico</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.diagnosis || 'Sin diagnóstico registrado.' }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trabajo realizado</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.workPerformed || 'Sin trabajo realizado registrado.' }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Observaciones</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.notes || 'Sin observaciones registradas.' }}</dd></div>
+              </dl>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No hay información técnica registrada.</p>
+            }
+          </section>
+          <section aria-labelledby="freeze-title">
+            <h4 id="freeze-title" class="font-semibold">Congelamientos</h4>
+            @if (ticket.freezeRequests.length) {
+              <ul class="mt-3 grid gap-3">
+                @for (request of ticket.freezeRequests; track request.id) {
+                  <li class="rounded-lg border border-border p-4 text-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2"><p class="font-medium">{{ freezeReasonLabel(request.reasonType) }}</p><span hlmBadge variant="outline">{{ freezeStatusLabel(request.status) }}</span></div>
+                    <p class="mt-1 text-muted-foreground">Solicitado por {{ request.technician.name }} · {{ formatDate(request.requestedAt) }}</p>
+                    @if (request.reasonDetail) { <p class="mt-2 whitespace-pre-wrap">{{ request.reasonDetail }}</p> }
+                    @if (request.reviewedBy) { <p class="mt-2 text-muted-foreground">Revisado por {{ request.reviewedBy.name }} · {{ formatDate(request.reviewedAt) }}</p> }
+                    @if (request.reviewNote) { <p class="mt-2 whitespace-pre-wrap">{{ request.reviewNote }}</p> }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No se solicitaron congelamientos.</p>
+            }
+          </section>
+          <section aria-labelledby="closure-title">
+            <h4 id="closure-title" class="font-semibold">Resolución y cierre</h4>
+            <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Resuelto por</dt><dd class="mt-1">{{ ticket.resolvedBy?.name ?? 'Sin registro' }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de resolución</dt><dd class="mt-1">{{ formatDate(ticket.resolvedAt) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cerrado por</dt><dd class="mt-1">{{ ticket.closedBy?.name ?? 'Sin registro' }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de cierre</dt><dd class="mt-1">{{ formatDate(ticket.closedAt) }}</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="evidence-title">
+            <h4 id="evidence-title" class="font-semibold">Evidencia final</h4>
+            <app-ticket-evidence-gallery class="mt-3 block" [evidence]="ticket.finalEvidence" />
           </section>
           <section aria-labelledby="timeline-title">
             <h4 id="timeline-title" class="font-semibold">Cronología</h4>

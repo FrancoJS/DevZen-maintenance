@@ -53,7 +53,18 @@ const normalTicket: TicketDetail = {
     workPerformed: 'Se reemplazó el regulador.',
     notes: null,
   },
-  finalEvidence: [],
+  finalEvidence: [
+    {
+      id: 'evidence-id',
+      publicId: 'tickets/ticket-2048/final/evidence-id',
+      mimeType: 'image/jpeg',
+      size: 1536000,
+      originalFilename: 'regulador-reemplazado.jpg',
+      createdAt: '2026-08-24T13:40:00.000Z',
+      technician: { id: 'tech-diego', name: 'Diego Pérez' },
+      accessUrl: 'https://example.test/evidence.jpg',
+    },
+  ],
   history: [
     {
       id: 'history-created',
@@ -91,6 +102,19 @@ const reassignedTicket: TicketDetail = {
       ...normalTicket.assignments[0],
       id: 'assignment-valentina',
       technician: { id: 'tech-valentina', name: 'Valentina Silva' },
+    },
+  ],
+  freezeRequests: [
+    {
+      id: 'freeze-request-id',
+      technician: { id: 'tech-diego', name: 'Diego Pérez' },
+      reasonType: 'SPARE_PART_UNAVAILABLE',
+      reasonDetail: 'Se debe esperar la llegada del repuesto.',
+      status: 'APPROVED',
+      requestedAt: '2026-08-24T10:00:00.000Z',
+      reviewedBy: { id: 'admin-id', name: 'Ana González' },
+      reviewedAt: '2026-08-24T11:00:00.000Z',
+      reviewNote: 'Congelamiento aprobado.',
     },
   ],
 };
@@ -219,8 +243,44 @@ describe('MaintenanceHistoryPageComponent', () => {
     expect(component.selectedTicket()?.id).toBe(normalTicket.id);
     expect(document.body.textContent).toContain('Cierre administrativo confirmado.');
     expect(document.body.textContent).toContain('Diego Pérez');
+    expect(document.body.textContent).toContain('Regulador de presión defectuoso.');
+    expect(document.body.textContent).toContain('regulador-reemplazado.jpg');
+    expect(document.body.querySelector('img')?.src).toBe(
+      'https://example.test/evidence.jpg'
+    );
+    expect(document.body.querySelector('a[href="https://example.test/evidence.jpg"]')).not.toBeNull();
 
     component.onSheetStateChange('closed');
     expect(component.selectedTicket()).toBeNull();
+  });
+
+  it('shows freeze decisions and safe fallbacks for absent optional details', async () => {
+    const fixture = await createComponent({
+      listGlobalClosedHistory: vi.fn(() => of(response())),
+    });
+    const component = fixture.componentInstance;
+
+    component.openTicket(reassignedTicket);
+    fixture.detectChanges();
+
+    expect(document.body.textContent).toContain('Falta de repuesto');
+    expect(document.body.textContent).toContain('Congelamiento aprobado.');
+
+    component.openTicket({
+      ...normalTicket,
+      maintenance: null,
+      finalEvidence: [
+        { ...normalTicket.finalEvidence[0], accessUrl: null },
+      ],
+      resolvedBy: null,
+      resolvedAt: null,
+      closedBy: null,
+      closedAt: null,
+    });
+    fixture.detectChanges();
+
+    expect(document.body.textContent).toContain('No hay información técnica registrada.');
+    expect(document.body.textContent).toContain('La imagen no está disponible.');
+    expect(document.body.textContent).toContain('Sin registro');
   });
 });

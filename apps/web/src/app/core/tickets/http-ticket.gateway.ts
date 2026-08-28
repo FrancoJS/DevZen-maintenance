@@ -186,6 +186,16 @@ export class HttpTicketGateway
     );
   }
 
+  uploadFinalEvidence(id: string, file: File): Observable<TicketDetail> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${id}/final-evidence`,
+      formData
+    );
+  }
+
   resolveMaintenance(
     id: string,
     request: ResolveMaintenanceRequest
