@@ -130,6 +130,7 @@ export class MaintenanceResponseDto {
   @ApiPropertyOptional({ nullable: true })
   notes!: string | null;
 }
+export class TicketEvidenceResponseDto { @ApiProperty({ format: 'uuid' }) id!: string; @ApiProperty() publicId!: string; @ApiProperty() mimeType!: string; @ApiProperty() size!: number; @ApiProperty() originalFilename!: string; @ApiProperty({ format: 'date-time' }) createdAt!: Date; @ApiProperty({ type: () => TicketUserResponseDto }) technician!: TicketUserResponseDto; @ApiPropertyOptional({ nullable: true }) accessUrl!: string | null; }
 
 export class TicketSummaryResponseDto {
   @ApiProperty({ format: 'uuid' })
@@ -196,6 +197,9 @@ export class TicketDetailResponseDto extends TicketSummaryResponseDto {
 
   @ApiPropertyOptional({ type: () => MaintenanceResponseDto })
   maintenance!: MaintenanceResponseDto | null;
+
+  @ApiProperty({ type: () => TicketEvidenceResponseDto, isArray: true })
+  finalEvidence!: TicketEvidenceResponseDto[];
 
   @ApiProperty({ type: () => TicketHistoryResponseDto, isArray: true })
   history!: TicketHistoryResponseDto[];

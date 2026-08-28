@@ -47,6 +47,8 @@ import { Maintenance } from './entities/maintenance.entity';
 import { FreezeRequest } from './entities/freeze-request.entity';
 import { Ticket } from './entities/ticket.entity';
 import { Asset } from '../assets/entities/asset.entity';
+import { TicketEvidence, TicketEvidenceType } from './entities/ticket-evidence.entity';
+import { EvidenceService, UploadedEvidenceFile } from './evidence.service';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { FreezeReasonType } from './enums/freeze-reason-type.enum';
@@ -60,6 +62,7 @@ export class TicketsService {
     private readonly tickets: Repository<Ticket>,
     private readonly dataSource: DataSource,
     private readonly historyService: HistoryService,
+    private readonly evidenceService: EvidenceService,
   ) {}
 
   async create(
@@ -656,6 +659,8 @@ export class TicketsService {
       if (!maintenance) {
         throw new ConflictException('Información de mantención no encontrada');
       }
+      const evidence = await manager.getRepository(TicketEvidence).findOne({ where: { ticketId: ticket.id, assignmentId: assignment.id, type: TicketEvidenceType.FINAL } });
+      if (!evidence) throw new ConflictException('Se requiere evidencia final de la asignación actual para resolver');
 
       const resolvedAt = new Date();
       maintenance.workPerformed = resolveTicketDto.workPerformed;
@@ -679,6 +684,23 @@ export class TicketsService {
       });
     });
 
+    return this.findOne(id, actor);
+  }
+
+  async uploadFinalEvidence(id: string, file: UploadedEvidenceFile, actor: AuthenticatedUser): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const max = Number(process.env.FINAL_EVIDENCE_MAX_BYTES ?? 5242880);
+    if (!allowed.includes(file.mimetype) || file.size < 1 || file.size > max) throw new BadRequestException('Archivo de evidencia inválido');
+    const publicId = `tickets/${id}/final/${crypto.randomUUID()}`;
+    await this.dataSource.transaction(async manager => {
+      const ticket = await this.lockTicket(manager, id); this.assertCurrentTechnician(ticket, actor);
+      if (ticket.status !== TicketStatus.IN_PROGRESS) throw new ConflictException('Solo se puede cargar evidencia en IN_PROGRESS');
+      const assignment = await this.lockActiveAssignment(manager, id);
+      if (!assignment || assignment.technicianId !== actor.id) throw new ConflictException('No existe una asignación activa válida');
+      await this.evidenceService.upload(file, publicId);
+      await manager.getRepository(TicketEvidence).save({ ticketId:id, technicianId:actor.id, assignmentId:assignment.id, type:TicketEvidenceType.FINAL, publicId, mimeType:file.mimetype, size:file.size, originalFilename:file.originalname.replace(/[\\/\0-\x1f]/g, '_').slice(0,255) });
+    });
     return this.findOne(id, actor);
   }
 
@@ -858,6 +880,8 @@ export class TicketsService {
       .leftJoinAndSelect('machine.location', 'location')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.maintenance', 'maintenance')
+      .leftJoinAndSelect('ticket.evidences', 'evidence')
+      .leftJoinAndSelect('evidence.technician', 'evidenceTechnician')
       .leftJoinAndSelect('ticket.history', 'history')
       .leftJoinAndSelect('history.actor', 'historyActor')
       .where('ticket.id = :id', { id });
@@ -986,6 +1010,7 @@ export class TicketsService {
             notes: ticket.maintenance.notes,
           }
         : null,
+      finalEvidence: ticket.evidences.map((evidence) => ({ id: evidence.id, publicId: evidence.publicId, mimeType: evidence.mimeType, size: evidence.size, originalFilename: evidence.originalFilename, createdAt: evidence.createdAt, technician: { id: evidence.technician.id, name: evidence.technician.name }, accessUrl: this.evidenceService.accessUrl(evidence.publicId) })),
       history: ticket.history.map((entry) => this.toHistoryEntry(entry)),
     };
   }

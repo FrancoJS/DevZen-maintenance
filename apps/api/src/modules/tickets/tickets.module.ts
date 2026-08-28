@@ -12,6 +12,7 @@ import { Location } from '../locations/entities/location.entity';
 import { TicketsController } from './tickets.controller';
 import { FreezeRequestsController } from './freeze-requests.controller';
 import { TicketsService } from './tickets.service';
+import { EvidenceService } from './evidence.service';
 
 @Module({
   imports: [
@@ -28,6 +29,6 @@ import { TicketsService } from './tickets.service';
     ]),
   ],
   controllers: [TicketsController, FreezeRequestsController],
-  providers: [TicketsService],
+  providers: [TicketsService, EvidenceService],
 })
 export class TicketsModule {}

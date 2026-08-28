@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -9,7 +10,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedEvidenceFile } from './evidence.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -58,6 +63,9 @@ export class TicketsController {
   ): Promise<TicketDetailResponseDto> {
     return this.ticketsService.create(createTicketDto, currentUser);
   }
+
+  @Post(':id/final-evidence') @Roles(UserRole.TECHNICIAN) @UseInterceptors(FileInterceptor('file', { limits: { fileSize: Number(process.env.FINAL_EVIDENCE_MAX_BYTES ?? 5242880) } }))
+  uploadFinalEvidence(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @UploadedFile() file: UploadedEvidenceFile, @CurrentUser() currentUser: AuthenticatedUser): Promise<TicketDetailResponseDto> { if (!file) throw new BadRequestException('Se requiere un archivo'); return this.ticketsService.uploadFinalEvidence(id, file, currentUser); }
 
   @Get()
   @ApiOperation({

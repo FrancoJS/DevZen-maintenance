@@ -161,6 +161,10 @@ La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al
 - **Respuesta `200`:** detalle actualizado, incluyendo los datos de resolución y la participación liberada.
 - **Errores:** `400` para cuerpo/identificador inválido, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado o asignación/mantención incompatibles.
 
+### Cargar evidencia final
+
+`POST /api/tickets/:id/final-evidence` recibe `multipart/form-data` con un campo `file`. Solo el técnico actual puede cargar JPEG, PNG o WebP mientras el ticket está `IN_PROGRESS`; el máximo lo define `FINAL_EVIDENCE_MAX_BYTES` (5 MiB por defecto). La evidencia queda asociada a la asignación actual y el detalle autorizado devuelve sus metadatos junto a una URL firmada temporal. Resolver exige al menos una evidencia de esa misma asignación.
+
 ### Cerrar administrativamente
 
 `POST /api/tickets/:id/close`

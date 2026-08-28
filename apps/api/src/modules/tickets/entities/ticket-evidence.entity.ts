@@ -37,7 +37,7 @@ export class TicketEvidence {
   @Column({ name: 'public_id', type: 'varchar', length: 255, unique: true })
   publicId!: string;
 
-  @Column({ type: 'varchar', length: 64 })
+  @Column({ name: 'mime_type', type: 'varchar', length: 64 })
   mimeType!: string;
 
   @Column({ type: 'integer' })
