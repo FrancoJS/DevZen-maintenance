@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
 import {
   AdminTicketFilters,
+  AdminFreezeGateway,
   AdminTicketGateway,
   ListMyTicketsQuery,
   MaintenanceHistoryFilters,
@@ -12,10 +13,13 @@ import {
 } from './ticket.gateway';
 import {
   CreateTicketRequest,
+  ApproveFreezeRequest,
   CurrentMaintenanceResponse,
+  FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   RequestFreezeRequest,
+  RejectFreezeRequest,
   ResolveMaintenanceRequest,
   TicketDetail,
   UpdateMaintenanceRequest,
@@ -24,7 +28,11 @@ import {
 
 @Injectable()
 export class HttpTicketGateway
-  implements TicketGateway, AdminTicketGateway, TechnicianMaintenanceGateway
+  implements
+    TicketGateway,
+    AdminTicketGateway,
+    AdminFreezeGateway,
+    TechnicianMaintenanceGateway
 {
   private readonly http = inject(HttpClient);
 
@@ -47,7 +55,9 @@ export class HttpTicketGateway
     });
   }
 
-  listTickets(filters: AdminTicketFilters): Observable<PaginatedTicketsResponse> {
+  listTickets(
+    filters: AdminTicketFilters
+  ): Observable<PaginatedTicketsResponse> {
     const params: Record<string, string | number> = { page: 1, limit: 100 };
     if (filters.status) params['status'] = filters.status;
     if (filters.priority) params['priority'] = filters.priority;
@@ -72,13 +82,51 @@ export class HttpTicketGateway
     id: string,
     request: UpdateTicketRequest
   ): Observable<TicketDetail> {
-    return this.http.patch<TicketDetail>(`${API_BASE_URL}/tickets/${id}`, request);
+    return this.http.patch<TicketDetail>(
+      `${API_BASE_URL}/tickets/${id}`,
+      request
+    );
   }
 
   assignTechnician(id: string, technicianId: string): Observable<TicketDetail> {
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets/${id}/assign`, {
       technicianId,
     });
+  }
+
+  listFreezeRequests(): Observable<FreezeRequestsResponse> {
+    return this.http.get<FreezeRequestsResponse>(
+      `${API_BASE_URL}/freeze-requests`
+    );
+  }
+
+  approveFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: ApproveFreezeRequest
+  ): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/freeze-requests/${freezeRequestId}/approve`,
+      request
+    );
+  }
+
+  rejectFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: RejectFreezeRequest
+  ): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/freeze-requests/${freezeRequestId}/reject`,
+      request
+    );
+  }
+
+  resolveBlocker(ticketId: string): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/resolve-blocker`,
+      {}
+    );
   }
 
   getCurrentMaintenance(): Observable<CurrentMaintenanceResponse> {

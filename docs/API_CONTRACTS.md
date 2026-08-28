@@ -117,13 +117,13 @@ No se define endpoint independiente. El cálculo forma parte de crear el ticket.
 
 - **Actor:** `ADMIN`.
 - **Entrada:** `{ technicianId }`, UUID v4 de un usuario con rol `TECHNICIAN`.
-- **Precondición:** ticket `NEW`; técnico disponible.
+- **Precondición:** ticket `NEW` o `PENDING_REASSIGNMENT`; técnico disponible.
 - **Efecto:** crear asignación histórica activa, definir `currentTechnicianId`, ocupar técnico y registrar `TECHNICIAN_ASSIGNED`.
-- **Cambio:** `NEW -> ASSIGNED`.
+- **Cambio:** `NEW -> ASSIGNED` o `PENDING_REASSIGNMENT -> ASSIGNED`.
 - **Validaciones:** rol, transición, disponibilidad a tiempo de escritura y concurrencia (`RN-20`). Las restricciones únicas parciales de PostgreSQL se traducen a `409`.
-- **Errores:** `400` para destinatario inválido/no técnico, `404` para ticket/técnico inexistente y `409` para ticket no `NEW` o técnico ocupado.
+- **Errores:** `400` para destinatario inválido/no técnico, `404` para ticket/técnico inexistente y `409` para ticket fuera de `NEW`/`PENDING_REASSIGNMENT` o técnico ocupado.
 
-La reasignación desde `PENDING_REASSIGNMENT` continúa pendiente y pertenece al flujo de congelamiento.
+La reasignación desde `PENDING_REASSIGNMENT` pertenece al flujo de congelamiento y reutiliza este mismo contrato.
 
 ## Mantención
 

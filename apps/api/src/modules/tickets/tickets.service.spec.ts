@@ -289,6 +289,74 @@ describe('TicketsService', () => {
     );
   });
 
+  it('reassigns a pending frozen ticket and preserves the transition history', async () => {
+    const ticket = {
+      id: 'ticket-id',
+      status: TicketStatus.PENDING_REASSIGNMENT,
+      currentTechnicianId: null,
+    } as Ticket;
+    const ticketQuery = createQueryBuilder(jest.fn().mockResolvedValue(ticket));
+    const saveTicket = jest.fn();
+    const assignments = {
+      findOne: jest.fn().mockResolvedValue(null),
+      create: jest.fn((value) => value),
+      save: jest.fn(),
+    };
+    const manager = {
+      getRepository: jest.fn((entity) => {
+        if (entity === Ticket) {
+          return {
+            createQueryBuilder: jest.fn(() => ticketQuery),
+            save: saveTicket,
+          };
+        }
+        if (entity === User) {
+          return {
+            findOne: jest.fn().mockResolvedValue({
+              id: 'replacement-technician-id',
+              role: UserRole.TECHNICIAN,
+            }),
+          };
+        }
+        if (entity === AssignmentHistory) return assignments;
+        return {};
+      }),
+    };
+    (dataSource.transaction as jest.Mock).mockImplementation((callback) =>
+      callback(manager),
+    );
+    jest.spyOn(service, 'findOne').mockResolvedValue({} as never);
+
+    await service.assign(
+      'ticket-id',
+      { technicianId: 'replacement-technician-id' },
+      actor(UserRole.ADMIN),
+    );
+
+    expect(assignments.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        ticketId: 'ticket-id',
+        technicianId: 'replacement-technician-id',
+        assignedById: 'actor-id',
+        releasedAt: null,
+      }),
+    );
+    expect(ticket).toMatchObject({
+      status: TicketStatus.ASSIGNED,
+      currentTechnicianId: 'replacement-technician-id',
+    });
+    expect(saveTicket).toHaveBeenCalledWith(ticket);
+    expect(historyService.record).toHaveBeenCalledWith(
+      manager,
+      expect.objectContaining({
+        action: 'TECHNICIAN_ASSIGNED',
+        previousStatus: TicketStatus.PENDING_REASSIGNMENT,
+        newStatus: TicketStatus.ASSIGNED,
+        details: { technicianId: 'replacement-technician-id' },
+      }),
+    );
+  });
+
   it('starts an assigned maintenance with the active assignment and history', async () => {
     const ticket = {
       id: 'ticket-id',

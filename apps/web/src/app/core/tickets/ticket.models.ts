@@ -111,6 +111,31 @@ export interface TicketFreezeRequest {
   reviewNote: string | null;
 }
 
+export interface FreezeRequestTicket {
+  id: string;
+  description: string;
+  asset: string;
+  priority: TicketPriority;
+  status: TicketStatus;
+}
+
+export interface FreezeRequestListItem extends TicketFreezeRequest {
+  ticket: FreezeRequestTicket;
+}
+
+export interface FreezeRequestsResponse {
+  items: FreezeRequestListItem[];
+  total: number;
+}
+
+export interface ApproveFreezeRequest {
+  reviewNote?: string | null;
+}
+
+export interface RejectFreezeRequest {
+  reviewNote: string;
+}
+
 export interface RequestFreezeRequest {
   reasonType: FreezeReasonType;
   reasonDetail?: string | null;

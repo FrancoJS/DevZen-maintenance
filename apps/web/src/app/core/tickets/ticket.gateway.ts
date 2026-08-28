@@ -2,10 +2,13 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
+  ApproveFreezeRequest,
   CurrentMaintenanceResponse,
+  FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   RequestFreezeRequest,
+  RejectFreezeRequest,
   ResolveMaintenanceRequest,
   TicketDetail,
   TicketPriority,
@@ -20,9 +23,14 @@ import {
  */
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
-  listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse>;
+  listMyTickets(
+    query: ListMyTicketsQuery
+  ): Observable<PaginatedTicketsResponse>;
   getTicket(id: string): Observable<TicketDetail>;
-  updateTicket(id: string, request: UpdateTicketRequest): Observable<TicketDetail>;
+  updateTicket(
+    id: string,
+    request: UpdateTicketRequest
+  ): Observable<TicketDetail>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
@@ -48,6 +56,30 @@ export interface AdminTicketGateway {
 
 export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(
   'ADMIN_TICKET_GATEWAY'
+);
+
+export interface AdminFreezeGateway {
+  listFreezeRequests(): Observable<FreezeRequestsResponse>;
+  approveFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: ApproveFreezeRequest
+  ): Observable<TicketDetail>;
+  rejectFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: RejectFreezeRequest
+  ): Observable<TicketDetail>;
+  resolveBlocker(ticketId: string): Observable<TicketDetail>;
+  assignTechnician(
+    ticketId: string,
+    technicianId: string
+  ): Observable<TicketDetail>;
+  listTechnicians(): Observable<PaginatedTechniciansResponse>;
+}
+
+export const ADMIN_FREEZE_GATEWAY = new InjectionToken<AdminFreezeGateway>(
+  'ADMIN_FREEZE_GATEWAY'
 );
 
 export interface MaintenanceHistoryFilters {

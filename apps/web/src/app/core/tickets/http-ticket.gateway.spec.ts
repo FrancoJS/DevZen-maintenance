@@ -9,6 +9,7 @@ import { API_BASE_URL } from '../api.config';
 import { HttpTicketGateway } from './http-ticket.gateway';
 import {
   CreateTicketRequest,
+  FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   TicketDetail,
@@ -203,6 +204,62 @@ describe('HttpTicketGateway', () => {
       status: 'ASSIGNED',
       currentTechnician: { id: 'technician-id', name: 'Diego Pérez' },
     });
+  });
+
+  it('lists the administrative freeze queue', () => {
+    const freezeRequests: FreezeRequestsResponse = { items: [], total: 0 };
+    gateway.listFreezeRequests().subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/freeze-requests`
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(freezeRequests);
+  });
+
+  it('sends an optional note when approving a freeze request', () => {
+    gateway
+      .approveFreezeRequest(response.id, 'freeze-request-id', {
+        reviewNote: 'Esperar recepción del repuesto',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/freeze-requests/freeze-request-id/approve`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({
+      reviewNote: 'Esperar recepción del repuesto',
+    });
+    pendingRequest.flush({ ...response, status: 'FROZEN' });
+  });
+
+  it('sends the required rejection reason for a freeze request', () => {
+    gateway
+      .rejectFreezeRequest(response.id, 'freeze-request-id', {
+        reviewNote: 'La operación autorizó continuar el trabajo.',
+      })
+      .subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/freeze-requests/freeze-request-id/reject`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({
+      reviewNote: 'La operación autorizó continuar el trabajo.',
+    });
+    pendingRequest.flush({ ...response, status: 'IN_PROGRESS' });
+  });
+
+  it('marks a frozen ticket blocker as resolved without client-derived fields', () => {
+    gateway.resolveBlocker(response.id).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/resolve-blocker`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({});
+    pendingRequest.flush({ ...response, status: 'PENDING_REASSIGNMENT' });
   });
 
   it('gets the current maintenance for the authenticated technician', () => {
