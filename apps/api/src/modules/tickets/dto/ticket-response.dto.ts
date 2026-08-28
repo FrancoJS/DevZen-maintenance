@@ -221,3 +221,9 @@ export class PaginatedTicketsResponseDto {
   @ApiProperty()
   totalPages!: number;
 }
+
+export class GlobalTicketHistoryResponseDto {
+  @ApiProperty({ type: () => TicketDetailResponseDto, isArray: true })
+  items!: TicketDetailResponseDto[];
+  @ApiProperty() total!: number;
+}

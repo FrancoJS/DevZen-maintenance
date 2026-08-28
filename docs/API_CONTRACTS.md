@@ -68,7 +68,15 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 - **Consulta:** `page` desde 1, `limit` entre 1 y 100, filtros opcionales por estado y prioridad; orden `createdAt DESC, id DESC`.
 - **Respuesta `200`:** `{ items, page, limit, total, totalPages }`.
 
-Este endpoint corresponde a **Mis solicitudes**. El listado/historial global administrativo será una capacidad separada, todavía sin implementar ni contrato de ruta definido. El acceso administrativo al detalle de un ticket no cambia.
+Este endpoint corresponde a **Mis solicitudes**. `GET /api/tickets/admin` es el listado de Gestión de tickets, paginado y exclusivo de `ADMIN`: devuelve todos los tickets que todavía no están `CLOSED`, incluidos `NEW`, `ASSIGNED`, `IN_PROGRESS`, `FREEZE_REQUESTED`, `FROZEN`, `PENDING_REASSIGNMENT` y `RESOLVED`. El detalle administrativo no cambia.
+
+### Historial global de tickets cerrados
+
+`GET /api/tickets/admin/history`
+
+- **Actor:** `ADMIN`.
+- **Respuesta `200`:** `{ items, total }`, con todos los tickets `CLOSED`; cada elemento incluye detalle, cronología, asignaciones, congelamientos, resolución, cierre y evidencia autorizada.
+- **Visibilidad:** los demás roles reciben `403`; tickets no cerrados no aparecen.
 
 ### Obtener detalle e historial
 

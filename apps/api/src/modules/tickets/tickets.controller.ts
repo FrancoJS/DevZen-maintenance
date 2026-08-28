@@ -40,6 +40,7 @@ import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import { RejectFreezeRequestDto } from './dto/reject-freeze-request.dto';
 import { RequestFreezeDto } from './dto/request-freeze.dto';
 import {
+  GlobalTicketHistoryResponseDto,
   PaginatedTicketsResponseDto,
   TicketDetailResponseDto,
 } from './dto/ticket-response.dto';
@@ -86,6 +87,14 @@ export class TicketsController {
   @ApiOkResponse({ type: PaginatedTicketsResponseDto })
   findAllAdmin(@Query() query: ListTicketsQueryDto, @CurrentUser() currentUser: AuthenticatedUser): Promise<PaginatedTicketsResponseDto> {
     return this.ticketsService.findAllAdmin(query, currentUser);
+  }
+
+  @Get('admin/history')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Consultar historial global de tickets cerrados' })
+  @ApiOkResponse({ type: GlobalTicketHistoryResponseDto })
+  globalClosedHistory(@CurrentUser() currentUser: AuthenticatedUser): Promise<GlobalTicketHistoryResponseDto> {
+    return this.ticketsService.findGlobalClosedHistory(currentUser);
   }
 
   @Get('my-maintenance')

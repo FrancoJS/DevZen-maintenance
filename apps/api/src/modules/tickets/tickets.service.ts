@@ -840,10 +840,19 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.machine', 'machine')
       .leftJoinAndSelect('machine.location', 'location');
+    ticketQuery.andWhere('ticket.status <> :closedStatus', {
+      closedStatus: TicketStatus.CLOSED,
+    });
     if (query.status) ticketQuery.andWhere('ticket.status = :status', { status: query.status });
     if (query.priority) ticketQuery.andWhere('ticket.priority = :priority', { priority: query.priority });
     const [tickets, total] = await ticketQuery.orderBy('ticket.createdAt', 'DESC').addOrderBy('ticket.id', 'DESC').skip((query.page - 1) * query.limit).take(query.limit).getManyAndCount();
     return { items: tickets.map((ticket) => this.toSummary(ticket)), page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) };
+  }
+
+  async findGlobalClosedHistory(actor: AuthenticatedUser): Promise<{ items: TicketDetailResponseDto[]; total: number }> {
+    this.assertAdmin(actor);
+    const tickets = await this.tickets.createQueryBuilder('ticket').select('ticket.id').where('ticket.status = :status', { status: TicketStatus.CLOSED }).orderBy('ticket.closedAt', 'DESC').addOrderBy('ticket.id', 'DESC').getMany();
+    return { items: await Promise.all(tickets.map((ticket) => this.findOne(ticket.id, actor))), total: tickets.length };
   }
 
   async findAllFreezeRequests(
