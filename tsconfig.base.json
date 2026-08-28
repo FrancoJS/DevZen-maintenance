@@ -62,6 +62,9 @@
       ],
       "@spartan-ng/helm/select": [
         "./apps/web/src/app/shared/ui/select/src/index.ts"
+      ],
+      "@spartan-ng/helm/table": [
+        "./apps/web/src/app/shared/ui/table/src/index.ts"
       ]
     }
   },

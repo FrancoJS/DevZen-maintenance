@@ -67,7 +67,6 @@ export class CreateTicketPageComponent {
   readonly assets = signal<AssetSummary[]>([]);
   readonly isCatalogLoading = signal(true);
   readonly catalogError = signal<string | null>(null);
-  readonly locationQuery = signal('');
   readonly assetQuery = signal('');
   readonly isAssetListOpen = signal(false);
 
@@ -112,22 +111,24 @@ export class CreateTicketPageComponent {
     this.form.controls.locationId.setValue(null);
     this.form.controls.assetId.setValue(null);
     this.assetQuery.set(value);
-    this.locationQuery.set('');
     this.isAssetListOpen.set(this.hasSearchQuery(value));
   }
 
   selectAsset(asset: AssetSummary): void {
-    const location = this.locations().find(({ id }) => id === asset.locationId) ?? null;
     this.form.controls.assetId.setValue(asset.id);
-    this.form.controls.locationId.setValue(location?.id ?? null);
+    this.form.controls.locationId.setValue(asset.locationId);
     this.assetQuery.set(asset.assetCode);
-    this.locationQuery.set(location ? this.catalogLabel(location.name, location.code) : 'Ubicación no disponible');
     this.isAssetListOpen.set(false);
   }
 
   selectedAsset(): AssetSummary | null {
     const assetId = this.form.controls.assetId.value;
     return this.assets().find(({ id }) => id === assetId) ?? null;
+  }
+
+  locationLabel(asset: AssetSummary): string {
+    const location = this.locations().find(({ id }) => id === asset.locationId);
+    return location ? this.catalogLabel(location.name, location.code) : 'Ubicación no disponible';
   }
 
   closeLists(): void {
@@ -167,7 +168,7 @@ export class CreateTicketPageComponent {
           this.isDetailOpen.set(false);
           this.form.disable({ emitEvent: false });
           toast.success('Solicitud creada', {
-            description: `El ticket ${ticket.id} fue registrado correctamente.`,
+            description: `El ticket ${ticket.ticketCode ?? ticket.id} fue registrado correctamente.`,
             action: { label: 'Descartar', onClick: () => undefined },
             duration: 8000,
             class: 'border-primary! bg-card! text-card-foreground! shadow-lg!',
@@ -217,7 +218,6 @@ export class CreateTicketPageComponent {
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
-    this.locationQuery.set('');
     this.assetQuery.set('');
     this.isAssetListOpen.set(false);
   }

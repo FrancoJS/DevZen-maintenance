@@ -8,6 +8,9 @@ export class FreezeRequestTicketResponseDto {
   id!: string;
 
   @ApiProperty()
+  ticketCode!: string;
+
+  @ApiProperty()
   description!: string;
 
   @ApiProperty()

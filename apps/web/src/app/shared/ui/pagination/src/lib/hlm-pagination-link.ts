@@ -45,6 +45,7 @@ export class HlmPaginationLink {
 				variant: this.isActive() ? 'outline' : 'ghost',
 				size: this.size(),
 			}),
+			this.isActive() && 'border-primary/25 bg-primary/15 text-primary hover:bg-primary/20 hover:text-primary',
 			this.link() === undefined && 'cursor-pointer',
 		]);
 	}

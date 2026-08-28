@@ -134,6 +134,7 @@ export interface TicketFreezeRequest {
 
 export interface FreezeRequestTicket {
   id: string;
+  ticketCode?: string;
   description: string;
   asset: string;
   priority: TicketPriority;
@@ -168,6 +169,7 @@ export interface ResolveMaintenanceRequest {
 
 export interface TicketDetail {
   id: string;
+  ticketCode?: string;
   description: string;
   location: string;
   asset: string;
@@ -196,6 +198,7 @@ export interface CurrentMaintenanceResponse {
 
 export interface TicketSummary {
   id: string;
+  ticketCode?: string;
   description: string;
   location: string;
   asset: string;

@@ -32,19 +32,20 @@ import { HlmPaginationPrevious } from './hlm-pagination-previous';
 	],
 	changeDetection: ChangeDetectionStrategy.OnPush,
 	template: `
-		<div class="flex items-center justify-between gap-2 px-4 py-2">
-			<div class="flex items-center gap-1 text-sm text-nowrap text-gray-600">
+		<div class="flex flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center">
+			<div class="flex items-center gap-1 text-sm text-muted-foreground">
 				<b>{{ totalItems() }}</b>
-				total items |
+				solicitudes ·
 				<b>{{ _lastPageNumber() }}</b>
-				pages
+				{{ _lastPageNumber() === 1 ? 'página' : 'páginas' }}
 			</div>
 
-			<nav hlmPagination>
-				<ul hlmPaginationContent>
-					@if (showEdges() && !_isFirstPageActive()) {
-						<li hlmPaginationItem (click)="goToPrevious()">
-							<hlm-pagination-previous />
+			<div class="flex flex-col gap-3 sm:ms-auto sm:flex-row sm:items-center">
+				<nav hlmPagination>
+					<ul hlmPaginationContent>
+					@if (showEdges()) {
+						<li hlmPaginationItem (click)="goToPrevious()" [class.pointer-events-none]="_isFirstPageActive()" [class.opacity-50]="_isFirstPageActive()" [attr.aria-disabled]="_isFirstPageActive()">
+							<hlm-pagination-previous [class]="_isFirstPageActive() && 'pointer-events-none'" />
 						</li>
 					}
 
@@ -60,27 +61,28 @@ import { HlmPaginationPrevious } from './hlm-pagination-previous';
 						</li>
 					}
 
-					@if (showEdges() && !_isLastPageActive()) {
-						<li hlmPaginationItem (click)="goToNext()">
-							<hlm-pagination-next />
+					@if (showEdges()) {
+						<li hlmPaginationItem (click)="goToNext()" [class.pointer-events-none]="_isLastPageActive()" [class.opacity-50]="_isLastPageActive()" [attr.aria-disabled]="_isLastPageActive()">
+							<hlm-pagination-next [class]="_isLastPageActive() && 'pointer-events-none'" />
 						</li>
 					}
-				</ul>
-			</nav>
+					</ul>
+				</nav>
 
-			<!-- Show Page Size selector -->
-			<hlm-select [(value)]="itemsPerPage" class="ml-auto">
-				<hlm-select-trigger class="w-fit">
-					<hlm-select-value />
-				</hlm-select-trigger>
-				<hlm-select-content *hlmSelectPortal>
-					<hlm-select-group>
-						@for (pageSize of _pageSizesWithCurrent(); track pageSize) {
-							<hlm-select-item [value]="pageSize">{{ pageSize }}</hlm-select-item>
-						}
-					</hlm-select-group>
-				</hlm-select-content>
-			</hlm-select>
+				<!-- Show Page Size selector -->
+				<hlm-select [(value)]="itemsPerPage" class="w-full sm:w-fit">
+					<hlm-select-trigger class="w-fit">
+						<hlm-select-value />
+					</hlm-select-trigger>
+					<hlm-select-content *hlmSelectPortal>
+						<hlm-select-group>
+							@for (pageSize of _pageSizesWithCurrent(); track pageSize) {
+								<hlm-select-item [value]="pageSize">{{ pageSize }}</hlm-select-item>
+							}
+						</hlm-select-group>
+					</hlm-select-content>
+				</hlm-select>
+			</div>
 		</div>
 	`,
 })
@@ -155,10 +157,12 @@ export class HlmNumberedPagination {
 	});
 
 	protected goToPrevious(): void {
+		if (this._isFirstPageActive()) return;
 		this.currentPage.set(this.currentPage() - 1);
 	}
 
 	protected goToNext(): void {
+		if (this._isLastPageActive()) return;
 		this.currentPage.set(this.currentPage() + 1);
 	}
 

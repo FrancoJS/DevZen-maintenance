@@ -76,7 +76,7 @@
             <tbody class="divide-y">
               @for (ticket of tickets(); track ticket.id) {
                 <tr class="transition-colors hover:bg-muted/35">
-                  <td class="px-6 py-4"><p class="font-semibold">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.id }}</p><p class="mt-1 text-sm text-muted-foreground">{{ ticket.location }}</p></td>
+                  <td class="px-6 py-4"><p class="font-semibold">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.ticketCode ?? ticket.id }}</p><p class="mt-1 text-sm text-muted-foreground">{{ ticket.location }}</p></td>
                   <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></td>
                   <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></td>
                   <td class="px-6 py-4 text-muted-foreground">{{ formatDate(ticket.createdAt) }}</td>
@@ -89,7 +89,7 @@
         <div class="grid gap-3 p-4 md:hidden">
           @for (ticket of tickets(); track ticket.id) {
             <article class="rounded-lg border p-4">
-              <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.id }}</p></div><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></div>
+              <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ ticket.asset }}</p><p class="mt-1 text-xs text-muted-foreground">{{ ticket.ticketCode ?? ticket.id }}</p></div><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></div>
               <div class="mt-4 flex flex-wrap items-center justify-between gap-3"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span><time class="text-xs text-muted-foreground">{{ formatDate(ticket.createdAt) }}</time></div>
               <button hlmBtn type="button" variant="outline" class="mt-4 w-full" (click)="openTicket(ticket)">Ver detalle</button>
             </article>
@@ -131,7 +131,7 @@
           <section aria-labelledby="historical-summary-title">
             <div class="flex flex-wrap gap-2"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></div>
             <h4 id="historical-summary-title" class="mt-5 font-semibold">{{ ticket.asset }}</h4>
-            <p class="mt-1 text-xs text-muted-foreground">{{ ticket.id }}</p>
+            <p class="mt-1 text-xs text-muted-foreground">{{ ticket.ticketCode ?? ticket.id }}</p>
             <dl class="mt-4 grid gap-4 rounded-lg border bg-muted/20 p-4 text-sm"><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</dt><dd class="mt-1 whitespace-pre-wrap">{{ ticket.description }}</dd></div><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ ticket.location }}</dd></div><div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1">{{ ticket.requester.name }}</dd></div></dl>
           </section>
 

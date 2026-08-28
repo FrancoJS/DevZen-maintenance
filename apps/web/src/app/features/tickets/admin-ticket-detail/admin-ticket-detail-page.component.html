@@ -21,8 +21,8 @@
     <header class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
       <div class="min-w-0">
         <p class="text-sm text-muted-foreground">Administración / Detalle del ticket</p>
-        <h2 id="ticket-detail-title" class="mt-1 truncate text-2xl font-bold tracking-tight sm:text-3xl" [title]="currentTicket.id">{{ currentTicket.asset }}</h2>
-        <p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.id }}</p>
+        <h2 id="ticket-detail-title" class="mt-1 truncate text-2xl font-bold tracking-tight sm:text-3xl" [title]="currentTicket.ticketCode ?? currentTicket.id">{{ currentTicket.asset }}</h2>
+        <p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.ticketCode ?? currentTicket.id }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
         <span hlmBadge variant="outline" [class]="statusClass(currentTicket.status)">{{ statusLabel(currentTicket.status) }}</span>

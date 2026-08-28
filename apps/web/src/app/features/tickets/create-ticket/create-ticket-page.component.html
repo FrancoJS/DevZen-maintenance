@@ -1,72 +1,230 @@
-<section class="space-y-6" [class.mx-auto]="!embedded" [class.max-w-5xl]="!embedded" aria-labelledby="create-ticket-title">
+<section
+  class="space-y-6"
+  [class.mx-auto]="!embedded"
+  [class.max-w-5xl]="!embedded"
+  aria-labelledby="create-ticket-title"
+>
   @if (!embedded) {
-  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-    <div>
-      <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
-      <h2 id="create-ticket-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Reportar una falla</h2>
-      <p class="mt-1 max-w-2xl text-muted-foreground">Completa los datos de la falla y su impacto. La prioridad será calculada por el sistema.</p>
-    </div>
-    <span hlmBadge variant="secondary" class="w-fit">Prioridad automática</span>
-  </header>
+    <header
+      class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
+    >
+      <div>
+        <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
+        <h2
+          id="create-ticket-title"
+          class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl"
+        >
+          Reportar una falla
+        </h2>
+        <p class="mt-1 max-w-2xl text-muted-foreground">
+          Completa los datos de la falla y su impacto. La prioridad será
+          calculada por el sistema.
+        </p>
+      </div>
+      <span hlmBadge variant="secondary" class="w-fit"
+        >Prioridad automática</span
+      >
+    </header>
   }
 
-  <form class="space-y-6" [class.pt-6]="embedded" [class.px-4]="embedded" [class.pb-6]="embedded" [class.sm:px-6]="embedded" [class.sm:pb-8]="embedded" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <form
+    class="space-y-6"
+    [class.pt-6]="embedded"
+    [class.px-4]="embedded"
+    [class.pb-6]="embedded"
+    [class.sm:px-6]="embedded"
+    [class.sm:pb-8]="embedded"
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    novalidate
+  >
     <article hlmCard class="overflow-visible">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Datos de la falla</h3>
-        <p hlmCardDescription>Selecciona la máquina afectada y describe lo observado.</p>
+        <p hlmCardDescription>
+          Selecciona la máquina afectada y describe lo observado.
+        </p>
       </header>
       <div hlmCardContent class="grid gap-5">
         @if (catalogError(); as catalogError) {
-          <div class="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
+          <div
+            class="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive"
+            role="alert"
+          >
             <p>{{ catalogError }}</p>
-            <button hlmBtn type="button" variant="outline" size="sm" class="mt-3" (click)="loadCatalogs()">Reintentar</button>
+            <button
+              hlmBtn
+              type="button"
+              variant="outline"
+              size="sm"
+              class="mt-3"
+              (click)="loadCatalogs()"
+            >
+              Reintentar
+            </button>
           </div>
         }
 
-        <div class="grid gap-5 md:grid-cols-2">
-          <div class="grid gap-2">
-            <label for="asset" class="text-sm font-medium">Código de máquina o equipo</label>
-            <div class="relative">
-              <input hlmInput id="asset" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="asset-options" [attr.aria-expanded]="isAssetListOpen()" [attr.aria-invalid]="hasError('assetId')" [value]="assetQuery()" [disabled]="isCatalogLoading() || !!catalogError()" placeholder="Escribe el código de la máquina" aria-describedby="asset-help asset-error" [class.border-destructive]="hasError('assetId')" [class.ring-1]="hasError('assetId')" [class.ring-destructive]="hasError('assetId')" (input)="updateAssetQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event)" />
-              @if (isAssetListOpen() && assetQuery().trim() && !isCatalogLoading() && !catalogError()) {
-                <ul id="asset-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
-                  @for (asset of filteredAssets(); track asset.id) {
-                    <li role="option" [attr.aria-selected]="form.controls.assetId.value === asset.id"><button type="button" class="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectAsset(asset)"><span class="font-medium">{{ asset.assetCode }} · {{ asset.name }}</span><span class="text-xs text-muted-foreground">{{ asset.brand }} · {{ asset.model }} · {{ asset.category }}</span></button></li>
-                  } @empty {
-                    <li class="px-3 py-2 text-muted-foreground" role="status">No encontramos máquinas activas con ese código.</li>
-                  }
-                </ul>
-              }
-            </div>
-            <p id="asset-help" class="text-xs text-muted-foreground">Busca únicamente por el código de una máquina activa.</p>
-            @if (hasError('assetId')) { <p id="asset-error" class="text-sm text-destructive">Selecciona una máquina o equipo válido.</p> }
+        <div class="grid gap-2">
+          <label for="asset" class="text-sm font-medium"
+            >Código de máquina o equipo</label
+          >
+          <div class="relative">
+            <input
+              hlmInput
+              id="asset"
+              type="text"
+              autocomplete="off"
+              role="combobox"
+              aria-autocomplete="list"
+              aria-controls="asset-options"
+              [attr.aria-expanded]="isAssetListOpen()"
+              [attr.aria-invalid]="hasError('assetId')"
+              [value]="assetQuery()"
+              [disabled]="isCatalogLoading() || !!catalogError()"
+              placeholder="Escribe el código de la máquina"
+              aria-describedby="asset-help asset-error"
+              [class.border-destructive]="hasError('assetId')"
+              [class.ring-1]="hasError('assetId')"
+              [class.ring-destructive]="hasError('assetId')"
+              (input)="updateAssetQuery($any($event.target).value)"
+              (blur)="closeLists()"
+              (keydown)="handleAutocompleteKeydown($event)"
+            />
+            @if (
+              isAssetListOpen() &&
+              assetQuery().trim() &&
+              !isCatalogLoading() &&
+              !catalogError()
+            ) {
+              <ul
+                id="asset-options"
+                role="listbox"
+                class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg"
+              >
+                @for (asset of filteredAssets(); track asset.id) {
+                  <li
+                    role="option"
+                    [attr.aria-selected]="
+                      form.controls.assetId.value === asset.id
+                    "
+                  >
+                    <button
+                      type="button"
+                      class="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none"
+                      (mousedown)="$event.preventDefault()"
+                      (click)="selectAsset(asset)"
+                    >
+                      <span class="font-medium"
+                        >{{ asset.assetCode }} · {{ asset.name }}</span
+                      ><span class="text-xs text-muted-foreground"
+                        >{{ asset.brand }} · {{ asset.model }} ·
+                        {{ asset.category }}</span
+                      >
+                    </button>
+                  </li>
+                } @empty {
+                  <li class="px-3 py-2 text-muted-foreground" role="status">
+                    No encontramos máquinas activas con ese código.
+                  </li>
+                }
+              </ul>
+            }
           </div>
-
-          <div class="grid gap-2">
-            <label for="location" class="text-sm font-medium">Ubicación</label>
-            <input hlmInput id="location" type="text" readonly aria-readonly="true" [value]="locationQuery()" placeholder="Se completa al elegir una máquina" />
-            <p class="text-xs text-muted-foreground">La ubicación se deriva de la máquina seleccionada.</p>
-          </div>
+          <p id="asset-help" class="text-xs text-muted-foreground">
+            Busca únicamente por el código de una máquina activa.
+          </p>
+          @if (hasError('assetId')) {
+            <p id="asset-error" class="text-sm text-destructive">
+              Selecciona una máquina o equipo válido.
+            </p>
+          }
         </div>
 
         @if (selectedAsset(); as asset) {
-          <section aria-labelledby="asset-details-title" class="grid gap-3 rounded-lg border bg-muted/30 p-4">
-            <div><h4 id="asset-details-title" class="font-medium">Ficha de la máquina</h4><p class="text-sm text-muted-foreground">{{ asset.assetCode }} · {{ asset.name }}</p></div>
-            <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
-              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marca</dt><dd class="mt-1 font-medium">{{ asset.brand }}</dd></div>
-              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Modelo</dt><dd class="mt-1 font-medium">{{ asset.model }}</dd></div>
-              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Categoría</dt><dd class="mt-1 font-medium">{{ asset.category }}</dd></div>
-              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">N.º de serie</dt><dd class="mt-1 break-words font-medium">{{ asset.serialNumber }}</dd></div>
+          <section
+            aria-labelledby="asset-details-title"
+            class="grid gap-3 rounded-lg border bg-muted/30 p-4"
+          >
+            <div>
+              <h4 id="asset-details-title" class="font-medium">
+                Ficha de la máquina
+              </h4>
+              <p class="text-sm text-muted-foreground">
+                {{ asset.assetCode }} · {{ asset.name }}
+              </p>
+            </div>
+            <dl class="text-sm">
+              <div class="min-w-0">
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Ubicación
+                </dt>
+                <dd class="mt-1 font-medium">{{ locationLabel(asset) }}</dd>
+              </div>
+            </dl>
+            <dl
+              class="grid gap-x-6 gap-y-5 text-sm sm:grid-cols-2 lg:grid-cols-4"
+            >
+              <div class="min-w-0">
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Marca
+                </dt>
+                <dd class="mt-1 break-words font-medium">{{ asset.brand }}</dd>
+              </div>
+              <div class="min-w-0">
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Modelo
+                </dt>
+                <dd class="mt-1 break-words font-medium">{{ asset.model }}</dd>
+              </div>
+              <div class="min-w-0">
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  Categoría
+                </dt>
+                <dd class="mt-1 break-words font-medium">
+                  {{ asset.category }}
+                </dd>
+              </div>
+              <div class="min-w-0">
+                <dt
+                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
+                >
+                  N.º de serie
+                </dt>
+                <dd class="mt-1 break-words font-medium">
+                  {{ asset.serialNumber }}
+                </dd>
+              </div>
             </dl>
           </section>
         }
 
         <div class="grid gap-2">
-          <label for="description" class="text-sm font-medium">Descripción de la falla</label>
-          <textarea id="description" formControlName="description" rows="4" aria-describedby="description-error" class="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" [class.border-destructive]="hasError('description')" [class.ring-1]="hasError('description')" [class.ring-destructive]="hasError('description')"></textarea>
+          <label for="description" class="text-sm font-medium"
+            >Descripción de la falla</label
+          >
+          <textarea
+            id="description"
+            formControlName="description"
+            rows="4"
+            aria-describedby="description-error"
+            class="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
+            [class.border-destructive]="hasError('description')"
+            [class.ring-1]="hasError('description')"
+            [class.ring-destructive]="hasError('description')"
+          ></textarea>
           @if (hasError('description')) {
-            <p id="description-error" class="text-sm text-destructive">La descripción es obligatoria.</p>
+            <p id="description-error" class="text-sm text-destructive">
+              La descripción es obligatoria.
+            </p>
           }
         </div>
       </div>
@@ -75,77 +233,285 @@
     <article hlmCard formGroupName="impactAssessment">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Evaluación de impacto</h3>
-        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad. No necesitas elegirla manualmente.</p>
+        <p hlmCardDescription>
+          Responde las cinco preguntas para que el sistema calcule la prioridad.
+          No necesitas elegirla manualmente.
+        </p>
       </header>
       <div hlmCardContent class="grid gap-3">
-
-        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('safetyRisk')" [class.ring-1]="hasImpactError('safetyRisk')" [class.ring-destructive]="hasImpactError('safetyRisk')">
-          <span id="safety-risk-label" class="font-medium">¿Existe riesgo para la seguridad de una persona?</span>
-          <div role="radiogroup" aria-labelledby="safety-risk-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="safetyRisk" [value]="true" /> Sí</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="safetyRisk" [value]="false" /> No</label>
+        <div
+          class="rounded-lg border bg-muted/30 p-4"
+          [class.border-destructive]="hasImpactError('safetyRisk')"
+          [class.ring-1]="hasImpactError('safetyRisk')"
+          [class.ring-destructive]="hasImpactError('safetyRisk')"
+        >
+          <span id="safety-risk-label" class="font-medium"
+            >¿Existe riesgo para la seguridad de una persona?</span
+          >
+          <div
+            role="radiogroup"
+            aria-labelledby="safety-risk-label"
+            class="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+          >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="safetyRisk"
+                [value]="true"
+              />
+              Sí</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="safetyRisk"
+                [value]="false"
+              />
+              No</label
+            >
           </div>
-          @if (hasImpactError('safetyRisk')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
+          @if (hasImpactError('safetyRisk')) {
+            <p class="mt-2 text-sm text-destructive">
+              Selecciona una respuesta.
+            </p>
+          }
         </div>
 
-        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('equipmentStopped')" [class.ring-1]="hasImpactError('equipmentStopped')" [class.ring-destructive]="hasImpactError('equipmentStopped')">
-          <span id="equipment-stopped-label" class="font-medium">¿La falla detiene completamente el equipo?</span>
-          <div role="radiogroup" aria-labelledby="equipment-stopped-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="YES" /> Sí</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="PARTIAL" /> Parcialmente</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="equipmentStopped" value="NO" /> No</label>
+        <div
+          class="rounded-lg border bg-muted/30 p-4"
+          [class.border-destructive]="hasImpactError('equipmentStopped')"
+          [class.ring-1]="hasImpactError('equipmentStopped')"
+          [class.ring-destructive]="hasImpactError('equipmentStopped')"
+        >
+          <span id="equipment-stopped-label" class="font-medium"
+            >¿La falla detiene completamente el equipo?</span
+          >
+          <div
+            role="radiogroup"
+            aria-labelledby="equipment-stopped-label"
+            class="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+          >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="equipmentStopped"
+                value="YES"
+              />
+              Sí</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="equipmentStopped"
+                value="PARTIAL"
+              />
+              Parcialmente</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="equipmentStopped"
+                value="NO"
+              />
+              No</label
+            >
           </div>
-          @if (hasImpactError('equipmentStopped')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
+          @if (hasImpactError('equipmentStopped')) {
+            <p class="mt-2 text-sm text-destructive">
+              Selecciona una respuesta.
+            </p>
+          }
         </div>
 
-        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('productionImpact')" [class.ring-1]="hasImpactError('productionImpact')" [class.ring-destructive]="hasImpactError('productionImpact')">
-          <span id="production-impact-label" class="font-medium">¿La falla afecta el proceso productivo?</span>
-          <div role="radiogroup" aria-labelledby="production-impact-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="STOPPED" /> Detiene producción</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="REDUCED" /> Reduce producción</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="productionImpact" value="NONE" /> No afecta</label>
+        <div
+          class="rounded-lg border bg-muted/30 p-4"
+          [class.border-destructive]="hasImpactError('productionImpact')"
+          [class.ring-1]="hasImpactError('productionImpact')"
+          [class.ring-destructive]="hasImpactError('productionImpact')"
+        >
+          <span id="production-impact-label" class="font-medium"
+            >¿La falla afecta el proceso productivo?</span
+          >
+          <div
+            role="radiogroup"
+            aria-labelledby="production-impact-label"
+            class="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+          >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="productionImpact"
+                value="STOPPED"
+              />
+              Detiene producción</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="productionImpact"
+                value="REDUCED"
+              />
+              Reduce producción</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="productionImpact"
+                value="NONE"
+              />
+              No afecta</label
+            >
           </div>
-          @if (hasImpactError('productionImpact')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
+          @if (hasImpactError('productionImpact')) {
+            <p class="mt-2 text-sm text-destructive">
+              Selecciona una respuesta.
+            </p>
+          }
         </div>
 
-        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('workaroundAvailable')" [class.ring-1]="hasImpactError('workaroundAvailable')" [class.ring-destructive]="hasImpactError('workaroundAvailable')">
-          <span id="workaround-label" class="font-medium">¿Existe una alternativa temporal para continuar trabajando?</span>
-          <div role="radiogroup" aria-labelledby="workaround-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="workaroundAvailable" [value]="true" /> Sí</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="workaroundAvailable" [value]="false" /> No</label>
+        <div
+          class="rounded-lg border bg-muted/30 p-4"
+          [class.border-destructive]="hasImpactError('workaroundAvailable')"
+          [class.ring-1]="hasImpactError('workaroundAvailable')"
+          [class.ring-destructive]="hasImpactError('workaroundAvailable')"
+        >
+          <span id="workaround-label" class="font-medium"
+            >¿Existe una alternativa temporal para continuar trabajando?</span
+          >
+          <div
+            role="radiogroup"
+            aria-labelledby="workaround-label"
+            class="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+          >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="workaroundAvailable"
+                [value]="true"
+              />
+              Sí</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="workaroundAvailable"
+                [value]="false"
+              />
+              No</label
+            >
           </div>
-          @if (hasImpactError('workaroundAvailable')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
+          @if (hasImpactError('workaroundAvailable')) {
+            <p class="mt-2 text-sm text-destructive">
+              Selecciona una respuesta.
+            </p>
+          }
         </div>
 
-        <div class="rounded-lg border bg-muted/30 p-4" [class.border-destructive]="hasImpactError('affectsOtherAreas')" [class.ring-1]="hasImpactError('affectsOtherAreas')" [class.ring-destructive]="hasImpactError('affectsOtherAreas')">
-          <span id="other-areas-label" class="font-medium">¿La falla afecta a otros equipos o áreas?</span>
-          <div role="radiogroup" aria-labelledby="other-areas-label" class="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="affectsOtherAreas" [value]="true" /> Sí</label>
-            <label class="flex items-center gap-2 text-sm font-normal"><input class="size-4 accent-primary" type="radio" formControlName="affectsOtherAreas" [value]="false" /> No</label>
+        <div
+          class="rounded-lg border bg-muted/30 p-4"
+          [class.border-destructive]="hasImpactError('affectsOtherAreas')"
+          [class.ring-1]="hasImpactError('affectsOtherAreas')"
+          [class.ring-destructive]="hasImpactError('affectsOtherAreas')"
+        >
+          <span id="other-areas-label" class="font-medium"
+            >¿La falla afecta a otros equipos o áreas?</span
+          >
+          <div
+            role="radiogroup"
+            aria-labelledby="other-areas-label"
+            class="mt-3 flex flex-wrap gap-x-5 gap-y-2"
+          >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="affectsOtherAreas"
+                [value]="true"
+              />
+              Sí</label
+            >
+            <label class="flex items-center gap-2 text-sm font-normal"
+              ><input
+                class="size-4 accent-primary"
+                type="radio"
+                formControlName="affectsOtherAreas"
+                [value]="false"
+              />
+              No</label
+            >
           </div>
-          @if (hasImpactError('affectsOtherAreas')) { <p class="mt-2 text-sm text-destructive">Selecciona una respuesta.</p> }
+          @if (hasImpactError('affectsOtherAreas')) {
+            <p class="mt-2 text-sm text-destructive">
+              Selecciona una respuesta.
+            </p>
+          }
         </div>
       </div>
     </article>
 
     @if (submitError(); as error) {
-      <p class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{{ error }}</p>
+      <p
+        class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive"
+        role="alert"
+      >
+        {{ error }}
+      </p>
     }
 
     <div class="flex flex-wrap items-center justify-end gap-3 pt-5">
-      <button hlmBtn type="submit" size="lg" [disabled]="isSubmitting() || !!createdTicket()">
-        {{ isSubmitting() ? 'Creando solicitud…' : createdTicket() ? 'Solicitud creada' : 'Crear solicitud' }}
+      <button
+        hlmBtn
+        type="submit"
+        size="lg"
+        [disabled]="isSubmitting() || !!createdTicket()"
+      >
+        {{
+          isSubmitting()
+            ? 'Creando solicitud…'
+            : createdTicket()
+              ? 'Solicitud creada'
+              : 'Crear solicitud'
+        }}
       </button>
       @if (createdTicket()) {
-        <button hlmBtn type="button" variant="outline" size="lg" (click)="openTicketDetail()">Ver detalle del ticket</button>
-        <button hlmBtn type="button" variant="ghost" size="lg" (click)="startNewTicket()">Nueva solicitud</button>
+        <button
+          hlmBtn
+          type="button"
+          variant="outline"
+          size="lg"
+          (click)="openTicketDetail()"
+        >
+          Ver detalle del ticket
+        </button>
+        <button
+          hlmBtn
+          type="button"
+          variant="ghost"
+          size="lg"
+          (click)="startNewTicket()"
+        >
+          Nueva solicitud
+        </button>
       }
     </div>
   </form>
 
   @if (isDetailOpen()) {
     @if (createdTicket(); as ticket) {
-      <app-ticket-detail-modal [ticket]="ticket" (closed)="closeTicketDetail()" />
+      <app-ticket-detail-modal
+        [ticket]="ticket"
+        (closed)="closeTicketDetail()"
+      />
     }
   }
 </section>

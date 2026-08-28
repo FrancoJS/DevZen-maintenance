@@ -5,10 +5,13 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideEye } from '@ng-icons/lucide';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
-import { createPageArray, HlmPaginationImports } from '@spartan-ng/helm/pagination';
+import { HlmPaginationImports } from '@spartan-ng/helm/pagination';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import { PreviewSessionService } from '../../../core/preview-session.service';
 import { TICKET_GATEWAY, TicketGateway } from '../../../core/tickets/ticket.gateway';
@@ -38,8 +41,8 @@ const STATUS_GROUPS: ReadonlyArray<{ label: string; statuses: TicketStatus[] }> 
 
 @Component({
   selector: 'app-my-requests-page',
-  imports: [CdkTrapFocus, CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmPaginationImports, ReactiveFormsModule, TicketDetailModalComponent],
-  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
+  imports: [CdkTrapFocus, CreateTicketPageComponent, HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmPaginationImports, HlmTableImports, NgIcon, ReactiveFormsModule, TicketDetailModalComponent],
+  providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }, provideIcons({ lucideEye })],
   templateUrl: './my-requests-page.component.html',
 })
 export class MyRequestsPageComponent implements OnInit {
@@ -59,9 +62,7 @@ export class MyRequestsPageComponent implements OnInit {
   readonly selectedStatus = signal<TicketStatus | ''>('');
   readonly selectedPriority = signal<TicketPriority | ''>('');
   readonly page = signal(1);
-  readonly pageSize = 10;
-  readonly total = signal(0);
-  readonly totalPages = signal(0);
+  readonly pageSize = signal(10);
   readonly isCreateModalOpen = signal(false);
   readonly isDiscardConfirmationOpen = signal(false);
   readonly isDetailOpen = signal(false);
@@ -80,18 +81,22 @@ export class MyRequestsPageComponent implements OnInit {
   readonly statuses = TICKET_STATUSES;
   readonly statusGroups = STATUS_GROUPS;
   readonly priorities = TICKET_PRIORITIES;
-  readonly pageStart = computed(() => (this.total() ? (this.page() - 1) * this.pageSize + 1 : 0));
-  readonly pageEnd = computed(() => Math.min(this.page() * this.pageSize, this.total()));
-  readonly pageLinks = computed(() => createPageArray(this.page(), this.pageSize, this.total(), 7));
+  readonly currentUser = this.session.user;
   readonly filteredTickets = computed(() => {
     const query = this.query().trim().toLocaleLowerCase('es-CL');
 
     return this.tickets()
       .filter((ticket) =>
         !query ||
-        `${ticket.id} ${ticket.asset}`.toLocaleLowerCase('es-CL').includes(query)
-      );
+        `${ticket.ticketCode ?? ticket.id} ${ticket.asset}`.toLocaleLowerCase('es-CL').includes(query)
+      )
+      .filter((ticket) => !this.selectedStatus() || ticket.status === this.selectedStatus())
+      .filter((ticket) => !this.selectedPriority() || ticket.priority === this.selectedPriority());
   });
+  readonly total = computed(() => this.filteredTickets().length);
+  readonly visibleTickets = computed(() =>
+    this.filteredTickets().slice((this.page() - 1) * this.pageSize(), this.page() * this.pageSize())
+  );
   readonly hasActiveFilters = computed(
     () => Boolean(this.query().trim() || this.selectedStatus() || this.selectedPriority())
   );
@@ -106,31 +111,21 @@ export class MyRequestsPageComponent implements OnInit {
   }
 
   loadTickets(): void {
-    if (this.isLoading() && this.loadError()) {
-      return;
-    }
-
     this.isLoading.set(true);
     this.loadError.set(null);
 
     this.ticketGateway
       .listMyTickets({
-        page: this.page(),
-        limit: this.pageSize,
-        status: this.selectedStatus() || undefined,
-        priority: this.selectedPriority() || undefined,
+        page: 1,
+        limit: 100,
       })
       .pipe(finalize(() => this.isLoading.set(false)))
       .subscribe({
-        next: ({ items, total, totalPages }) => {
+        next: ({ items }) => {
           this.tickets.set(items);
-          this.total.set(total);
-          this.totalPages.set(totalPages);
         },
         error: () => {
           this.tickets.set([]);
-          this.total.set(0);
-          this.totalPages.set(0);
           this.loadError.set(
             'No fue posible cargar tus solicitudes. Inténtalo nuevamente.'
           );
@@ -140,18 +135,17 @@ export class MyRequestsPageComponent implements OnInit {
 
   updateQuery(query: string): void {
     this.query.set(query);
+    this.page.set(1);
   }
 
   updateStatus(status: TicketStatus | ''): void {
     this.selectedStatus.set(status);
     this.page.set(1);
-    this.loadTickets();
   }
 
   updatePriority(priority: TicketPriority | ''): void {
     this.selectedPriority.set(priority);
     this.page.set(1);
-    this.loadTickets();
   }
 
   clearFilters(): void {
@@ -159,26 +153,11 @@ export class MyRequestsPageComponent implements OnInit {
     this.selectedStatus.set('');
     this.selectedPriority.set('');
     this.page.set(1);
-    this.loadTickets();
   }
 
-  previousPage(): void {
-    if (this.page() <= 1 || this.isLoading()) return;
-    this.page.update((page) => page - 1);
-    this.loadTickets();
-  }
-
-  goToPage(page: number | '...'): void {
-    if (page === '...') return;
-    if (page < 1 || page > this.totalPages() || page === this.page() || this.isLoading()) return;
-    this.page.set(page);
-    this.loadTickets();
-  }
-
-  nextPage(): void {
-    if (this.page() >= this.totalPages() || this.isLoading()) return;
-    this.page.update((page) => page + 1);
-    this.loadTickets();
+  updatePageSize(pageSize: number): void {
+    this.pageSize.set(pageSize);
+    this.page.set(1);
   }
 
   openCreateModal(fromQuery = false): void {
@@ -215,10 +194,7 @@ export class MyRequestsPageComponent implements OnInit {
     this.selectedPriority.set('');
     this.page.set(1);
 
-    const nextTotal = this.total() + 1;
-    this.tickets.update((tickets) => [this.toSummary(ticket), ...tickets].slice(0, this.pageSize));
-    this.total.set(nextTotal);
-    this.totalPages.set(Math.ceil(nextTotal / this.pageSize));
+    this.tickets.update((tickets) => [this.toSummary(ticket), ...tickets].slice(0, 100));
     this.closeCreateModal(true);
     this.loadTickets();
   }
@@ -307,7 +283,7 @@ export class MyRequestsPageComponent implements OnInit {
             this.ticketDetail.set(updatedTicket);
           }
           toast.success('Solicitud actualizada', {
-            description: `El ticket ${updatedTicket.id} fue actualizado correctamente.`,
+            description: `El ticket ${updatedTicket.ticketCode ?? updatedTicket.id} fue actualizado correctamente.`,
             duration: 8000,
           });
           this.isSavingEdit.set(false);
@@ -369,6 +345,7 @@ export class MyRequestsPageComponent implements OnInit {
   private toSummary(ticket: TicketDetail): TicketSummary {
     return {
       id: ticket.id,
+      ticketCode: ticket.ticketCode,
       description: ticket.description,
       location: ticket.location,
       asset: ticket.asset,

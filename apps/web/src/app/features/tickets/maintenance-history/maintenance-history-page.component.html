@@ -16,7 +16,7 @@
     <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
       <div class="grid gap-2">
         <label for="history-search" class="text-sm font-medium">Buscar por ticket o equipo</label>
-        <input hlmInput id="history-search" type="search" placeholder="Ej.: TCK-2048 o Compresor" [value]="filters().query" (input)="updateQuery($any($event.target).value)" />
+        <input hlmInput id="history-search" type="search" class="!bg-card" placeholder="Ej.: TCK-2048 o Compresor" [value]="filters().query" (input)="updateQuery($any($event.target).value)" />
       </div>
       <div class="grid gap-2">
         <label for="history-status" class="text-sm font-medium">Estado</label>
