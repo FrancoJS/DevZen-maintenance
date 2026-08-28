@@ -98,6 +98,7 @@ function updatedTicket(status: TicketDetail['status']): TicketDetail {
     assignments: [],
     freezeRequests: [],
     maintenance: null,
+    finalEvidence: [],
     history: [],
   };
 }

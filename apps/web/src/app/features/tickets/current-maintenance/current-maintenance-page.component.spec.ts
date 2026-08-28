@@ -46,6 +46,7 @@ const assignedTicket: TicketDetail = {
   ],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [],
   history: [
     {
       id: 'history-id',

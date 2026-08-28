@@ -66,6 +66,7 @@ const detail: TicketDetail = {
     workPerformed: 'Se aisló el equipo.',
     notes: 'Requiere repuesto nuevo.',
   },
+  finalEvidence: [],
   history: [
     {
       id: 'history-id',

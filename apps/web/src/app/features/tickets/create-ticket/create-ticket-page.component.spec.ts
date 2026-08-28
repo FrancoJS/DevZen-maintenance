@@ -44,6 +44,7 @@ describe('CreateTicketPageComponent', () => {
           assignments: [],
           freezeRequests: [],
           maintenance: null,
+          finalEvidence: [],
           history: [],
         } satisfies TicketDetail)
       ),
@@ -283,6 +284,7 @@ describe('CreateTicketPageComponent', () => {
       assignments: [],
       freezeRequests: [],
       maintenance: null,
+      finalEvidence: [],
       history: [],
     });
     pendingResponse.complete();

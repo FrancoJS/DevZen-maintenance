@@ -70,6 +70,7 @@ const createdTicket: TicketDetail = {
   assignments: [],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [],
   history: [],
 };
 

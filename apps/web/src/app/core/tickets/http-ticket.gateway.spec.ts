@@ -10,6 +10,7 @@ import { HttpTicketGateway } from './http-ticket.gateway';
 import {
   CreateTicketRequest,
   FreezeRequestsResponse,
+  GlobalTicketHistoryResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   TicketDetail,
@@ -49,6 +50,7 @@ const response: TicketDetail = {
   assignments: [],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [],
   history: [],
 };
 
@@ -227,6 +229,24 @@ describe('HttpTicketGateway', () => {
     expect(pendingRequest.request.method).toBe('POST');
     expect(pendingRequest.request.body).toEqual({});
     pendingRequest.flush({ ...response, status: 'CLOSED' });
+  });
+
+  it('lists the global closed-ticket history without query parameters', () => {
+    const historyResponse: GlobalTicketHistoryResponse = {
+      items: [{ ...response, status: 'CLOSED' }],
+      total: 1,
+    };
+
+    gateway.listGlobalClosedHistory().subscribe((result) => {
+      expect(result).toEqual(historyResponse);
+    });
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/admin/history`
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    expect(pendingRequest.request.params.keys()).toEqual([]);
+    pendingRequest.flush(historyResponse);
   });
 
   it('lists the administrative freeze queue', () => {
