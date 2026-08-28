@@ -72,6 +72,14 @@ export class TicketsController {
     return this.ticketsService.findAll(query, currentUser);
   }
 
+  @Get('admin')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Listar todos los tickets para administración' })
+  @ApiOkResponse({ type: PaginatedTicketsResponseDto })
+  findAllAdmin(@Query() query: ListTicketsQueryDto, @CurrentUser() currentUser: AuthenticatedUser): Promise<PaginatedTicketsResponseDto> {
+    return this.ticketsService.findAllAdmin(query, currentUser);
+  }
+
   @Get('my-maintenance')
   @Roles(UserRole.TECHNICIAN)
   @ApiOperation({ summary: 'Obtener la mantención actual del técnico' })

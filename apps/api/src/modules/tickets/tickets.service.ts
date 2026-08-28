@@ -46,6 +46,7 @@ import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { FreezeRequest } from './entities/freeze-request.entity';
 import { Ticket } from './entities/ticket.entity';
+import { Asset } from '../assets/entities/asset.entity';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { FreezeReasonType } from './enums/freeze-reason-type.enum';
@@ -67,12 +68,14 @@ export class TicketsService {
   ): Promise<TicketDetailResponseDto> {
     const priority = calculateTicketPriority(createTicketDto.impactAssessment);
     const ticketId = await this.dataSource.transaction(async (manager) => {
+      const asset = await manager.getRepository(Asset).createQueryBuilder('asset').setLock('pessimistic_write').where('asset.id = :id', { id: createTicketDto.assetId }).getOne();
+      if (!asset) throw new NotFoundException('Equipo no encontrado');
+      if (!asset.active) throw new ConflictException('El equipo seleccionado está inactivo');
       const ticketRepository = manager.getRepository(Ticket);
       const savedTicket = await ticketRepository.save(
         ticketRepository.create({
           description: createTicketDto.description,
-          location: createTicketDto.location,
-          asset: createTicketDto.asset,
+          assetId: asset.id,
           priority,
           status: TicketStatus.NEW,
           requesterId: actor.id,
@@ -733,6 +736,8 @@ export class TicketsService {
     const ticketQuery = this.tickets
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location')
       .where(
         `EXISTS (
           SELECT 1
@@ -776,6 +781,7 @@ export class TicketsService {
     const ticketQuery = this.tickets
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester');
+    ticketQuery.leftJoinAndSelect('ticket.machine', 'machine').leftJoinAndSelect('machine.location', 'location');
 
     ticketQuery.andWhere('ticket.requesterId = :requesterId', {
       requesterId: actor.id,
@@ -805,6 +811,19 @@ export class TicketsService {
     };
   }
 
+  async findAllAdmin(query: ListTicketsQueryDto, actor: AuthenticatedUser): Promise<PaginatedTicketsResponseDto> {
+    this.assertAdmin(actor);
+    const ticketQuery = this.tickets.createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.requester', 'requester')
+      .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location');
+    if (query.status) ticketQuery.andWhere('ticket.status = :status', { status: query.status });
+    if (query.priority) ticketQuery.andWhere('ticket.priority = :priority', { priority: query.priority });
+    const [tickets, total] = await ticketQuery.orderBy('ticket.createdAt', 'DESC').addOrderBy('ticket.id', 'DESC').skip((query.page - 1) * query.limit).take(query.limit).getManyAndCount();
+    return { items: tickets.map((ticket) => this.toSummary(ticket)), page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) };
+  }
+
   async findAllFreezeRequests(
     actor: AuthenticatedUser,
   ): Promise<FreezeRequestsResponseDto> {
@@ -814,6 +833,7 @@ export class TicketsService {
       .getRepository(FreezeRequest)
       .createQueryBuilder('freezeRequest')
       .leftJoinAndSelect('freezeRequest.ticket', 'ticket')
+      .leftJoinAndSelect('ticket.machine', 'machine')
       .leftJoinAndSelect('freezeRequest.technician', 'technician')
       .leftJoinAndSelect('freezeRequest.reviewedBy', 'reviewedBy')
       .getManyAndCount();
@@ -834,6 +854,8 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.resolvedBy', 'resolvedBy')
       .leftJoinAndSelect('ticket.closedBy', 'closedBy')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.maintenance', 'maintenance')
       .leftJoinAndSelect('ticket.history', 'history')
@@ -893,14 +915,20 @@ export class TicketsService {
     return {
       id: ticket.id,
       description: ticket.description,
-      location: ticket.location,
-      asset: ticket.asset,
+      ticketCode: ticket.ticketCode,
+      location: ticket.machine.location.name,
+      asset: ticket.machine.name,
+      assetId: ticket.assetId,
+      assetCode: ticket.machine.assetCode,
+      locationId: ticket.machine.locationId,
+      locationCode: ticket.machine.location.code,
       priority: ticket.priority,
       status: ticket.status,
       requester: {
         id: ticket.requester.id,
         name: ticket.requester.name,
       },
+      currentTechnician: ticket.currentTechnician ? { id: ticket.currentTechnician.id, name: ticket.currentTechnician.name } : null,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
     };
@@ -1038,7 +1066,7 @@ export class TicketsService {
       ticket: {
         id: request.ticket.id,
         description: request.ticket.description,
-        asset: request.ticket.asset,
+        asset: request.ticket.machine.name,
         priority: request.ticket.priority,
         status: request.ticket.status,
       },

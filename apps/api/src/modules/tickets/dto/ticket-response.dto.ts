@@ -136,6 +136,9 @@ export class TicketSummaryResponseDto {
   id!: string;
 
   @ApiProperty()
+  ticketCode!: string;
+
+  @ApiProperty()
   description!: string;
 
   @ApiProperty()
@@ -143,6 +146,11 @@ export class TicketSummaryResponseDto {
 
   @ApiProperty()
   asset!: string;
+
+  @ApiProperty({ format: 'uuid' }) assetId!: string;
+  @ApiProperty() assetCode!: string;
+  @ApiProperty({ format: 'uuid' }) locationId!: string;
+  @ApiProperty() locationCode!: string;
 
   @ApiProperty({ enum: TicketPriority, enumName: 'TicketPriority' })
   priority!: TicketPriority;
@@ -153,6 +161,9 @@ export class TicketSummaryResponseDto {
   @ApiProperty({ type: () => TicketUserResponseDto })
   requester!: TicketUserResponseDto;
 
+  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
+  currentTechnician!: TicketUserResponseDto | null;
+
   @ApiProperty({ format: 'date-time' })
   createdAt!: Date;
 
@@ -161,8 +172,6 @@ export class TicketSummaryResponseDto {
 }
 
 export class TicketDetailResponseDto extends TicketSummaryResponseDto {
-  @ApiPropertyOptional({ type: () => TicketUserResponseDto })
-  currentTechnician!: TicketUserResponseDto | null;
 
   @ApiPropertyOptional({ type: () => TicketUserResponseDto })
   resolvedBy!: TicketUserResponseDto | null;

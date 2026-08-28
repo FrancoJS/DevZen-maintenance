@@ -53,7 +53,7 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 `POST /api/tickets`
 
 - **Actor:** cualquier rol autenticado.
-- **Entrada:** `description`, `location`, `asset` y `impactAssessment` con las cinco respuestas obligatorias. No existe `area`.
+- **Entrada:** `description`, `assetId` UUID v4 de una maquinaria activa e `impactAssessment` con las cinco respuestas obligatorias. No existe `area`, `location`, `asset` ni `ticketCode` como entrada.
 - **Efecto:** en una transacción, persiste ticket `NEW`, evaluación, prioridad automática e historial `TICKET_CREATED`.
 - **Datos derivados:** requester/timestamps desde backend; prioridad calculada exclusivamente por backend.
 - **Respuesta `201`:** detalle del ticket, evaluación e historial.

@@ -57,14 +57,8 @@ export class Ticket {
   @Column({ type: 'varchar', length: 1000 })
   description!: string;
 
-  @Column({ name: 'asset_id', type: 'uuid', nullable: true })
-  assetId!: string | null;
-
-  @Column({ type: 'varchar', length: 200 })
-  location!: string;
-
-  @Column({ type: 'varchar', length: 200 })
-  asset!: string;
+  @Column({ name: 'asset_id', type: 'uuid' })
+  assetId!: string;
 
   @Column({ type: 'enum', enum: TicketPriority, enumName: 'ticket_priority' })
   priority!: TicketPriority;
@@ -109,10 +103,9 @@ export class Ticket {
 
   @ManyToOne(() => Asset, (asset) => asset.tickets, {
     onDelete: 'RESTRICT',
-    nullable: true,
   })
   @JoinColumn({ name: 'asset_id' })
-  machine!: Asset | null;
+  machine!: Asset;
 
   @ManyToOne(() => User, (user) => user.currentTickets, {
     onDelete: 'RESTRICT',

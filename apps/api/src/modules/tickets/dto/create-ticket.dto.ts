@@ -1,10 +1,5 @@
 import { Transform, Type } from 'class-transformer';
-import {
-  IsNotEmpty,
-  IsString,
-  MaxLength,
-  ValidateNested,
-} from 'class-validator';
+import { IsNotEmpty, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { CreateImpactAssessmentDto } from './create-impact-assessment.dto';
 
@@ -19,19 +14,9 @@ export class CreateTicketDto {
   @MaxLength(1000)
   description!: string;
 
-  @ApiProperty({ maxLength: 200 })
-  @Transform(trim)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  location!: string;
-
-  @ApiProperty({ maxLength: 200 })
-  @Transform(trim)
-  @IsString()
-  @IsNotEmpty()
-  @MaxLength(200)
-  asset!: string;
+  @ApiProperty({ format: 'uuid' })
+  @IsUUID('4')
+  assetId!: string;
 
   @ApiProperty({ type: () => CreateImpactAssessmentDto })
   @ValidateNested()

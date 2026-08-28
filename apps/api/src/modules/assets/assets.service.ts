@@ -1,0 +1,2 @@
+import { Injectable } from '@nestjs/common'; import { InjectRepository } from '@nestjs/typeorm'; import { Repository } from 'typeorm'; import { Asset } from './entities/asset.entity';
+@Injectable() export class AssetsService { constructor(@InjectRepository(Asset) private readonly assets: Repository<Asset>) {} async findAll() { const items=await this.assets.find({where:{active:true},relations:{location:true},order:{assetCode:'ASC'}}); return {items,total:items.length}; } }
