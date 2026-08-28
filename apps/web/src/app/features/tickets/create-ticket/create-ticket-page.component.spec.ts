@@ -7,10 +7,16 @@ import { CreateTicketRequest, TicketDetail } from '../../../core/tickets/ticket.
 import { CreateTicketPageComponent } from './create-ticket-page.component';
 
 describe('CreateTicketPageComponent', () => {
-  let gateway: { createTicket: ReturnType<typeof vi.fn> };
+  let gateway: {
+    createTicket: ReturnType<typeof vi.fn>;
+    listLocations: ReturnType<typeof vi.fn>;
+    listAssets: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     gateway = {
+      listLocations: vi.fn(() => of({ items: [{ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' }], total: 1 })),
+      listAssets: vi.fn(() => of({ items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', locationId: 'location-id' }], total: 1 })),
       createTicket: vi.fn(() =>
         of({
           id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
@@ -63,8 +69,8 @@ describe('CreateTicketPageComponent', () => {
   function fillValidForm(component: CreateTicketPageComponent): void {
     component.form.setValue({
       description: 'No inicia el sistema hidráulico.',
-      location: 'Planta 2',
-      asset: 'Excavadora EX-04',
+      locationId: 'location-id',
+      assetId: 'asset-id',
       impactAssessment: {
         safetyRisk: false,
         equipmentStopped: 'NO',
@@ -99,6 +105,43 @@ describe('CreateTicketPageComponent', () => {
     expect(description.classList.contains('border-destructive')).toBe(false);
   });
 
+  it('abre cada autocomplete solo después de escribir una búsqueda no vacía', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    const location = fixture.nativeElement.querySelector('#location') as HTMLInputElement;
+
+    location.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
+
+    location.value = 'planta';
+    location.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).not.toBeNull();
+
+    location.value = '   ';
+    location.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
+
+    component.selectLocation({ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' });
+    fixture.detectChanges();
+    const asset = fixture.nativeElement.querySelector('#asset') as HTMLInputElement;
+    asset.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
+
+    asset.value = 'excavadora';
+    asset.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).not.toBeNull();
+
+    asset.value = '   ';
+    asset.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
+  });
+
   it('envía el payload completo y muestra la prioridad respondida en español', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
@@ -113,8 +156,7 @@ describe('CreateTicketPageComponent', () => {
 
     expect(gateway.createTicket).toHaveBeenCalledWith({
       description: 'No inicia el sistema hidráulico.',
-      location: 'Planta 2',
-      asset: 'Excavadora EX-04',
+      assetId: 'asset-id',
       impactAssessment: {
         safetyRisk: false,
         equipmentStopped: 'NO',

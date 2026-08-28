@@ -46,6 +46,28 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 - El login documenta `security: []`; `/api/auth/me` hereda el requisito Bearer.
 - Los schemas documentados son `LoginDto`, `LoginResponseDto` y `AuthenticatedUserResponseDto`; ninguno expone `passwordHash`, secretos ni credenciales reales.
 
+## Catálogos
+
+Los catálogos son de solo lectura y están disponibles para cualquier rol
+autenticado. En esta versión se entregan completos, sin paginación ni búsqueda
+remota; el cliente puede filtrarlos localmente.
+
+### Listar ubicaciones — `GET /api/locations`
+
+- **Orden:** `code ASC`.
+- **Respuesta `200`:** `{ items, total }`, donde cada elemento contiene
+  exclusivamente `{ id, code, name }`.
+- **Errores:** `401` cuando no existe una sesión autenticada válida.
+
+### Listar maquinaria activa — `GET /api/assets`
+
+- **Filtro:** devuelve exclusivamente maquinaria con `active = true`.
+- **Orden:** `assetCode ASC`.
+- **Respuesta `200`:** `{ items, total }`, donde cada elemento contiene
+  exclusivamente `{ id, assetCode, name, locationId }`. `locationId` permite
+  filtrar los equipos por la ubicación seleccionada.
+- **Errores:** `401` cuando no existe una sesión autenticada válida.
+
 ## Tickets
 
 ### Crear ticket

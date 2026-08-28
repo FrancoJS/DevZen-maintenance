@@ -40,9 +40,26 @@ export interface ImpactAssessment {
 
 export interface CreateTicketRequest {
   description: string;
-  location: string;
-  asset: string;
+  assetId: string;
   impactAssessment: ImpactAssessment;
+}
+
+export interface LocationSummary {
+  id: string;
+  code: string;
+  name: string;
+}
+
+export interface AssetSummary {
+  id: string;
+  assetCode: string;
+  name: string;
+  locationId: string;
+}
+
+export interface CatalogResponse<T> {
+  items: T[];
+  total: number;
 }
 
 export interface UpdateTicketRequest {

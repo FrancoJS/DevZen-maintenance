@@ -20,7 +20,7 @@ Los ítems reproducen la sección 16 de la especificación en formato Markdown. 
 - [x] Implementar cierre administrativo `RESOLVED -> CLOSED` e inmutabilidad de tickets cerrados.
 - [x] Exponer bandeja administrativa de solicitudes de congelamiento y agregaciones administrativas de dashboard.
 - [x] Agregar catálogos persistidos de ubicaciones y maquinaria, código público de ticket y restricción de una solicitud no cerrada por maquinaria.
-- [ ] Exponer catálogos autenticados, asociación de creación a maquinaria y listado administrativo global.
+- [x] Exponer catálogos autenticados, asociación de creación a maquinaria y listado administrativo global.
 - [ ] Implementar carga de evidencia final privada y exigirla al resolver.
 
 ## Frontend
