@@ -26,15 +26,18 @@ describe('App', () => {
   });
 
   it('should show the maintenance landing page at /inicio', async () => {
-    TestBed.inject(PreviewSessionService).login('ana.gonzalez@devzen.test', 'Admin123!');
+    TestBed.inject(PreviewSessionService).login(
+      'ana.gonzalez@devzen.test',
+      'Admin123!',
+    );
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/inicio', AppShellComponent);
 
     expect(harness.routeNativeElement?.textContent).toContain(
-      'Resumen de actividad y próximos pasos.'
+      'Resumen de actividad y próximos pasos.',
     );
     expect(harness.routeNativeElement?.textContent).toContain(
-      'Datos de demostración'
+      'Datos de demostración',
     );
   });
 
@@ -49,12 +52,19 @@ describe('App', () => {
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/login', LoginPageComponent);
 
-    expect(harness.routeNativeElement?.querySelector('nav[aria-label="Navegación principal"]')).toBeNull();
+    expect(
+      harness.routeNativeElement?.querySelector(
+        'nav[aria-label="Navegación principal"]',
+      ),
+    ).toBeNull();
     expect(harness.routeNativeElement?.textContent).toContain('Iniciar sesión');
   });
 
   it('should redirect an authenticated user away from login', async () => {
-    TestBed.inject(PreviewSessionService).login('ana.gonzalez@devzen.test', 'Admin123!');
+    TestBed.inject(PreviewSessionService).login(
+      'ana.gonzalez@devzen.test',
+      'Admin123!',
+    );
     const harness = await RouterTestingHarness.create();
     await harness.navigateByUrl('/login', AppShellComponent);
 
@@ -68,7 +78,7 @@ describe('App', () => {
     await harness.navigateByUrl('/inicio', AppShellComponent);
 
     const logoutButton = harness.routeNativeElement?.querySelector(
-      'button[aria-label="Cerrar sesión"]'
+      'button[aria-label="Cerrar sesión"]',
     ) as HTMLButtonElement;
     logoutButton.click();
     await harness.fixture.whenStable();
@@ -95,7 +105,34 @@ describe('App', () => {
     expect(shell.textContent).toContain('Rol');
     expect(shell.textContent).toContain('Administrador');
     expect(shell.textContent).toContain('MV');
-    expect(shell.querySelector('select[aria-label="Seleccionar rol demo"]')).toBeNull();
+    expect(
+      shell.querySelector('select[aria-label="Seleccionar rol demo"]'),
+    ).toBeNull();
+  });
+
+  it('places the user profile above navigation and keeps sign out as a sidebar option', async () => {
+    TestBed.inject(PreviewSessionService).login(
+      'ana.gonzalez@devzen.test',
+      'Admin123!',
+    );
+    const harness = await RouterTestingHarness.create();
+    await harness.navigateByUrl('/inicio', AppShellComponent);
+
+    const sidebar = harness.routeNativeElement?.querySelector(
+      'aside',
+    ) as HTMLElement;
+    const profile = sidebar.querySelector('[aria-label="Perfil de usuario"]');
+    const requestsLink = sidebar.querySelector('a[href="/mis-solicitudes"]');
+    const logoutButton = sidebar.querySelector(
+      'button[aria-label="Cerrar sesión"]',
+    );
+
+    expect(profile).not.toBeNull();
+    expect(requestsLink).not.toBeNull();
+    expect(logoutButton).not.toBeNull();
+    expect(profile!.compareDocumentPosition(requestsLink!)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING,
+    );
   });
 
   it('removes the standalone technicians destination from routes and navigation', () => {
@@ -103,7 +140,7 @@ describe('App', () => {
       .flatMap((route) => route.children ?? [])
       .map((route) => route.path);
     const navigationRoutes = NAVIGATION_GROUPS.flatMap((group) =>
-      group.items.map((item) => item.route)
+      group.items.map((item) => item.route),
     );
 
     expect(privateRoutes).not.toContain('tecnicos');
@@ -133,19 +170,24 @@ describe('App', () => {
   it('consolidates request creation into Mis solicitudes', () => {
     const privateRoutes = appRoutes.flatMap((route) => route.children ?? []);
     const navigationRoutes = NAVIGATION_GROUPS.flatMap((group) =>
-      group.items.map((item) => item.route)
+      group.items.map((item) => item.route),
     );
-    const legacyCreateRoute = privateRoutes.find((route) => route.path === 'crear-solicitud');
-    const ticketsRoute = privateRoutes.find((route) => route.path === 'tickets');
-    const legacyNewRoute = ticketsRoute?.children?.find((route) => route.path === 'new');
+    const legacyCreateRoute = privateRoutes.find(
+      (route) => route.path === 'crear-solicitud',
+    );
+    const ticketsRoute = privateRoutes.find(
+      (route) => route.path === 'tickets',
+    );
+    const legacyNewRoute = ticketsRoute?.children?.find(
+      (route) => route.path === 'new',
+    );
 
     expect(navigationRoutes).not.toContain('/crear-solicitud');
-    expect((legacyCreateRoute?.redirectTo as (route: unknown) => string)({})).toBe(
-      '/mis-solicitudes?create=1'
-    );
+    expect(
+      (legacyCreateRoute?.redirectTo as (route: unknown) => string)({}),
+    ).toBe('/mis-solicitudes?create=1');
     expect((legacyNewRoute?.redirectTo as (route: unknown) => string)({})).toBe(
-      '/mis-solicitudes?create=1'
+      '/mis-solicitudes?create=1',
     );
   });
-
 });

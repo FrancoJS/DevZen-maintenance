@@ -5,6 +5,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
 import {
   MaintenanceHistoryFilters,
@@ -70,6 +71,7 @@ const RELEASE_REASON_LABELS: Record<AssignmentReleaseReason, string> = {
     HlmButtonImports,
     HlmCardImports,
     HlmSheetImports,
+    HlmTableImports,
   ],
   providers: [
     HttpTicketGateway,

@@ -1,5 +1,19 @@
 import { Component, computed, inject } from '@angular/core';
-import { Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import {
+  lucideClipboardList,
+  lucideHistory,
+  lucideLayoutDashboard,
+  lucideLogOut,
+  lucideSnowflake,
+  lucideTickets,
+} from '@ng-icons/lucide';
+import {
+  Router,
+  RouterLink,
+  RouterLinkActive,
+  RouterOutlet,
+} from '@angular/router';
 import { HlmAvatarImports } from '@spartan-ng/helm/avatar';
 import { HlmSeparatorImports } from '@spartan-ng/helm/separator';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
@@ -9,7 +23,25 @@ import { NAVIGATION_GROUPS } from '../shared/navigation/navigation.model';
 
 @Component({
   selector: 'app-shell',
-  imports: [RouterLink, RouterLinkActive, RouterOutlet, HlmAvatarImports, HlmSeparatorImports, HlmTooltipImports],
+  imports: [
+    RouterLink,
+    RouterLinkActive,
+    RouterOutlet,
+    NgIcon,
+    HlmAvatarImports,
+    HlmSeparatorImports,
+    HlmTooltipImports,
+  ],
+  providers: [
+    provideIcons({
+      lucideClipboardList,
+      lucideHistory,
+      lucideLayoutDashboard,
+      lucideLogOut,
+      lucideSnowflake,
+      lucideTickets,
+    }),
+  ],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.css',
 })
@@ -21,10 +53,11 @@ export class AppShellComponent {
   protected mobileSidebarOpen = false;
   protected readonly role = this.session.role;
   protected readonly user = this.session.user;
-  protected readonly navigationGroups = computed(() => NAVIGATION_GROUPS.map((group) => ({
-    ...group,
-    items: group.items.filter((item) => item.roles.includes(this.role())),
-  })));
+  protected readonly navigationItems = computed(() =>
+    NAVIGATION_GROUPS.flatMap((group) => group.items).filter((item) =>
+      item.roles.includes(this.role()),
+    ),
+  );
 
   protected toggleSidebar(): void {
     this.sidebarCollapsed = !this.sidebarCollapsed;

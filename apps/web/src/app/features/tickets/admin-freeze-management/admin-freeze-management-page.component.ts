@@ -5,6 +5,7 @@ import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import {
   ADMIN_FREEZE_GATEWAY,
   AdminFreezeGateway,
@@ -33,7 +34,7 @@ const FREEZE_REASON_LABELS: Record<FreezeReasonType, string> = {
 
 @Component({
   selector: 'app-admin-freeze-management-page',
-  imports: [HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmSheetImports],
+  imports: [HlmBadgeImports, HlmButtonImports, HlmCardImports, HlmSheetImports, HlmTableImports],
   providers: [
     HttpTicketGateway,
     { provide: ADMIN_FREEZE_GATEWAY, useExisting: HttpTicketGateway },

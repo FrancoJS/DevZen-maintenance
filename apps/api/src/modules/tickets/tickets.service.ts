@@ -1099,6 +1099,7 @@ export class TicketsService {
       ...this.toFreezeRequest(request),
       ticket: {
         id: request.ticket.id,
+        ticketCode: request.ticket.ticketCode,
         description: request.ticket.description,
         asset: request.ticket.machine.name,
         priority: request.ticket.priority,

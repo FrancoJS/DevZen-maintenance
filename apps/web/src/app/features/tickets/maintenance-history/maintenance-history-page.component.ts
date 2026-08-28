@@ -6,6 +6,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
+import { HlmTableImports } from '@spartan-ng/helm/table';
 import { TicketPriority, TicketStatus, UserRole } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, ROLE_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
 import { MAINTENANCE_HISTORY_RECORDS, PREVIEW_TECHNICIAN_ID } from './maintenance-history.data';
@@ -45,6 +46,7 @@ const ACTION_LABELS: Record<MaintenanceHistoryAction, string> = {
     HlmCardImports,
     HlmInputImports,
     HlmSheetImports,
+    HlmTableImports,
   ],
   templateUrl: './maintenance-history-page.component.html',
   styleUrl: './maintenance-history-page.component.css',
