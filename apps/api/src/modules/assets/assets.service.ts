@@ -16,12 +16,18 @@ export class AssetsService {
       where: { active: true },
       order: { assetCode: 'ASC' },
     });
-    const items = assets.map(({ id, assetCode, name, locationId }) => ({
-      id,
-      assetCode,
-      name,
-      locationId,
-    }));
+    const items = assets.map(
+      ({ id, assetCode, name, brand, model, serialNumber, category, locationId }) => ({
+        id,
+        assetCode,
+        name,
+        brand,
+        model,
+        serialNumber,
+        category,
+        locationId,
+      }),
+    );
 
     return { items, total: items.length };
   }

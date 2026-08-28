@@ -15,7 +15,7 @@ Este documento describe propósito, información mínima, acciones y restriccion
 
 - **Propósito:** reportar una falla.
 - **Acceso:** modal desde **Mis solicitudes**. Las rutas históricas de creación redirigen a esa pantalla con el modal abierto.
-- **Información mínima:** descripción, área si aplica, ubicación, máquina/equipo y cinco respuestas de impacto; evidencia inicial opcional.
+- **Información mínima:** código de máquina/equipo, ubicación y ficha técnica derivados de la máquina, descripción y cinco respuestas de impacto; evidencia inicial opcional.
 - **Acciones:** enviar solicitud y visualizar prioridad calculada por backend.
 - **Restricciones:** usuario autenticado; no elige requester ni prioridad.
 

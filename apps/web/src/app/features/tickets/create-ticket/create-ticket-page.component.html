@@ -14,18 +14,9 @@
     <article hlmCard class="overflow-visible">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Datos de la falla</h3>
-        <p hlmCardDescription>Indica dónde ocurrió el problema y describe lo observado.</p>
+        <p hlmCardDescription>Selecciona la máquina afectada y describe lo observado.</p>
       </header>
       <div hlmCardContent class="grid gap-5">
-
-        <div class="grid gap-2">
-          <label for="description" class="text-sm font-medium">Descripción de la falla</label>
-          <textarea id="description" formControlName="description" rows="4" aria-describedby="description-error" class="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" [class.border-destructive]="hasError('description')" [class.ring-1]="hasError('description')" [class.ring-destructive]="hasError('description')"></textarea>
-          @if (hasError('description')) {
-            <p id="description-error" class="text-sm text-destructive">La descripción es obligatoria.</p>
-          }
-        </div>
-
         @if (catalogError(); as catalogError) {
           <div class="rounded-lg border border-destructive/30 bg-destructive/10 p-3 text-sm text-destructive" role="alert">
             <p>{{ catalogError }}</p>
@@ -35,40 +26,48 @@
 
         <div class="grid gap-5 md:grid-cols-2">
           <div class="grid gap-2">
-            <label for="location" class="text-sm font-medium">Ubicación</label>
+            <label for="asset" class="text-sm font-medium">Código de máquina o equipo</label>
             <div class="relative">
-              <input hlmInput id="location" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="location-options" [attr.aria-expanded]="isLocationListOpen()" [attr.aria-invalid]="hasError('locationId')" [value]="locationQuery()" [disabled]="isCatalogLoading() || !!catalogError()" placeholder="Busca por nombre o código" aria-describedby="location-help location-error" [class.border-destructive]="hasError('locationId')" [class.ring-1]="hasError('locationId')" [class.ring-destructive]="hasError('locationId')" (input)="updateLocationQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'location')" />
-              @if (isLocationListOpen() && locationQuery().trim() && !isCatalogLoading() && !catalogError()) {
-                <ul id="location-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
-                  @for (location of filteredLocations(); track location.id) {
-                    <li role="option" [attr.aria-selected]="form.controls.locationId.value === location.id"><button type="button" class="flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectLocation(location)"><span class="font-medium">{{ location.name }}</span><span class="text-xs text-muted-foreground">{{ location.code }}</span></button></li>
+              <input hlmInput id="asset" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="asset-options" [attr.aria-expanded]="isAssetListOpen()" [attr.aria-invalid]="hasError('assetId')" [value]="assetQuery()" [disabled]="isCatalogLoading() || !!catalogError()" placeholder="Escribe el código de la máquina" aria-describedby="asset-help asset-error" [class.border-destructive]="hasError('assetId')" [class.ring-1]="hasError('assetId')" [class.ring-destructive]="hasError('assetId')" (input)="updateAssetQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event)" />
+              @if (isAssetListOpen() && assetQuery().trim() && !isCatalogLoading() && !catalogError()) {
+                <ul id="asset-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
+                  @for (asset of filteredAssets(); track asset.id) {
+                    <li role="option" [attr.aria-selected]="form.controls.assetId.value === asset.id"><button type="button" class="flex w-full flex-col gap-1 rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectAsset(asset)"><span class="font-medium">{{ asset.assetCode }} · {{ asset.name }}</span><span class="text-xs text-muted-foreground">{{ asset.brand }} · {{ asset.model }} · {{ asset.category }}</span></button></li>
                   } @empty {
-                    <li class="px-3 py-2 text-muted-foreground" role="status">No encontramos ubicaciones coincidentes.</li>
+                    <li class="px-3 py-2 text-muted-foreground" role="status">No encontramos máquinas activas con ese código.</li>
                   }
                 </ul>
               }
             </div>
-            <p id="location-help" class="text-xs text-muted-foreground">Selecciona una ubicación del catálogo.</p>
-            @if (hasError('locationId')) { <p id="location-error" class="text-sm text-destructive">Selecciona una ubicación válida.</p> }
+            <p id="asset-help" class="text-xs text-muted-foreground">Busca únicamente por el código de una máquina activa.</p>
+            @if (hasError('assetId')) { <p id="asset-error" class="text-sm text-destructive">Selecciona una máquina o equipo válido.</p> }
           </div>
 
           <div class="grid gap-2">
-            <label for="asset" class="text-sm font-medium">Máquina o equipo</label>
-            <div class="relative">
-              <input hlmInput id="asset" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="asset-options" [attr.aria-expanded]="isAssetListOpen()" [attr.aria-invalid]="hasError('assetId')" [value]="assetQuery()" [disabled]="isCatalogLoading() || !!catalogError() || !form.controls.locationId.value" [placeholder]="form.controls.locationId.value ? 'Busca por nombre o código' : 'Primero selecciona una ubicación'" aria-describedby="asset-help asset-error" [class.border-destructive]="hasError('assetId')" [class.ring-1]="hasError('assetId')" [class.ring-destructive]="hasError('assetId')" (input)="updateAssetQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'asset')" />
-              @if (isAssetListOpen() && assetQuery().trim() && form.controls.locationId.value && !isCatalogLoading() && !catalogError()) {
-                <ul id="asset-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
-                  @for (asset of filteredAssets(); track asset.id) {
-                    <li role="option" [attr.aria-selected]="form.controls.assetId.value === asset.id"><button type="button" class="flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectAsset(asset)"><span class="font-medium">{{ asset.name }}</span><span class="text-xs text-muted-foreground">{{ asset.assetCode }}</span></button></li>
-                  } @empty {
-                    <li class="px-3 py-2 text-muted-foreground" role="status">No hay equipos activos que coincidan en esta ubicación.</li>
-                  }
-                </ul>
-              }
-            </div>
-            <p id="asset-help" class="text-xs text-muted-foreground">Solo se muestran equipos activos de la ubicación seleccionada.</p>
-            @if (hasError('assetId')) { <p id="asset-error" class="text-sm text-destructive">Selecciona una máquina o equipo válido.</p> }
+            <label for="location" class="text-sm font-medium">Ubicación</label>
+            <input hlmInput id="location" type="text" readonly aria-readonly="true" [value]="locationQuery()" placeholder="Se completa al elegir una máquina" />
+            <p class="text-xs text-muted-foreground">La ubicación se deriva de la máquina seleccionada.</p>
           </div>
+        </div>
+
+        @if (selectedAsset(); as asset) {
+          <section aria-labelledby="asset-details-title" class="grid gap-3 rounded-lg border bg-muted/30 p-4">
+            <div><h4 id="asset-details-title" class="font-medium">Ficha de la máquina</h4><p class="text-sm text-muted-foreground">{{ asset.assetCode }} · {{ asset.name }}</p></div>
+            <dl class="grid gap-3 text-sm sm:grid-cols-2 lg:grid-cols-4">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Marca</dt><dd class="mt-1 font-medium">{{ asset.brand }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Modelo</dt><dd class="mt-1 font-medium">{{ asset.model }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Categoría</dt><dd class="mt-1 font-medium">{{ asset.category }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">N.º de serie</dt><dd class="mt-1 break-words font-medium">{{ asset.serialNumber }}</dd></div>
+            </dl>
+          </section>
+        }
+
+        <div class="grid gap-2">
+          <label for="description" class="text-sm font-medium">Descripción de la falla</label>
+          <textarea id="description" formControlName="description" rows="4" aria-describedby="description-error" class="min-h-28 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" [class.border-destructive]="hasError('description')" [class.ring-1]="hasError('description')" [class.ring-destructive]="hasError('description')"></textarea>
+          @if (hasError('description')) {
+            <p id="description-error" class="text-sm text-destructive">La descripción es obligatoria.</p>
+          }
         </div>
       </div>
     </article>

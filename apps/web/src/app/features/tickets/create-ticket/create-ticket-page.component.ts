@@ -69,7 +69,6 @@ export class CreateTicketPageComponent {
   readonly catalogError = signal<string | null>(null);
   readonly locationQuery = signal('');
   readonly assetQuery = signal('');
-  readonly isLocationListOpen = signal(false);
   readonly isAssetListOpen = signal(false);
 
   @Output() readonly created = new EventEmitter<TicketDetail>();
@@ -105,55 +104,41 @@ export class CreateTicketPageComponent {
       });
   }
 
-  filteredLocations(): LocationSummary[] {
-    return this.locations().filter((location) => this.matches(location.name, location.code, this.locationQuery()));
-  }
-
   filteredAssets(): AssetSummary[] {
-    const locationId = this.form.controls.locationId.value;
-    if (!locationId) return [];
-    return this.assets().filter((asset) => asset.locationId === locationId && this.matches(asset.name, asset.assetCode, this.assetQuery()));
-  }
-
-  updateLocationQuery(value: string): void {
-    this.locationQuery.set(value);
-    this.form.controls.locationId.setValue(null);
-    this.form.controls.assetId.setValue(null);
-    this.assetQuery.set('');
-    this.isLocationListOpen.set(this.hasSearchQuery(value));
-    this.isAssetListOpen.set(false);
-  }
-
-  selectLocation(location: LocationSummary): void {
-    this.form.controls.locationId.setValue(location.id);
-    this.form.controls.assetId.setValue(null);
-    this.locationQuery.set(this.catalogLabel(location.name, location.code));
-    this.assetQuery.set('');
-    this.isLocationListOpen.set(false);
+    return this.assets().filter((asset) => this.matchesCode(asset.assetCode, this.assetQuery()));
   }
 
   updateAssetQuery(value: string): void {
-    this.assetQuery.set(value);
+    this.form.controls.locationId.setValue(null);
     this.form.controls.assetId.setValue(null);
+    this.assetQuery.set(value);
+    this.locationQuery.set('');
     this.isAssetListOpen.set(this.hasSearchQuery(value));
   }
 
   selectAsset(asset: AssetSummary): void {
+    const location = this.locations().find(({ id }) => id === asset.locationId) ?? null;
     this.form.controls.assetId.setValue(asset.id);
-    this.assetQuery.set(this.catalogLabel(asset.name, asset.assetCode));
+    this.form.controls.locationId.setValue(location?.id ?? null);
+    this.assetQuery.set(asset.assetCode);
+    this.locationQuery.set(location ? this.catalogLabel(location.name, location.code) : 'Ubicación no disponible');
     this.isAssetListOpen.set(false);
   }
 
-  closeLists(): void {
-    setTimeout(() => { this.isLocationListOpen.set(false); this.isAssetListOpen.set(false); });
+  selectedAsset(): AssetSummary | null {
+    const assetId = this.form.controls.assetId.value;
+    return this.assets().find(({ id }) => id === assetId) ?? null;
   }
 
-  handleAutocompleteKeydown(event: KeyboardEvent, type: 'location' | 'asset'): void {
-    const options = type === 'location' ? this.filteredLocations() : this.filteredAssets();
-    if (event.key === 'Escape') { this.isLocationListOpen.set(false); this.isAssetListOpen.set(false); return; }
-    const search = type === 'location' ? this.locationQuery() : this.assetQuery();
-    if (event.key === 'ArrowDown' && this.hasSearchQuery(search)) { event.preventDefault(); type === 'location' ? this.isLocationListOpen.set(true) : this.isAssetListOpen.set(true); return; }
-    if (event.key === 'Enter' && options.length === 1) { event.preventDefault(); type === 'location' ? this.selectLocation(options[0] as LocationSummary) : this.selectAsset(options[0] as AssetSummary); }
+  closeLists(): void {
+    setTimeout(() => this.isAssetListOpen.set(false));
+  }
+
+  handleAutocompleteKeydown(event: KeyboardEvent): void {
+    const options = this.filteredAssets();
+    if (event.key === 'Escape') { this.isAssetListOpen.set(false); return; }
+    if (event.key === 'ArrowDown' && this.hasSearchQuery(this.assetQuery())) { event.preventDefault(); this.isAssetListOpen.set(true); return; }
+    if (event.key === 'Enter' && options.length === 1) { event.preventDefault(); this.selectAsset(options[0]); }
   }
 
   submit(): void {
@@ -232,6 +217,9 @@ export class CreateTicketPageComponent {
     });
     this.form.markAsPristine();
     this.form.markAsUntouched();
+    this.locationQuery.set('');
+    this.assetQuery.set('');
+    this.isAssetListOpen.set(false);
   }
 
   hasError(controlName: 'description' | 'locationId' | 'assetId'): boolean {
@@ -301,9 +289,9 @@ export class CreateTicketPageComponent {
     };
   }
 
-  private matches(name: string, code: string, search: string): boolean {
+  private matchesCode(code: string, search: string): boolean {
     const normalizedSearch = this.normalize(search);
-    return !normalizedSearch || this.normalize(name).includes(normalizedSearch) || this.normalize(code).includes(normalizedSearch);
+    return !normalizedSearch || this.normalize(code).includes(normalizedSearch);
   }
 
   private normalize(value: string): string {
