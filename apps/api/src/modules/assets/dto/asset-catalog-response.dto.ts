@@ -10,6 +10,18 @@ export class AssetSummaryDto {
   @ApiProperty()
   name!: string;
 
+  @ApiProperty()
+  brand!: string;
+
+  @ApiProperty()
+  model!: string;
+
+  @ApiProperty()
+  serialNumber!: string;
+
+  @ApiProperty()
+  category!: string;
+
   @ApiProperty({ format: 'uuid' })
   locationId!: string;
 }

@@ -64,8 +64,9 @@ remota; el cliente puede filtrarlos localmente.
 - **Filtro:** devuelve exclusivamente maquinaria con `active = true`.
 - **Orden:** `assetCode ASC`.
 - **Respuesta `200`:** `{ items, total }`, donde cada elemento contiene
-  exclusivamente `{ id, assetCode, name, locationId }`. `locationId` permite
-  filtrar los equipos por la ubicación seleccionada.
+  exclusivamente `{ id, assetCode, name, brand, model, serialNumber, category,
+  locationId }`. `locationId` identifica la ubicación derivada de la máquina;
+  el cliente puede resolver su código y nombre mediante `GET /api/locations`.
 - **Errores:** `401` cuando no existe una sesión autenticada válida.
 
 ## Tickets

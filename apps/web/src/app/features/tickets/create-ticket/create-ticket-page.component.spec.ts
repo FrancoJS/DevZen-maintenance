@@ -16,7 +16,7 @@ describe('CreateTicketPageComponent', () => {
   beforeEach(async () => {
     gateway = {
       listLocations: vi.fn(() => of({ items: [{ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' }], total: 1 })),
-      listAssets: vi.fn(() => of({ items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', locationId: 'location-id' }], total: 1 })),
+      listAssets: vi.fn(() => of({ items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id' }], total: 1 })),
       createTicket: vi.fn(() =>
         of({
           id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
@@ -105,28 +105,16 @@ describe('CreateTicketPageComponent', () => {
     expect(description.classList.contains('border-destructive')).toBe(false);
   });
 
-  it('abre cada autocomplete solo después de escribir una búsqueda no vacía', () => {
+  it('busca máquinas solo por código y deriva la ubicación y ficha técnica', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
-    const location = fixture.nativeElement.querySelector('#location') as HTMLInputElement;
-
-    location.dispatchEvent(new FocusEvent('focus'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
-
-    location.value = 'planta';
-    location.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#location-options')).not.toBeNull();
-
-    location.value = '   ';
-    location.dispatchEvent(new Event('input'));
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
-
-    component.selectLocation({ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' });
-    fixture.detectChanges();
     const asset = fixture.nativeElement.querySelector('#asset') as HTMLInputElement;
+    const location = fixture.nativeElement.querySelector('#location') as HTMLInputElement;
+    const description = fixture.nativeElement.querySelector('#description') as HTMLTextAreaElement;
+
+    expect(asset.compareDocumentPosition(description) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(location.readOnly).toBe(true);
+
     asset.dispatchEvent(new FocusEvent('focus'));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
@@ -134,12 +122,28 @@ describe('CreateTicketPageComponent', () => {
     asset.value = 'excavadora';
     asset.dispatchEvent(new Event('input'));
     fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')?.textContent).toContain('No encontramos máquinas activas con ese código.');
+
+    asset.value = 'LXN-001';
+    asset.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#asset-options')).not.toBeNull();
+
+    component.selectAsset(component.assets()[0]);
+    fixture.detectChanges();
+    expect(component.form.controls.assetId.value).toBe('asset-id');
+    expect(component.form.controls.locationId.value).toBe('location-id');
+    expect(location.value).toContain('Planta 1');
+    expect(fixture.nativeElement.textContent).toContain('Atlas');
+    expect(fixture.nativeElement.textContent).toContain('AT-EX04-001');
 
     asset.value = '   ';
     asset.dispatchEvent(new Event('input'));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
+    expect(component.form.controls.assetId.value).toBeNull();
+    expect(component.form.controls.locationId.value).toBeNull();
+    expect(location.value).toBe('');
   });
 
   it('envía el payload completo y muestra la prioridad respondida en español', () => {

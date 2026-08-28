@@ -87,6 +87,19 @@ describe('HttpTicketGateway', () => {
     expect(createdTicket).toEqual(response);
   });
 
+  it('lists the complete active-machine catalog contract', () => {
+    const catalog = {
+      items: [{ id: 'asset-id', assetCode: 'LXN-001', name: 'Excavadora EX-04', brand: 'Atlas', model: 'EX-04', serialNumber: 'AT-EX04-001', category: 'Excavadora', locationId: 'location-id' }],
+      total: 1,
+    };
+
+    gateway.listAssets().subscribe((response) => expect(response).toEqual(catalog));
+
+    const pendingRequest = httpTesting.expectOne(`${API_BASE_URL}/assets`);
+    expect(pendingRequest.request.method).toBe('GET');
+    pendingRequest.flush(catalog);
+  });
+
   it('lists the authenticated user tickets with page, status and priority filters', () => {
     const paginatedResponse: PaginatedTicketsResponse = {
       items: [],

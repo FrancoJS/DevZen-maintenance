@@ -54,6 +54,10 @@ export interface AssetSummary {
   id: string;
   assetCode: string;
   name: string;
+  brand: string;
+  model: string;
+  serialNumber: string;
+  category: string;
   locationId: string;
 }
 
