@@ -18,11 +18,17 @@ Las restricciones funcionales sí son obligatorias aunque cambie la forma de per
 ### `Ticket`
 
 - **Propósito:** entidad principal y única identidad del ciclo.
-- **Campos persistidos:** `id`, `description`, `location`, `asset`, `priority`, `status`, `requesterId`, `currentTechnicianId?`, `resolvedById?`, `closedById?`, `createdAt`, `updatedAt`, `resolvedAt?`, `closedAt?`.
+- **Campos persistidos:** `id` UUID técnico, `ticketCode` público estable, `description`, `assetId?`, `priority`, `status`, `requesterId`, `currentTechnicianId?`, `resolvedById?`, `closedById?`, `createdAt`, `updatedAt`, `resolvedAt?`, `closedAt?`. Los textos `location` y `asset` se mantienen solo durante la transición de Fase 1.
 - **Relaciones conceptuales:** solicitante, evaluación de impacto, mantención, congelamientos, asignaciones e historial.
 - **Restricciones:** una falla por ticket; estado inicial `NEW`; sin eliminación física; `CLOSED` inmutable; técnico actual coherente con la asignación activa.
 
-`asset` es el nombre sugerido en el Word para máquina/equipo; el nombre definitivo del campo es una decisión técnica pendiente.
+`ticketCode` se genera con una secuencia PostgreSQL y no se recibe desde el cliente. La máquina y la ubicación se modelan mediante las relaciones `Ticket -> Asset -> Location`. Durante la transición de Fase 1, `assetId` es opcional y los textos libres existentes se conservan hasta que la Fase 2 actualice de forma atómica el contrato de creación.
+
+### `Location` y `Asset`
+
+- **`Location`:** `id`, `code` único, `name`, timestamps. Es un catálogo de solo lectura.
+- **`Asset`:** `id`, `assetCode` único, `name`, `brand`, `model`, `serialNumber` único, `category`, `locationId`, `active`, timestamps.
+- **Restricciones:** una máquina inactiva no será asignable a solicitudes nuevas; un índice parcial de PostgreSQL reserva cada máquina para un único ticket distinto de `CLOSED`.
 
 ### `ImpactAssessment`
 
@@ -34,11 +40,17 @@ Las restricciones funcionales sí son obligatorias aunque cambie la forma de per
 ### `Maintenance`
 
 - **Propósito:** información técnica del trabajo dentro del ticket.
-- **Campos persistidos:** `ticketId`, `diagnosis?`, `workPerformed?`, `notes?`, `finalEvidenceUrl?`.
+- **Campos persistidos:** `ticketId`, `diagnosis?`, `workPerformed?`, `notes?`, `finalEvidenceUrl?` heredada temporalmente.
 - **Relación:** corresponde al mismo ticket, no a un flujo independiente.
 - **Restricciones:** solo técnico actual puede escribir; `workPerformed` obligatorio al resolver. La evidencia final es una URL única opcional de hasta 2048 caracteres; la carga de archivos sigue fuera de alcance.
 
 La obligatoriedad exacta de `diagnosis` al resolver debe alinearse con el contrato UI/dominio futuro; el Word exige registrarlo como dato técnico, pero solo declara expresamente obligatorio `workPerformed` al resolver.
+
+### `TicketEvidence`
+
+- **Propósito:** metadatos de evidencia final privada, sin almacenar binarios ni URL firmada.
+- **Campos:** `id`, `ticketId`, `technicianId`, `assignmentId`, `type`, `publicId` único, `mimeType`, `size`, `originalFilename`, `createdAt`.
+- **Restricciones:** su carga y obligatoriedad al resolver se implementarán en la fase de evidencia; los metadatos ya preservan asociación con la asignación que la produjo.
 
 ### `FreezeRequest`
 
@@ -109,5 +121,6 @@ La obligatoriedad exacta de `diagnosis` al resolver debe alinearse con el contra
 - No existe campo ni columna `area`.
 - `ImpactAssessment` y `Maintenance` usan `ticketId` como PK/FK 1:1.
 - `AssignmentHistory` protege una sola asignación activa por ticket y técnico mediante índices únicos parciales.
+- `Ticket` protege un único ticket no cerrado por máquina mediante `uq_tickets_open_asset`.
 - Las relaciones no usan cascada ni borrado físico; las FK restringen la eliminación de datos trazables.
 - La consistencia transaccional entre ticket, asignación e historial corresponde a la fase de servicios de negocio.

@@ -46,6 +46,9 @@ import { AssignmentHistory } from './entities/assignment-history.entity';
 import { Maintenance } from './entities/maintenance.entity';
 import { FreezeRequest } from './entities/freeze-request.entity';
 import { Ticket } from './entities/ticket.entity';
+import { Asset } from '../assets/entities/asset.entity';
+import { TicketEvidence, TicketEvidenceType } from './entities/ticket-evidence.entity';
+import { EvidenceService, UploadedEvidenceFile } from './evidence.service';
 import { TicketStatus } from './enums/ticket-status.enum';
 import { AssignmentReleaseReason } from './enums/assignment-release-reason.enum';
 import { FreezeReasonType } from './enums/freeze-reason-type.enum';
@@ -59,6 +62,7 @@ export class TicketsService {
     private readonly tickets: Repository<Ticket>,
     private readonly dataSource: DataSource,
     private readonly historyService: HistoryService,
+    private readonly evidenceService: EvidenceService,
   ) {}
 
   async create(
@@ -67,12 +71,14 @@ export class TicketsService {
   ): Promise<TicketDetailResponseDto> {
     const priority = calculateTicketPriority(createTicketDto.impactAssessment);
     const ticketId = await this.dataSource.transaction(async (manager) => {
+      const asset = await manager.getRepository(Asset).createQueryBuilder('asset').setLock('pessimistic_write').where('asset.id = :id', { id: createTicketDto.assetId }).getOne();
+      if (!asset) throw new NotFoundException('Equipo no encontrado');
+      if (!asset.active) throw new ConflictException('El equipo seleccionado está inactivo');
       const ticketRepository = manager.getRepository(Ticket);
       const savedTicket = await ticketRepository.save(
         ticketRepository.create({
           description: createTicketDto.description,
-          location: createTicketDto.location,
-          asset: createTicketDto.asset,
+          assetId: asset.id,
           priority,
           status: TicketStatus.NEW,
           requesterId: actor.id,
@@ -653,6 +659,8 @@ export class TicketsService {
       if (!maintenance) {
         throw new ConflictException('Información de mantención no encontrada');
       }
+      const evidence = await manager.getRepository(TicketEvidence).findOne({ where: { ticketId: ticket.id, assignmentId: assignment.id, type: TicketEvidenceType.FINAL } });
+      if (!evidence) throw new ConflictException('Se requiere evidencia final de la asignación actual para resolver');
 
       const resolvedAt = new Date();
       maintenance.workPerformed = resolveTicketDto.workPerformed;
@@ -676,6 +684,23 @@ export class TicketsService {
       });
     });
 
+    return this.findOne(id, actor);
+  }
+
+  async uploadFinalEvidence(id: string, file: UploadedEvidenceFile, actor: AuthenticatedUser): Promise<TicketDetailResponseDto> {
+    this.assertTechnician(actor);
+    const allowed = ['image/jpeg', 'image/png', 'image/webp'];
+    const max = Number(process.env.FINAL_EVIDENCE_MAX_BYTES ?? 5242880);
+    if (!allowed.includes(file.mimetype) || file.size < 1 || file.size > max) throw new BadRequestException('Archivo de evidencia inválido');
+    const publicId = `tickets/${id}/final/${crypto.randomUUID()}`;
+    await this.dataSource.transaction(async manager => {
+      const ticket = await this.lockTicket(manager, id); this.assertCurrentTechnician(ticket, actor);
+      if (ticket.status !== TicketStatus.IN_PROGRESS) throw new ConflictException('Solo se puede cargar evidencia en IN_PROGRESS');
+      const assignment = await this.lockActiveAssignment(manager, id);
+      if (!assignment || assignment.technicianId !== actor.id) throw new ConflictException('No existe una asignación activa válida');
+      await this.evidenceService.upload(file, publicId);
+      await manager.getRepository(TicketEvidence).save({ ticketId:id, technicianId:actor.id, assignmentId:assignment.id, type:TicketEvidenceType.FINAL, publicId, mimeType:file.mimetype, size:file.size, originalFilename:file.originalname.replace(/[\\/\0-\x1f]/g, '_').slice(0,255) });
+    });
     return this.findOne(id, actor);
   }
 
@@ -733,6 +758,8 @@ export class TicketsService {
     const ticketQuery = this.tickets
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location')
       .where(
         `EXISTS (
           SELECT 1
@@ -776,6 +803,7 @@ export class TicketsService {
     const ticketQuery = this.tickets
       .createQueryBuilder('ticket')
       .leftJoinAndSelect('ticket.requester', 'requester');
+    ticketQuery.leftJoinAndSelect('ticket.machine', 'machine').leftJoinAndSelect('machine.location', 'location');
 
     ticketQuery.andWhere('ticket.requesterId = :requesterId', {
       requesterId: actor.id,
@@ -805,6 +833,28 @@ export class TicketsService {
     };
   }
 
+  async findAllAdmin(query: ListTicketsQueryDto, actor: AuthenticatedUser): Promise<PaginatedTicketsResponseDto> {
+    this.assertAdmin(actor);
+    const ticketQuery = this.tickets.createQueryBuilder('ticket')
+      .leftJoinAndSelect('ticket.requester', 'requester')
+      .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location');
+    ticketQuery.andWhere('ticket.status <> :closedStatus', {
+      closedStatus: TicketStatus.CLOSED,
+    });
+    if (query.status) ticketQuery.andWhere('ticket.status = :status', { status: query.status });
+    if (query.priority) ticketQuery.andWhere('ticket.priority = :priority', { priority: query.priority });
+    const [tickets, total] = await ticketQuery.orderBy('ticket.createdAt', 'DESC').addOrderBy('ticket.id', 'DESC').skip((query.page - 1) * query.limit).take(query.limit).getManyAndCount();
+    return { items: tickets.map((ticket) => this.toSummary(ticket)), page: query.page, limit: query.limit, total, totalPages: Math.ceil(total / query.limit) };
+  }
+
+  async findGlobalClosedHistory(actor: AuthenticatedUser): Promise<{ items: TicketDetailResponseDto[]; total: number }> {
+    this.assertAdmin(actor);
+    const tickets = await this.tickets.createQueryBuilder('ticket').select('ticket.id').where('ticket.status = :status', { status: TicketStatus.CLOSED }).orderBy('ticket.closedAt', 'DESC').addOrderBy('ticket.id', 'DESC').getMany();
+    return { items: await Promise.all(tickets.map((ticket) => this.findOne(ticket.id, actor))), total: tickets.length };
+  }
+
   async findAllFreezeRequests(
     actor: AuthenticatedUser,
   ): Promise<FreezeRequestsResponseDto> {
@@ -814,6 +864,7 @@ export class TicketsService {
       .getRepository(FreezeRequest)
       .createQueryBuilder('freezeRequest')
       .leftJoinAndSelect('freezeRequest.ticket', 'ticket')
+      .leftJoinAndSelect('ticket.machine', 'machine')
       .leftJoinAndSelect('freezeRequest.technician', 'technician')
       .leftJoinAndSelect('freezeRequest.reviewedBy', 'reviewedBy')
       .getManyAndCount();
@@ -834,8 +885,12 @@ export class TicketsService {
       .leftJoinAndSelect('ticket.currentTechnician', 'currentTechnician')
       .leftJoinAndSelect('ticket.resolvedBy', 'resolvedBy')
       .leftJoinAndSelect('ticket.closedBy', 'closedBy')
+      .leftJoinAndSelect('ticket.machine', 'machine')
+      .leftJoinAndSelect('machine.location', 'location')
       .leftJoinAndSelect('ticket.impactAssessment', 'impactAssessment')
       .leftJoinAndSelect('ticket.maintenance', 'maintenance')
+      .leftJoinAndSelect('ticket.evidences', 'evidence')
+      .leftJoinAndSelect('evidence.technician', 'evidenceTechnician')
       .leftJoinAndSelect('ticket.history', 'history')
       .leftJoinAndSelect('history.actor', 'historyActor')
       .where('ticket.id = :id', { id });
@@ -893,14 +948,20 @@ export class TicketsService {
     return {
       id: ticket.id,
       description: ticket.description,
-      location: ticket.location,
-      asset: ticket.asset,
+      ticketCode: ticket.ticketCode,
+      location: ticket.machine.location.name,
+      asset: ticket.machine.name,
+      assetId: ticket.assetId,
+      assetCode: ticket.machine.assetCode,
+      locationId: ticket.machine.locationId,
+      locationCode: ticket.machine.location.code,
       priority: ticket.priority,
       status: ticket.status,
       requester: {
         id: ticket.requester.id,
         name: ticket.requester.name,
       },
+      currentTechnician: ticket.currentTechnician ? { id: ticket.currentTechnician.id, name: ticket.currentTechnician.name } : null,
       createdAt: ticket.createdAt,
       updatedAt: ticket.updatedAt,
     };
@@ -958,6 +1019,7 @@ export class TicketsService {
             notes: ticket.maintenance.notes,
           }
         : null,
+      finalEvidence: ticket.evidences.map((evidence) => ({ id: evidence.id, publicId: evidence.publicId, mimeType: evidence.mimeType, size: evidence.size, originalFilename: evidence.originalFilename, createdAt: evidence.createdAt, technician: { id: evidence.technician.id, name: evidence.technician.name }, accessUrl: this.evidenceService.accessUrl(evidence.publicId) })),
       history: ticket.history.map((entry) => this.toHistoryEntry(entry)),
     };
   }
@@ -1038,7 +1100,7 @@ export class TicketsService {
       ticket: {
         id: request.ticket.id,
         description: request.ticket.description,
-        asset: request.ticket.asset,
+        asset: request.ticket.machine.name,
         priority: request.ticket.priority,
         status: request.ticket.status,
       },

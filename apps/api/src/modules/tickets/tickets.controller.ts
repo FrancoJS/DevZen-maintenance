@@ -1,5 +1,6 @@
 import {
   Body,
+  BadRequestException,
   Controller,
   Get,
   HttpCode,
@@ -9,7 +10,11 @@ import {
   Patch,
   Post,
   Query,
+  UploadedFile,
+  UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { UploadedEvidenceFile } from './evidence.service';
 import {
   ApiBadRequestResponse,
   ApiBearerAuth,
@@ -35,6 +40,7 @@ import { ResolveTicketDto } from './dto/resolve-ticket.dto';
 import { RejectFreezeRequestDto } from './dto/reject-freeze-request.dto';
 import { RequestFreezeDto } from './dto/request-freeze.dto';
 import {
+  GlobalTicketHistoryResponseDto,
   PaginatedTicketsResponseDto,
   TicketDetailResponseDto,
 } from './dto/ticket-response.dto';
@@ -59,6 +65,9 @@ export class TicketsController {
     return this.ticketsService.create(createTicketDto, currentUser);
   }
 
+  @Post(':id/final-evidence') @Roles(UserRole.TECHNICIAN) @UseInterceptors(FileInterceptor('file', { limits: { fileSize: Number(process.env.FINAL_EVIDENCE_MAX_BYTES ?? 5242880) } }))
+  uploadFinalEvidence(@Param('id', new ParseUUIDPipe({ version: '4' })) id: string, @UploadedFile() file: UploadedEvidenceFile, @CurrentUser() currentUser: AuthenticatedUser): Promise<TicketDetailResponseDto> { if (!file) throw new BadRequestException('Se requiere un archivo'); return this.ticketsService.uploadFinalEvidence(id, file, currentUser); }
+
   @Get()
   @ApiOperation({
     summary: 'Listar las solicitudes creadas por el usuario autenticado',
@@ -70,6 +79,22 @@ export class TicketsController {
     @CurrentUser() currentUser: AuthenticatedUser,
   ): Promise<PaginatedTicketsResponseDto> {
     return this.ticketsService.findAll(query, currentUser);
+  }
+
+  @Get('admin')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Listar todos los tickets para administración' })
+  @ApiOkResponse({ type: PaginatedTicketsResponseDto })
+  findAllAdmin(@Query() query: ListTicketsQueryDto, @CurrentUser() currentUser: AuthenticatedUser): Promise<PaginatedTicketsResponseDto> {
+    return this.ticketsService.findAllAdmin(query, currentUser);
+  }
+
+  @Get('admin/history')
+  @Roles(UserRole.ADMIN)
+  @ApiOperation({ summary: 'Consultar historial global de tickets cerrados' })
+  @ApiOkResponse({ type: GlobalTicketHistoryResponseDto })
+  globalClosedHistory(@CurrentUser() currentUser: AuthenticatedUser): Promise<GlobalTicketHistoryResponseDto> {
+    return this.ticketsService.findGlobalClosedHistory(currentUser);
   }
 
   @Get('my-maintenance')

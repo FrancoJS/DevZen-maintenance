@@ -8,6 +8,8 @@ import { TechniciansModule } from '../modules/technicians/technicians.module';
 import { UsersModule } from '../modules/users/users.module';
 import { DashboardModule } from '../modules/dashboard/dashboard.module';
 import { readJwtConfiguration } from '../modules/auth/auth.config';
+import { AssetsModule } from '../modules/assets/assets.module';
+import { LocationsModule } from '../modules/locations/locations.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { readJwtConfiguration } from '../modules/auth/auth.config';
     TechniciansModule,
     HistoryModule,
     DashboardModule,
+    AssetsModule,
+    LocationsModule,
   ],
 })
 export class AppModule {}

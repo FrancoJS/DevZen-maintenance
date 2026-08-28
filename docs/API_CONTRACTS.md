@@ -53,7 +53,7 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 `POST /api/tickets`
 
 - **Actor:** cualquier rol autenticado.
-- **Entrada:** `description`, `location`, `asset` y `impactAssessment` con las cinco respuestas obligatorias. No existe `area`.
+- **Entrada:** `description`, `assetId` UUID v4 de una maquinaria activa e `impactAssessment` con las cinco respuestas obligatorias. No existe `area`, `location`, `asset` ni `ticketCode` como entrada.
 - **Efecto:** en una transacción, persiste ticket `NEW`, evaluación, prioridad automática e historial `TICKET_CREATED`.
 - **Datos derivados:** requester/timestamps desde backend; prioridad calculada exclusivamente por backend.
 - **Respuesta `201`:** detalle del ticket, evaluación e historial.
@@ -68,7 +68,15 @@ Todos los contratos protegidos deben derivar actor y rol de la identidad autenti
 - **Consulta:** `page` desde 1, `limit` entre 1 y 100, filtros opcionales por estado y prioridad; orden `createdAt DESC, id DESC`.
 - **Respuesta `200`:** `{ items, page, limit, total, totalPages }`.
 
-Este endpoint corresponde a **Mis solicitudes**. El listado/historial global administrativo será una capacidad separada, todavía sin implementar ni contrato de ruta definido. El acceso administrativo al detalle de un ticket no cambia.
+Este endpoint corresponde a **Mis solicitudes**. `GET /api/tickets/admin` es el listado de Gestión de tickets, paginado y exclusivo de `ADMIN`: devuelve todos los tickets que todavía no están `CLOSED`, incluidos `NEW`, `ASSIGNED`, `IN_PROGRESS`, `FREEZE_REQUESTED`, `FROZEN`, `PENDING_REASSIGNMENT` y `RESOLVED`. El detalle administrativo no cambia.
+
+### Historial global de tickets cerrados
+
+`GET /api/tickets/admin/history`
+
+- **Actor:** `ADMIN`.
+- **Respuesta `200`:** `{ items, total }`, con todos los tickets `CLOSED`; cada elemento incluye detalle, cronología, asignaciones, congelamientos, resolución, cierre y evidencia autorizada.
+- **Visibilidad:** los demás roles reciben `403`; tickets no cerrados no aparecen.
 
 ### Obtener detalle e historial
 
@@ -160,6 +168,10 @@ La reasignación desde `PENDING_REASSIGNMENT` pertenece al flujo de congelamient
 - **Cambio:** `IN_PROGRESS -> RESOLVED`.
 - **Respuesta `200`:** detalle actualizado, incluyendo los datos de resolución y la participación liberada.
 - **Errores:** `400` para cuerpo/identificador inválido, `403` para técnico no asignado, `404` para ticket inexistente y `409` para estado o asignación/mantención incompatibles.
+
+### Cargar evidencia final
+
+`POST /api/tickets/:id/final-evidence` recibe `multipart/form-data` con un campo `file`. Solo el técnico actual puede cargar JPEG, PNG o WebP mientras el ticket está `IN_PROGRESS`; el máximo lo define `FINAL_EVIDENCE_MAX_BYTES` (5 MiB por defecto). La evidencia queda asociada a la asignación actual y el detalle autorizado devuelve sus metadatos junto a una URL firmada temporal. Resolver exige al menos una evidencia de esa misma asignación.
 
 ### Cerrar administrativamente
 
