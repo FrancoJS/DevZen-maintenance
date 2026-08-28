@@ -85,6 +85,7 @@ describe('AdminTicketDetailPageComponent', () => {
     getTicket: ReturnType<typeof vi.fn>;
     listTechnicians: ReturnType<typeof vi.fn>;
     assignTechnician: ReturnType<typeof vi.fn>;
+    closeTicket: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -92,6 +93,7 @@ describe('AdminTicketDetailPageComponent', () => {
       getTicket: vi.fn(() => of(ticket)),
       listTechnicians: vi.fn(() => of(technicianResponse())),
       assignTechnician: vi.fn(),
+      closeTicket: vi.fn(),
     };
 
     await TestBed.configureTestingModule({
@@ -153,6 +155,15 @@ describe('AdminTicketDetailPageComponent', () => {
     expect(
       fixture.nativeElement.querySelector('.ticket-history-content--embedded')
     ).not.toBeNull();
+  });
+
+  it('mantiene la barra de acciones fija en escritorio dentro del detalle', () => {
+    const fixture = createComponent();
+    const sidebar = fixture.nativeElement.querySelector('aside') as HTMLElement;
+
+    expect(sidebar.classList).toContain('lg:sticky');
+    expect(sidebar.classList).toContain('lg:top-0');
+    expect(sidebar.classList).toContain('lg:self-start');
   });
 
   it('muestra técnicos ocupados pero impide seleccionarlos', () => {
@@ -253,6 +264,72 @@ describe('AdminTicketDetailPageComponent', () => {
     expect(fixture.nativeElement.textContent).not.toContain(
       'Confirmar asignación'
     );
+  });
+
+  it('ofrece el cierre inmediato solo para un ticket resuelto', () => {
+    gateway.getTicket.mockReturnValue(
+      of({ ...ticket, status: 'RESOLVED' } satisfies TicketDetail)
+    );
+    gateway.closeTicket.mockReturnValue(
+      of({ ...ticket, status: 'CLOSED' } satisfies TicketDetail)
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    const ticketClosed = vi.fn();
+    component.ticketClosed.subscribe(ticketClosed);
+
+    const closeButton = Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>
+    ).find((button) => button.textContent?.trim() === 'Cerrar ticket');
+    expect(closeButton).toBeDefined();
+
+    closeButton?.click();
+    fixture.detectChanges();
+
+    expect(gateway.closeTicket).toHaveBeenCalledWith(ticket.id);
+    expect(component.ticket()?.status).toBe('CLOSED');
+    expect(ticketClosed).toHaveBeenCalledWith(ticket.id);
+    expect(fixture.nativeElement.textContent).not.toContain('Cerrar ticket');
+  });
+
+  it('deshabilita el cierre mientras espera la respuesta del backend', () => {
+    gateway.getTicket.mockReturnValue(
+      of({ ...ticket, status: 'RESOLVED' } satisfies TicketDetail)
+    );
+    const pendingClose = new Subject<TicketDetail>();
+    gateway.closeTicket.mockReturnValue(pendingClose.asObservable());
+    const fixture = createComponent();
+
+    fixture.componentInstance.closeTicket();
+    fixture.detectChanges();
+
+    const closeButton = Array.from(
+      fixture.nativeElement.querySelectorAll('button') as NodeListOf<HTMLButtonElement>
+    ).find((button) => button.textContent?.trim() === 'Cerrando ticket…');
+    expect(closeButton?.disabled).toBe(true);
+
+    pendingClose.next({ ...ticket, status: 'CLOSED' });
+    pendingClose.complete();
+  });
+
+  it('mantiene el ticket resuelto y muestra un error cuando el cierre es rechazado', () => {
+    gateway.getTicket.mockReturnValue(
+      of({ ...ticket, status: 'RESOLVED' } satisfies TicketDetail)
+    );
+    gateway.closeTicket.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 409, statusText: 'Conflict' })
+      ) as Observable<TicketDetail>
+    );
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    component.closeTicket();
+    fixture.detectChanges();
+
+    expect(component.ticket()?.status).toBe('RESOLVED');
+    expect(component.closureError()).toContain('ya no está en estado resuelto');
+    expect(fixture.nativeElement.textContent).toContain('No se pudo cerrar');
   });
 
   it('muestra un error recuperable cuando el ticket no existe', () => {

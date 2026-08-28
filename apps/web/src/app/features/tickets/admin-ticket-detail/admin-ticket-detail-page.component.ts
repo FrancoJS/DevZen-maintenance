@@ -69,6 +69,7 @@ export class AdminTicketDetailPageComponent implements OnInit {
   readonly ticketId = input('');
   readonly embedded = input(false);
   @Output() readonly ticketUpdated = new EventEmitter<void>();
+  @Output() readonly ticketClosed = new EventEmitter<string>();
 
   readonly ticket = signal<TicketDetail | null>(null);
   readonly technicians = signal<Technician[]>([]);
@@ -79,6 +80,8 @@ export class AdminTicketDetailPageComponent implements OnInit {
   readonly assignmentError = signal<string | null>(null);
   readonly assignmentSuccess = signal<string | null>(null);
   readonly availabilityWarning = signal<string | null>(null);
+  readonly isClosing = signal(false);
+  readonly closureError = signal<string | null>(null);
 
   readonly availableTechnicians = computed(() =>
     this.technicians().filter(({ availability }) => availability === 'AVAILABLE')
@@ -159,6 +162,27 @@ export class AdminTicketDetailPageComponent implements OnInit {
         },
         error: (error: HttpErrorResponse) => {
           this.assignmentError.set(this.assignmentErrorMessage(error));
+        },
+      });
+  }
+
+  closeTicket(): void {
+    const ticket = this.ticket();
+    if (!ticket || ticket.status !== 'RESOLVED' || this.isClosing()) return;
+
+    this.isClosing.set(true);
+    this.closureError.set(null);
+
+    this.gateway
+      .closeTicket(ticket.id)
+      .pipe(finalize(() => this.isClosing.set(false)))
+      .subscribe({
+        next: (closedTicket) => {
+          this.ticket.set(closedTicket);
+          this.ticketClosed.emit(ticket.id);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.closureError.set(this.closureErrorMessage(error));
         },
       });
   }
@@ -249,5 +273,15 @@ export class AdminTicketDetailPageComponent implements OnInit {
       return 'No se pudo asignar: el ticket cambió de estado o el técnico está ocupado.';
     }
     return 'No fue posible asignar el técnico. Inténtalo nuevamente.';
+  }
+
+  private closureErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 404) {
+      return 'El ticket ya no está disponible. Actualiza la gestión para continuar.';
+    }
+    if (error.status === 409) {
+      return 'No se pudo cerrar: el ticket ya no está en estado resuelto.';
+    }
+    return 'No fue posible cerrar el ticket. Inténtalo nuevamente.';
   }
 }

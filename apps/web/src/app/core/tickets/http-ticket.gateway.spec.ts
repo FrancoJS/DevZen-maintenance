@@ -206,6 +206,17 @@ describe('HttpTicketGateway', () => {
     });
   });
 
+  it('closes a resolved ticket without sending a closure note', () => {
+    gateway.closeTicket(response.id).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/close`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toEqual({});
+    pendingRequest.flush({ ...response, status: 'CLOSED' });
+  });
+
   it('lists the administrative freeze queue', () => {
     const freezeRequests: FreezeRequestsResponse = { items: [], total: 0 };
     gateway.listFreezeRequests().subscribe();

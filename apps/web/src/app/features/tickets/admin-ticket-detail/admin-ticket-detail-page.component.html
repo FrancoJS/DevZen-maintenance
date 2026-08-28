@@ -36,6 +36,9 @@
     @if (availabilityWarning(); as warning) {
       <div class="rounded-lg border border-amber-300 bg-amber-50 p-4 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-100" role="status">{{ warning }}</div>
     }
+    @if (closureError(); as error) {
+      <div class="rounded-lg border border-destructive/40 bg-destructive/10 p-4 text-sm text-destructive" role="alert">{{ error }}</div>
+    }
 
     <div class="grid gap-6 lg:grid-cols-[minmax(0,1.4fr)_minmax(18rem,0.8fr)]">
       <div class="space-y-6">
@@ -109,7 +112,15 @@
         </article>
       </div>
 
-      <aside class="space-y-6">
+      <aside class="space-y-6 lg:sticky lg:top-0 lg:self-start">
+        @if (currentTicket.status === 'RESOLVED') {
+          <article hlmCard>
+            <header hlmCardHeader><h3 hlmCardTitle>Cierre administrativo</h3><p hlmCardDescription>Finaliza el ticket y retíralo de la gestión activa.</p></header>
+            <div hlmCardContent class="space-y-3">
+              <button hlmBtn type="button" variant="destructive" class="w-full" [disabled]="isClosing()" (click)="closeTicket()">{{ isClosing() ? 'Cerrando ticket…' : 'Cerrar ticket' }}</button>
+            </div>
+          </article>
+        }
         <article hlmCard>
           <header hlmCardHeader><h3 hlmCardTitle>Asignación actual</h3><p hlmCardDescription>La disponibilidad se actualiza automáticamente.</p></header>
           <div hlmCardContent class="space-y-4">

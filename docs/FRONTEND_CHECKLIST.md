@@ -71,7 +71,7 @@ Este checklist organiza el frontend del MVP por dependencias. Una tarea se consi
 - [ ] Aprobar congelamiento.
 - [ ] Rechazar congelamiento.
 - [ ] Marcar un ticket `FROZEN` como listo para retomar.
-- [ ] Cerrar administrativamente un ticket `RESOLVED`.
+- [x] Cerrar administrativamente un ticket `RESOLVED`.
 - [ ] Historial global de mantenciones.
 
 ## 5. Reglas visuales y estados (P0)

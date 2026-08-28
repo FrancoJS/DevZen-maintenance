@@ -52,6 +52,7 @@ export interface AdminTicketGateway {
   listTechnicians(): Observable<PaginatedTechniciansResponse>;
   getTicket(id: string): Observable<TicketDetail>;
   assignTechnician(id: string, technicianId: string): Observable<TicketDetail>;
+  closeTicket(id: string): Observable<TicketDetail>;
 }
 
 export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(

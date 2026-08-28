@@ -37,7 +37,6 @@ const TICKET_STATUSES: TicketStatus[] = [
   'FROZEN',
   'PENDING_REASSIGNMENT',
   'RESOLVED',
-  'CLOSED',
 ];
 
 const TICKET_PRIORITIES: TicketPriority[] = [
@@ -81,6 +80,7 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
   readonly selectedActionTicket = signal<TicketSummary | null>(null);
   readonly isActionsModalOpen = signal(false);
   readonly isActionsModalClosing = signal(false);
+  readonly closureSuccess = signal<string | null>(null);
   readonly statuses = TICKET_STATUSES;
   readonly priorities = TICKET_PRIORITIES;
 
@@ -97,11 +97,14 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
         this.selectedAssignment()
     )
   );
+  readonly activeTickets = computed(() =>
+    this.tickets().filter((ticket) => ticket.status !== 'CLOSED')
+  );
   readonly filteredTickets = computed(() => {
     const assignment = this.selectedAssignment();
-    if (!assignment) return this.tickets();
+    if (!assignment) return this.activeTickets();
 
-    return this.tickets().filter((ticket) => {
+    return this.activeTickets().filter((ticket) => {
       const hasTechnician = this.hasCurrentTechnician(ticket);
       return assignment === 'WITH_TECHNICIAN' ? hasTechnician : !hasTechnician;
     });
@@ -194,6 +197,7 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
   openActions(ticket: TicketSummary): void {
     if (this.actionCloseTimer) clearTimeout(this.actionCloseTimer);
     this.selectedActionTicket.set(ticket);
+    this.closureSuccess.set(null);
     this.isActionsModalClosing.set(false);
     this.isActionsModalOpen.set(true);
     this.previousBodyOverflow = this.document.body.style.overflow;
@@ -218,6 +222,16 @@ export class AdminTicketManagementPageComponent implements OnInit, OnDestroy {
     this.selectedPriority.set('');
     this.selectedAssignment.set('');
     if (requiresReload) this.loadData();
+  }
+
+  handleTicketClosed(ticketId: string): void {
+    this.tickets.update((tickets) =>
+      tickets.filter((ticket) => ticket.id !== ticketId)
+    );
+    this.closureSuccess.set(
+      'El ticket fue cerrado y se retiró de Gestión de tickets.'
+    );
+    this.closeActions();
   }
 
   technicianName(ticket: TicketSummary): string {

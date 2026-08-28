@@ -5,6 +5,10 @@
     <p class="mt-1 max-w-3xl text-muted-foreground">Supervisa las solicitudes y la capacidad actual del equipo técnico.</p>
   </header>
 
+  @if (closureSuccess(); as success) {
+    <p class="rounded-lg border border-emerald-300 bg-emerald-50 p-4 text-sm text-emerald-900 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-100" role="status">{{ success }}</p>
+  }
+
   @if (isLoading() && !hasLoadedOnce()) {
     <article hlmCard aria-busy="true" aria-label="Cargando gestión de tickets">
       <div hlmCardContent class="space-y-4 py-8">
@@ -239,7 +243,7 @@
         <div class="ticket-actions-modal-backdrop fixed inset-0 z-50 grid place-items-center p-4" [class.ticket-actions-modal-backdrop--closing]="isActionsModalClosing()" role="presentation" (click)="closeActions()">
           <article hlmCard role="dialog" aria-modal="true" aria-labelledby="ticket-actions-title" class="ticket-actions-modal max-h-[94vh] w-full max-w-6xl overflow-hidden" [class.ticket-actions-modal--closing]="isActionsModalClosing()" (click)="$event.stopPropagation()" (keydown.escape)="closeActions()" tabindex="-1">
             <header class="flex items-center justify-between border-b px-5 py-4"><h3 id="ticket-actions-title" class="text-lg font-semibold">Detalle y acciones administrativas</h3><button hlmBtn type="button" variant="ghost" (click)="closeActions()" aria-label="Cerrar detalle">✕</button></header>
-            <div class="ticket-actions-modal-content max-h-[calc(94vh-4.5rem)] overflow-y-auto px-1 py-4 sm:px-4"><app-admin-ticket-detail-page [ticketId]="ticket.id" [embedded]="true" (ticketUpdated)="loadData()" /></div>
+            <div class="ticket-actions-modal-content max-h-[calc(94vh-4.5rem)] overflow-y-auto px-1 py-4 sm:px-4"><app-admin-ticket-detail-page [ticketId]="ticket.id" [embedded]="true" (ticketUpdated)="loadData()" (ticketClosed)="handleTicketClosed($event)" /></div>
           </article>
         </div>
       }

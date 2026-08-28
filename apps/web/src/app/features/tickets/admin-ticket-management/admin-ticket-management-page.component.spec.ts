@@ -279,6 +279,29 @@ describe('AdminTicketManagementPageComponent', () => {
     ]);
   });
 
+  it('excluye tickets cerrados y los retira al confirmar su cierre', () => {
+    const closedTicket: TicketSummary = {
+      ...tickets[0],
+      id: 'ticket-closed',
+      status: 'CLOSED',
+    };
+    gateway.listTickets.mockReturnValue(of(ticketResponse([...tickets, closedTicket])));
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+
+    expect(component.filteredTickets().map(({ id }) => id)).not.toContain(
+      closedTicket.id
+    );
+
+    component.openActions(tickets[0]);
+    component.handleTicketClosed(tickets[0].id);
+    fixture.detectChanges();
+
+    expect(component.tickets().map(({ id }) => id)).not.toContain(tickets[0].id);
+    expect(component.closureSuccess()).toContain('fue cerrado');
+    expect(component.isActionsModalClosing()).toBe(true);
+  });
+
   it.each(['ASSIGNED', 'IN_PROGRESS', 'FREEZE_REQUESTED'] as const)(
     'considera %s como una asignación activa',
     (status) => {

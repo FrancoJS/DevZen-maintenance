@@ -94,6 +94,10 @@ export class HttpTicketGateway
     });
   }
 
+  closeTicket(id: string): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets/${id}/close`, {});
+  }
+
   listFreezeRequests(): Observable<FreezeRequestsResponse> {
     return this.http.get<FreezeRequestsResponse>(
       `${API_BASE_URL}/freeze-requests`
