@@ -11,7 +11,7 @@
   }
 
   <form class="space-y-6" [class.pt-6]="embedded" [class.px-4]="embedded" [class.pb-6]="embedded" [class.sm:px-6]="embedded" [class.sm:pb-8]="embedded" [formGroup]="form" (ngSubmit)="submit()" novalidate>
-    <article hlmCard>
+    <article hlmCard class="overflow-visible">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Datos de la falla</h3>
         <p hlmCardDescription>Indica dónde ocurrió el problema y describe lo observado.</p>
@@ -37,8 +37,8 @@
           <div class="grid gap-2">
             <label for="location" class="text-sm font-medium">Ubicación</label>
             <div class="relative">
-              <input hlmInput id="location" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="location-options" [attr.aria-expanded]="isLocationListOpen()" [attr.aria-invalid]="hasError('locationId')" [value]="locationQuery()" [disabled]="isCatalogLoading() || !!catalogError()" placeholder="Busca por nombre o código" aria-describedby="location-help location-error" [class.border-destructive]="hasError('locationId')" [class.ring-1]="hasError('locationId')" [class.ring-destructive]="hasError('locationId')" (input)="updateLocationQuery($any($event.target).value)" (focus)="isLocationListOpen.set(true)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'location')" />
-              @if (isLocationListOpen() && !isCatalogLoading() && !catalogError()) {
+              <input hlmInput id="location" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="location-options" [attr.aria-expanded]="isLocationListOpen()" [attr.aria-invalid]="hasError('locationId')" [value]="locationQuery()" [disabled]="isCatalogLoading() || !!catalogError()" placeholder="Busca por nombre o código" aria-describedby="location-help location-error" [class.border-destructive]="hasError('locationId')" [class.ring-1]="hasError('locationId')" [class.ring-destructive]="hasError('locationId')" (input)="updateLocationQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'location')" />
+              @if (isLocationListOpen() && locationQuery().trim() && !isCatalogLoading() && !catalogError()) {
                 <ul id="location-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
                   @for (location of filteredLocations(); track location.id) {
                     <li role="option" [attr.aria-selected]="form.controls.locationId.value === location.id"><button type="button" class="flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectLocation(location)"><span class="font-medium">{{ location.name }}</span><span class="text-xs text-muted-foreground">{{ location.code }}</span></button></li>
@@ -55,8 +55,8 @@
           <div class="grid gap-2">
             <label for="asset" class="text-sm font-medium">Máquina o equipo</label>
             <div class="relative">
-              <input hlmInput id="asset" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="asset-options" [attr.aria-expanded]="isAssetListOpen()" [attr.aria-invalid]="hasError('assetId')" [value]="assetQuery()" [disabled]="isCatalogLoading() || !!catalogError() || !form.controls.locationId.value" [placeholder]="form.controls.locationId.value ? 'Busca por nombre o código' : 'Primero selecciona una ubicación'" aria-describedby="asset-help asset-error" [class.border-destructive]="hasError('assetId')" [class.ring-1]="hasError('assetId')" [class.ring-destructive]="hasError('assetId')" (input)="updateAssetQuery($any($event.target).value)" (focus)="isAssetListOpen.set(true)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'asset')" />
-              @if (isAssetListOpen() && form.controls.locationId.value && !isCatalogLoading() && !catalogError()) {
+              <input hlmInput id="asset" type="text" autocomplete="off" role="combobox" aria-autocomplete="list" aria-controls="asset-options" [attr.aria-expanded]="isAssetListOpen()" [attr.aria-invalid]="hasError('assetId')" [value]="assetQuery()" [disabled]="isCatalogLoading() || !!catalogError() || !form.controls.locationId.value" [placeholder]="form.controls.locationId.value ? 'Busca por nombre o código' : 'Primero selecciona una ubicación'" aria-describedby="asset-help asset-error" [class.border-destructive]="hasError('assetId')" [class.ring-1]="hasError('assetId')" [class.ring-destructive]="hasError('assetId')" (input)="updateAssetQuery($any($event.target).value)" (blur)="closeLists()" (keydown)="handleAutocompleteKeydown($event, 'asset')" />
+              @if (isAssetListOpen() && assetQuery().trim() && form.controls.locationId.value && !isCatalogLoading() && !catalogError()) {
                 <ul id="asset-options" role="listbox" class="absolute z-20 mt-1 max-h-52 w-full overflow-y-auto rounded-lg border bg-popover p-1 text-sm shadow-lg">
                   @for (asset of filteredAssets(); track asset.id) {
                     <li role="option" [attr.aria-selected]="form.controls.assetId.value === asset.id"><button type="button" class="flex w-full flex-col rounded-md px-3 py-2 text-left hover:bg-accent focus:bg-accent focus:outline-none" (mousedown)="$event.preventDefault()" (click)="selectAsset(asset)"><span class="font-medium">{{ asset.name }}</span><span class="text-xs text-muted-foreground">{{ asset.assetCode }}</span></button></li>

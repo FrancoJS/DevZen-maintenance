@@ -105,6 +105,43 @@ describe('CreateTicketPageComponent', () => {
     expect(description.classList.contains('border-destructive')).toBe(false);
   });
 
+  it('abre cada autocomplete solo después de escribir una búsqueda no vacía', () => {
+    const fixture = createComponent();
+    const component = fixture.componentInstance;
+    const location = fixture.nativeElement.querySelector('#location') as HTMLInputElement;
+
+    location.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
+
+    location.value = 'planta';
+    location.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).not.toBeNull();
+
+    location.value = '   ';
+    location.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#location-options')).toBeNull();
+
+    component.selectLocation({ id: 'location-id', code: 'LXN-P1', name: 'Planta 1' });
+    fixture.detectChanges();
+    const asset = fixture.nativeElement.querySelector('#asset') as HTMLInputElement;
+    asset.dispatchEvent(new FocusEvent('focus'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
+
+    asset.value = 'excavadora';
+    asset.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).not.toBeNull();
+
+    asset.value = '   ';
+    asset.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('#asset-options')).toBeNull();
+  });
+
   it('envía el payload completo y muestra la prioridad respondida en español', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;

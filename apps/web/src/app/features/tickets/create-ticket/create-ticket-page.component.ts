@@ -120,7 +120,8 @@ export class CreateTicketPageComponent {
     this.form.controls.locationId.setValue(null);
     this.form.controls.assetId.setValue(null);
     this.assetQuery.set('');
-    this.isLocationListOpen.set(true);
+    this.isLocationListOpen.set(this.hasSearchQuery(value));
+    this.isAssetListOpen.set(false);
   }
 
   selectLocation(location: LocationSummary): void {
@@ -134,7 +135,7 @@ export class CreateTicketPageComponent {
   updateAssetQuery(value: string): void {
     this.assetQuery.set(value);
     this.form.controls.assetId.setValue(null);
-    this.isAssetListOpen.set(true);
+    this.isAssetListOpen.set(this.hasSearchQuery(value));
   }
 
   selectAsset(asset: AssetSummary): void {
@@ -150,7 +151,8 @@ export class CreateTicketPageComponent {
   handleAutocompleteKeydown(event: KeyboardEvent, type: 'location' | 'asset'): void {
     const options = type === 'location' ? this.filteredLocations() : this.filteredAssets();
     if (event.key === 'Escape') { this.isLocationListOpen.set(false); this.isAssetListOpen.set(false); return; }
-    if (event.key === 'ArrowDown') { event.preventDefault(); type === 'location' ? this.isLocationListOpen.set(true) : this.isAssetListOpen.set(true); return; }
+    const search = type === 'location' ? this.locationQuery() : this.assetQuery();
+    if (event.key === 'ArrowDown' && this.hasSearchQuery(search)) { event.preventDefault(); type === 'location' ? this.isLocationListOpen.set(true) : this.isAssetListOpen.set(true); return; }
     if (event.key === 'Enter' && options.length === 1) { event.preventDefault(); type === 'location' ? this.selectLocation(options[0] as LocationSummary) : this.selectAsset(options[0] as AssetSummary); }
   }
 
@@ -310,5 +312,9 @@ export class CreateTicketPageComponent {
 
   private catalogLabel(name: string, code: string): string {
     return `${name} · ${code}`;
+  }
+
+  private hasSearchQuery(value: string): boolean {
+    return value.trim().length > 0;
   }
 }
