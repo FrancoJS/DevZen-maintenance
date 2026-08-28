@@ -133,7 +133,7 @@
               @if (assignmentError(); as error) { <p class="text-sm text-destructive" role="alert">{{ error }}</p> }
               <button hlmBtn type="button" class="w-full" [disabled]="isAssigning() || !selectedTechnicianId()" (click)="assignTechnician()">{{ isAssigning() ? 'Asignando…' : 'Confirmar asignación' }}</button>
             } @else if (currentTicket.status === 'PENDING_REASSIGNMENT') {
-              <p class="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">La reasignación se habilitará como parte del flujo de congelamientos.</p>
+              <p class="rounded-lg border border-dashed p-3 text-sm text-muted-foreground">Gestiona la reasignación desde Congelamientos.</p>
             }
           </div>
         </article>

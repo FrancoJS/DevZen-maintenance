@@ -2,11 +2,14 @@ import { InjectionToken } from '@angular/core';
 import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
+  ApproveFreezeRequest,
   CurrentMaintenanceResponse,
+  FreezeRequestsResponse,
   ListMyTicketsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   RequestFreezeRequest,
+  RejectFreezeRequest,
   ResolveMaintenanceRequest,
   TicketDetail,
   TicketPriority,
@@ -39,6 +42,27 @@ export interface AdminTicketGateway {
 
 export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(
   'ADMIN_TICKET_GATEWAY'
+);
+
+export interface AdminFreezeGateway {
+  listFreezeRequests(): Observable<FreezeRequestsResponse>;
+  approveFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: ApproveFreezeRequest
+  ): Observable<TicketDetail>;
+  rejectFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: RejectFreezeRequest
+  ): Observable<TicketDetail>;
+  resolveBlocker(ticketId: string): Observable<TicketDetail>;
+  assignTechnician(ticketId: string, technicianId: string): Observable<TicketDetail>;
+  listTechnicians(): Observable<PaginatedTechniciansResponse>;
+}
+
+export const ADMIN_FREEZE_GATEWAY = new InjectionToken<AdminFreezeGateway>(
+  'ADMIN_FREEZE_GATEWAY'
 );
 
 export interface MaintenanceHistoryFilters {

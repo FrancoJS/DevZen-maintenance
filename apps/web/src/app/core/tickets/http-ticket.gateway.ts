@@ -4,6 +4,7 @@ import { Observable } from 'rxjs';
 import { API_BASE_URL } from '../api.config';
 import {
   AdminTicketFilters,
+  AdminFreezeGateway,
   AdminTicketGateway,
   MaintenanceHistoryFilters,
   TechnicianMaintenanceGateway,
@@ -11,10 +12,13 @@ import {
 } from './ticket.gateway';
 import {
   CreateTicketRequest,
+  ApproveFreezeRequest,
   CurrentMaintenanceResponse,
+  FreezeRequestsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   RequestFreezeRequest,
+  RejectFreezeRequest,
   ResolveMaintenanceRequest,
   TicketDetail,
   UpdateMaintenanceRequest,
@@ -25,6 +29,7 @@ export class HttpTicketGateway
   implements
     Pick<TicketGateway, 'createTicket'>,
     AdminTicketGateway,
+    AdminFreezeGateway,
     TechnicianMaintenanceGateway
 {
   private readonly http = inject(HttpClient);
@@ -58,6 +63,41 @@ export class HttpTicketGateway
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets/${id}/assign`, {
       technicianId,
     });
+  }
+
+  listFreezeRequests(): Observable<FreezeRequestsResponse> {
+    return this.http.get<FreezeRequestsResponse>(
+      `${API_BASE_URL}/freeze-requests`
+    );
+  }
+
+  approveFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: ApproveFreezeRequest
+  ): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/freeze-requests/${freezeRequestId}/approve`,
+      request
+    );
+  }
+
+  rejectFreezeRequest(
+    ticketId: string,
+    freezeRequestId: string,
+    request: RejectFreezeRequest
+  ): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/freeze-requests/${freezeRequestId}/reject`,
+      request
+    );
+  }
+
+  resolveBlocker(ticketId: string): Observable<TicketDetail> {
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${ticketId}/resolve-blocker`,
+      {}
+    );
   }
 
   getCurrentMaintenance(): Observable<CurrentMaintenanceResponse> {

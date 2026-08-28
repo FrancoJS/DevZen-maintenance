@@ -2,7 +2,6 @@ import { Route } from '@angular/router';
 import { AppShellComponent } from './layout/app-shell.component';
 import { LoginPageComponent } from './features/auth/login/login-page.component';
 import { HomePage } from './features/home/home-page';
-import { PlaceholderPage } from './features/placeholder/placeholder-page';
 import { authGuard, guestGuard } from './core/auth.guard';
 import { roleGuard } from './core/role.guard';
 import { UserRole } from './shared/navigation/navigation.model';
@@ -99,7 +98,16 @@ export const appRoutes: Route[] = [
             './features/tickets/admin-ticket-management/admin-ticket-management-page.component'
           ).then((module) => module.AdminTicketManagementPageComponent),
       },
-      { path: 'congelamientos', component: PlaceholderPage, title: 'Congelamientos | DevZen Maintenance', canActivate: [roleGuard], data: { title: 'Congelamientos', roles: ['ADMIN'] } },
+      {
+        path: 'congelamientos',
+        title: 'Congelamientos | DevZen Maintenance',
+        canActivate: [roleGuard],
+        data: { roles: ['ADMIN'] },
+        loadComponent: () =>
+          import(
+            './features/tickets/admin-freeze-management/admin-freeze-management-page.component'
+          ).then((module) => module.AdminFreezeManagementPageComponent),
+      },
       {
         path: 'historial-global',
         title: 'Historial global | DevZen Maintenance',

@@ -124,7 +124,10 @@ export class TicketsController {
   @Post(':id/assign')
   @Roles(UserRole.ADMIN)
   @HttpCode(HttpStatus.OK)
-  @ApiOperation({ summary: 'Asignar un técnico disponible a un ticket NEW' })
+  @ApiOperation({
+    summary:
+      'Asignar un técnico disponible a un ticket NEW o PENDING_REASSIGNMENT',
+  })
   @ApiOkResponse({ type: TicketDetailResponseDto })
   @ApiBadRequestResponse({ description: 'Técnico o identificador inválido.' })
   @ApiConflictResponse({
