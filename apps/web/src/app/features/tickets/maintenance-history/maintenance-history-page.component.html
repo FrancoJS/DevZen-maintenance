@@ -1,70 +1,39 @@
-<section
-  class="mx-auto max-w-7xl space-y-6"
-  aria-labelledby="maintenance-history-title"
->
-  <header
-    class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between"
-  >
+<section class="mx-auto max-w-7xl space-y-6" aria-labelledby="maintenance-history-title">
+  <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
-      <h2
-        id="maintenance-history-title"
-        class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl"
-      >
+      <h2 id="maintenance-history-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
         {{ title }}
       </h2>
       <p class="mt-1 max-w-3xl text-muted-foreground">{{ description }}</p>
     </div>
-    <span hlmBadge variant="secondary" class="w-fit"
-      >{{ records().length }}
-      {{ records().length === 1 ? 'resultado' : 'resultados' }}</span
-    >
+    <span hlmBadge variant="secondary" class="w-fit">
+      {{ records().length }} de {{ total() }}
+      {{ total() === 1 ? 'ticket cerrado' : 'tickets cerrados' }}
+    </span>
   </header>
 
   <article hlmCard>
     <header hlmCardHeader class="border-b">
       <h3 hlmCardTitle>Buscar y filtrar</h3>
-      <p hlmCardDescription>
-        Los filtros se aplican sobre los datos de demostración disponibles.
-      </p>
+      <p hlmCardDescription>Los filtros se aplican sobre los tickets cerrados cargados.</p>
     </header>
-    <div
-      hlmCardContent
-      class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]"
-    >
+    <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
       <div class="grid gap-2">
-        <label for="history-search" class="text-sm font-medium"
-          >Buscar por ticket o equipo</label
-        >
+        <label for="history-search" class="text-sm font-medium">Buscar por ticket, equipo o ubicación</label>
         <input
           hlmInput
           id="history-search"
           type="search"
-          class="!bg-card"
           placeholder="Ej.: TCK-2048 o Compresor"
           [value]="filters().query"
           (input)="updateQuery($any($event.target).value)"
         />
       </div>
       <div class="grid gap-2">
-        <label for="history-status" class="text-sm font-medium">Estado</label>
-        <select
-          id="history-status"
-          class="h-9 rounded-md border bg-card px-3 text-sm text-foreground"
-          [value]="filters().status"
-          (change)="updateStatus($any($event.target).value)"
-        >
-          <option value="">Todos los estados</option>
-          <option value="RESOLVED">Resuelta</option>
-          <option value="CLOSED">Cerrada</option>
-        </select>
-      </div>
-      <div class="grid gap-2">
-        <label for="history-priority" class="text-sm font-medium"
-          >Prioridad</label
-        >
+        <label for="history-priority" class="text-sm font-medium">Prioridad</label>
         <select
           id="history-priority"
-          class="h-9 rounded-md border bg-card px-3 text-sm text-foreground"
+          class="h-9 rounded-md border border-input bg-card px-3 text-sm text-foreground"
           [value]="filters().priority"
           (change)="updatePriority($any($event.target).value)"
         >
@@ -75,134 +44,80 @@
           <option value="CRITICAL">Crítica</option>
         </select>
       </div>
-      @if (isGlobal) {
-        <div class="grid gap-2 lg:col-span-2">
-          <label for="history-technician" class="text-sm font-medium"
-            >Técnico participante</label
-          >
-          <select
-            id="history-technician"
-            class="h-9 rounded-md border bg-card px-3 text-sm text-foreground"
-            [value]="filters().technicianId"
-            (change)="updateTechnician($any($event.target).value)"
-          >
-            <option value="">Todos los técnicos</option>
-            @for (technician of technicianOptions(); track technician.id) {
-              <option [value]="technician.id">{{ technician.name }}</option>
-            }
-          </select>
-        </div>
-      }
-      <div class="flex items-end">
-        <button
-          hlmBtn
-          type="button"
-          variant="outline"
-          class="w-full"
-          [disabled]="!hasActiveFilters()"
-          (click)="clearFilters()"
+      <div class="grid gap-2">
+        <label for="history-technician" class="text-sm font-medium">Técnico participante</label>
+        <select
+          id="history-technician"
+          class="h-9 rounded-md border border-input bg-card px-3 text-sm text-foreground"
+          [value]="filters().technicianId"
+          (change)="updateTechnician($any($event.target).value)"
         >
+          <option value="">Todos los técnicos</option>
+          @for (technician of technicianOptions(); track technician.id) {
+            <option [value]="technician.id">{{ technician.name }}</option>
+          }
+        </select>
+      </div>
+      <div class="flex items-end">
+        <button hlmBtn type="button" variant="outline" class="w-full" [disabled]="!hasActiveFilters()" (click)="clearFilters()">
           Limpiar filtros
         </button>
       </div>
     </div>
   </article>
 
-  @if (records().length) {
+  @if (isLoading()) {
+    <article hlmCard aria-busy="true" aria-label="Cargando historial global">
+      <div hlmCardContent class="grid gap-4 py-8">
+        <div hlmSkeleton class="h-12 w-full"></div>
+        <div hlmSkeleton class="h-12 w-full"></div>
+        <div hlmSkeleton class="h-12 w-full"></div>
+        <p class="text-sm text-muted-foreground">Cargando tickets cerrados…</p>
+      </div>
+    </article>
+  } @else if (loadError(); as error) {
+    <article hlmCard role="alert">
+      <div hlmCardContent class="py-12 text-center">
+        <p class="font-semibold">No pudimos cargar el historial global</p>
+        <p class="mt-1 text-sm text-muted-foreground">{{ error }}</p>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadHistory()">Reintentar</button>
+      </div>
+    </article>
+  } @else if (records().length) {
     <article hlmCard>
       <header hlmCardHeader class="border-b">
-        <h3 hlmCardTitle>Intervenciones finalizadas</h3>
-        <p hlmCardDescription>
-          Selecciona una mantención para revisar su cronología completa.
-        </p>
+        <h3 hlmCardTitle>Intervenciones cerradas</h3>
+        <p hlmCardDescription>Selecciona un ticket para revisar su trazabilidad.</p>
       </header>
       <div hlmCardContent class="p-4 sm:p-6">
-        <div
-          class="hidden overflow-hidden rounded-lg border border-border md:block"
-        >
+        <div class="hidden overflow-hidden rounded-lg border border-border md:block">
           <div hlmTableContainer>
             <table hlmTable class="min-w-220 text-left">
-              <caption hlmCaption class="sr-only">
-                Listado de mantenciones finalizadas
-              </caption>
-              <thead
-                hlmTHead
-                class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground"
-              >
+              <caption hlmCaption class="sr-only">Listado de tickets cerrados</caption>
+              <thead hlmTHead class="bg-muted/40 text-xs uppercase tracking-wide text-muted-foreground">
                 <tr hlmTr class="hover:bg-transparent">
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">
-                    Ticket y equipo
-                  </th>
-                  @if (isGlobal) {
-                    <th hlmTh scope="col" class="px-6 py-3 font-semibold">
-                      Participantes
-                    </th>
-                  }
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">
-                    Estado
-                  </th>
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">
-                    Prioridad
-                  </th>
-                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">
-                    {{ isGlobal ? 'Última actividad' : 'Finalizada' }}
-                  </th>
-                  <th hlmTh scope="col" class="px-6 py-3 !text-center">
-                    Acciones
-                  </th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Ticket y equipo</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Participantes</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Estado</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Prioridad</th>
+                  <th hlmTh scope="col" class="px-6 py-3 font-semibold">Cerrado</th>
+                  <th hlmTh scope="col" class="px-6 py-3 !text-center">Acciones</th>
                 </tr>
               </thead>
               <tbody hlmTBody>
-                @for (record of records(); track record.ticketId) {
+                @for (ticket of records(); track ticket.id) {
                   <tr hlmTr class="hover:bg-muted/35">
                     <td hlmTd class="px-6 py-4">
-                      <p class="font-semibold">{{ record.ticketId }}</p>
-                      <p class="mt-1 text-muted-foreground">
-                        {{ record.asset }}
-                      </p>
-                      <p class="mt-1 text-xs text-muted-foreground">
-                        {{ record.location }}
-                      </p>
+                      <p class="font-semibold">{{ ticketLabel(ticket) }}</p>
+                      <p class="mt-1 text-muted-foreground">{{ ticket.asset }}</p>
+                      <p class="mt-1 text-xs text-muted-foreground">{{ ticket.location }}</p>
                     </td>
-                    @if (isGlobal) {
-                      <td hlmTd class="px-6 py-4 text-muted-foreground">
-                        {{ participantsLabel(record) }}
-                      </td>
-                    }
-                    <td hlmTd class="px-6 py-4">
-                      <span
-                        hlmBadge
-                        variant="outline"
-                        [class]="statusClass(record.status)"
-                        >{{ statusLabel(record.status) }}</span
-                      >
-                    </td>
-                    <td hlmTd class="px-6 py-4">
-                      <span
-                        hlmBadge
-                        variant="outline"
-                        [class]="priorityClass(record.priority)"
-                        >{{ priorityLabel(record.priority) }}</span
-                      >
-                    </td>
-                    <td hlmTd class="px-6 py-4">
-                      <p class="font-medium">{{ activityLabel(record) }}</p>
-                      <p class="mt-1 text-muted-foreground">
-                        {{ formatDate(activityDate(record)) }}
-                      </p>
-                    </td>
+                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ participantsLabel(ticket) }}</td>
+                    <td hlmTd class="px-6 py-4"><span hlmBadge variant="outline">{{ statusLabel(ticket.status) }}</span></td>
+                    <td hlmTd class="px-6 py-4"><span hlmBadge variant="outline">{{ priorityLabel(ticket.priority) }}</span></td>
+                    <td hlmTd class="px-6 py-4 text-muted-foreground">{{ formatDate(activityDate(ticket)) }}</td>
                     <td hlmTd class="px-6 py-4 !text-center">
-                      <div class="flex justify-center">
-                        <button
-                          hlmBtn
-                          type="button"
-                          size="sm"
-                          variant="outline"
-                          (click)="openRecord(record)"
-                        >
-                          Ver detalle
-                        </button>
-                      </div>
+                      <button hlmBtn type="button" size="sm" variant="outline" (click)="openTicket(ticket)">Ver detalle</button>
                     </td>
                   </tr>
                 }
@@ -211,66 +126,19 @@
           </div>
         </div>
 
-        <div class="grid gap-3 p-4 md:hidden">
-          @for (record of records(); track record.ticketId) {
-            <article class="rounded-lg border p-4">
+        <div class="grid gap-3 md:hidden">
+          @for (ticket of records(); track ticket.id) {
+            <article class="rounded-lg border border-border p-4">
               <div class="flex flex-wrap items-start justify-between gap-3">
                 <div>
-                  <p class="font-semibold">{{ record.ticketId }}</p>
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    {{ record.asset }}
-                  </p>
+                  <p class="font-semibold">{{ ticketLabel(ticket) }}</p>
+                  <p class="mt-1 text-sm text-muted-foreground">{{ ticket.asset }}</p>
                 </div>
-                <span
-                  hlmBadge
-                  variant="outline"
-                  [class]="statusClass(record.status)"
-                  >{{ statusLabel(record.status) }}</span
-                >
+                <span hlmBadge variant="outline">{{ priorityLabel(ticket.priority) }}</span>
               </div>
-              <div class="mt-4 grid gap-3 text-sm">
-                <div>
-                  <p
-                    class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    Prioridad
-                  </p>
-                  <span
-                    hlmBadge
-                    variant="outline"
-                    class="mt-1"
-                    [class]="priorityClass(record.priority)"
-                    >{{ priorityLabel(record.priority) }}</span
-                  >
-                </div>
-                @if (isGlobal) {
-                  <div>
-                    <p
-                      class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                    >
-                      Participantes
-                    </p>
-                    <p class="mt-1">{{ participantsLabel(record) }}</p>
-                  </div>
-                }
-                <div>
-                  <p
-                    class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                  >
-                    {{ activityLabel(record) }}
-                  </p>
-                  <p class="mt-1">{{ formatDate(activityDate(record)) }}</p>
-                </div>
-              </div>
-              <button
-                hlmBtn
-                type="button"
-                variant="outline"
-                class="mx-auto mt-4 w-full max-w-xs"
-                (click)="openRecord(record)"
-              >
-                Ver detalle
-              </button>
+              <p class="mt-3 text-sm text-muted-foreground">{{ participantsLabel(ticket) }}</p>
+              <p class="mt-2 text-sm">Cerrado: {{ formatDate(activityDate(ticket)) }}</p>
+              <button hlmBtn type="button" variant="outline" class="mt-4 w-full" (click)="openTicket(ticket)">Ver detalle</button>
             </article>
           }
         </div>
@@ -279,163 +147,141 @@
   } @else {
     <article hlmCard>
       <div hlmCardContent class="py-12 text-center">
-        <p class="font-semibold">
-          No encontramos mantenciones con esos criterios.
-        </p>
-        <p class="mt-1 text-sm text-muted-foreground">
-          Ajusta los filtros o vuelve a mostrar todos los registros.
-        </p>
-        <button
-          hlmBtn
-          type="button"
-          variant="outline"
-          class="mt-5"
-          (click)="clearFilters()"
-        >
-          Restablecer filtros
-        </button>
+        @if (hasActiveFilters()) {
+          <p class="font-semibold">No encontramos tickets con esos criterios.</p>
+          <p class="mt-1 text-sm text-muted-foreground">Ajusta los filtros o vuelve a mostrar todos los registros.</p>
+          <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
+        } @else {
+          <p class="font-semibold">No hay tickets cerrados para mostrar.</p>
+          <p class="mt-1 text-sm text-muted-foreground">Los tickets aparecerán aquí cuando un administrador los cierre.</p>
+        }
       </div>
     </article>
   }
 
-  <hlm-sheet
-    side="right"
-    [state]="selectedRecord() ? 'open' : 'closed'"
-    (stateChanged)="onSheetStateChange($event)"
-  >
-    <hlm-sheet-content
-      #detailSheet
-      *hlmSheetPortal="let ctx"
-      class="w-full! gap-0 overflow-y-auto p-0 sm:max-w-2xl!"
-      aria-label="Detalle de la mantención"
-    >
-      @if (selectedRecord(); as record) {
+  <hlm-sheet side="right" [state]="selectedTicket() ? 'open' : 'closed'" (stateChanged)="onSheetStateChange($event)">
+    <hlm-sheet-content #detailSheet *hlmSheetPortal="let ctx" class="w-full! gap-0 overflow-y-auto p-0 sm:max-w-2xl!" aria-label="Detalle del ticket cerrado">
+      @if (selectedTicket(); as ticket) {
         <header class="border-b px-6 py-6 pr-14">
           <p class="text-sm text-muted-foreground">Detalle de mantención</p>
-          <h3 hlmSheetTitle class="mt-1 text-xl font-bold">
-            {{ record.ticketId }} · {{ record.asset }}
-          </h3>
-          <p hlmSheetDescription class="mt-1">
-            Consulta de solo lectura de la trazabilidad registrada.
-          </p>
+          <h3 hlmSheetTitle class="mt-1 text-xl font-bold">{{ ticketLabel(ticket) }} · {{ ticket.asset }}</h3>
+          <p hlmSheetDescription class="mt-1">Consulta de solo lectura de la trazabilidad registrada.</p>
         </header>
-        <div class="space-y-7 px-6 py-6">
+        <div class="grid gap-7 px-6 py-6">
           <section aria-labelledby="summary-title">
             <div class="flex flex-wrap gap-2">
-              <span
-                hlmBadge
-                variant="outline"
-                [class]="statusClass(record.status)"
-                >{{ statusLabel(record.status) }}</span
-              ><span
-                hlmBadge
-                variant="outline"
-                [class]="priorityClass(record.priority)"
-                >{{ priorityLabel(record.priority) }}</span
-              >
+              <span hlmBadge variant="outline">{{ statusLabel(ticket.status) }}</span>
+              <span hlmBadge variant="outline">{{ priorityLabel(ticket.priority) }}</span>
             </div>
             <h4 id="summary-title" class="mt-5 font-semibold">Resumen</h4>
-            <dl
-              class="mt-3 grid gap-4 rounded-lg border bg-muted/20 p-4 text-sm"
-            >
-              <div>
-                <dt
-                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Ubicación
-                </dt>
-                <dd class="mt-1 font-medium">{{ record.location }}</dd>
-              </div>
-              <div>
-                <dt
-                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  Solicitante
-                </dt>
-                <dd class="mt-1 font-medium">{{ record.requesterName }}</dd>
-              </div>
-              <div>
-                <dt
-                  class="text-xs font-medium uppercase tracking-wide text-muted-foreground"
-                >
-                  {{ activityLabel(record) }}
-                </dt>
-                <dd class="mt-1 font-medium">
-                  {{ formatDate(activityDate(record)) }}
-                </dd>
-              </div>
+            <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1 font-medium">{{ ticket.location }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Solicitante</dt><dd class="mt-1 font-medium">{{ ticket.requester.name }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</dt><dd class="mt-1 whitespace-pre-wrap">{{ ticket.description }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cerrado</dt><dd class="mt-1 font-medium">{{ formatDate(activityDate(ticket)) }}</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="impact-title">
+            <h4 id="impact-title" class="font-semibold">Evaluación de impacto</h4>
+            <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Riesgo de seguridad</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.safetyRisk) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Equipo detenido</dt><dd class="mt-1">{{ equipmentStoppedLabel(ticket.impactAssessment.equipmentStopped) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Impacto productivo</dt><dd class="mt-1">{{ productionImpactLabel(ticket.impactAssessment.productionImpact) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Alternativa disponible</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.workaroundAvailable) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Afecta otras áreas</dt><dd class="mt-1">{{ booleanLabel(ticket.impactAssessment.affectsOtherAreas) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad calculada</dt><dd class="mt-1">{{ priorityLabel(ticket.impactAssessment.calculatedPriority) }}</dd></div>
             </dl>
           </section>
           <section aria-labelledby="participants-title">
-            <h4 id="participants-title" class="font-semibold">
-              Técnicos participantes
-            </h4>
-            <ul class="mt-3 space-y-3">
-              @for (
-                participant of record.participants;
-                track participant.id + participant.assignedAt
-              ) {
-                <li class="rounded-lg border p-4">
-                  <p class="font-medium">{{ participant.name }}</p>
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    Asignado: {{ formatDate(participant.assignedAt) }}
-                  </p>
-                  @if (participant.releasedAt) {
-                    <p class="mt-1 text-sm text-muted-foreground">
-                      Liberado: {{ formatDate(participant.releasedAt) }}
-                    </p>
-                  }
-                  @if (participant.releaseReason) {
-                    <p class="mt-2 text-sm">{{ participant.releaseReason }}</p>
-                  }
-                </li>
-              }
-            </ul>
+            <h4 id="participants-title" class="font-semibold">Técnicos participantes</h4>
+            @if (ticket.assignments.length) {
+              <ul class="mt-3 grid gap-3">
+                @for (assignment of ticket.assignments; track assignment.id) {
+                  <li class="rounded-lg border border-border p-4">
+                    <p class="font-medium">{{ assignment.technician.name }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Asignado: {{ formatDate(assignment.assignedAt) }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Liberado: {{ formatDate(assignment.releasedAt) }}</p>
+                    <p class="mt-1 text-sm text-muted-foreground">Motivo: {{ releaseReasonLabel(assignment.releaseReason) }}</p>
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No hay asignaciones registradas.</p>
+            }
+          </section>
+          <section aria-labelledby="maintenance-title">
+            <h4 id="maintenance-title" class="font-semibold">Trabajo técnico</h4>
+            @if (ticket.maintenance; as maintenance) {
+              <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm">
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Diagnóstico</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.diagnosis || 'Sin diagnóstico registrado.' }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Trabajo realizado</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.workPerformed || 'Sin trabajo realizado registrado.' }}</dd></div>
+                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Observaciones</dt><dd class="mt-1 whitespace-pre-wrap">{{ maintenance.notes || 'Sin observaciones registradas.' }}</dd></div>
+              </dl>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No hay información técnica registrada.</p>
+            }
+          </section>
+          <section aria-labelledby="freeze-title">
+            <h4 id="freeze-title" class="font-semibold">Congelamientos</h4>
+            @if (ticket.freezeRequests.length) {
+              <ul class="mt-3 grid gap-3">
+                @for (request of ticket.freezeRequests; track request.id) {
+                  <li class="rounded-lg border border-border p-4 text-sm">
+                    <div class="flex flex-wrap items-center justify-between gap-2"><p class="font-medium">{{ freezeReasonLabel(request.reasonType) }}</p><span hlmBadge variant="outline">{{ freezeStatusLabel(request.status) }}</span></div>
+                    <p class="mt-1 text-muted-foreground">Solicitado por {{ request.technician.name }} · {{ formatDate(request.requestedAt) }}</p>
+                    @if (request.reasonDetail) { <p class="mt-2 whitespace-pre-wrap">{{ request.reasonDetail }}</p> }
+                    @if (request.reviewedBy) { <p class="mt-2 text-muted-foreground">Revisado por {{ request.reviewedBy.name }} · {{ formatDate(request.reviewedAt) }}</p> }
+                    @if (request.reviewNote) { <p class="mt-2 whitespace-pre-wrap">{{ request.reviewNote }}</p> }
+                  </li>
+                }
+              </ul>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No se solicitaron congelamientos.</p>
+            }
+          </section>
+          <section aria-labelledby="closure-title">
+            <h4 id="closure-title" class="font-semibold">Resolución y cierre</h4>
+            <dl class="mt-3 grid gap-4 rounded-lg border border-border bg-muted/20 p-4 text-sm sm:grid-cols-2">
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Resuelto por</dt><dd class="mt-1">{{ ticket.resolvedBy?.name ?? 'Sin registro' }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de resolución</dt><dd class="mt-1">{{ formatDate(ticket.resolvedAt) }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Cerrado por</dt><dd class="mt-1">{{ ticket.closedBy?.name ?? 'Sin registro' }}</dd></div>
+              <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de cierre</dt><dd class="mt-1">{{ formatDate(ticket.closedAt) }}</dd></div>
+            </dl>
+          </section>
+          <section aria-labelledby="evidence-title">
+            <h4 id="evidence-title" class="font-semibold">Evidencia final</h4>
+            <app-ticket-evidence-gallery class="mt-3 block" [evidence]="ticket.finalEvidence" />
           </section>
           <section aria-labelledby="timeline-title">
             <h4 id="timeline-title" class="font-semibold">Cronología</h4>
-            <ol class="mt-4 space-y-5 border-l-2 border-primary/25 pl-5">
-              @for (event of record.events; track event.id) {
-                <li class="relative">
-                  <span
-                    class="absolute -left-[1.68rem] top-1 size-3 rounded-full border-2 border-card bg-primary"
-                  ></span>
-                  <div
-                    class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1"
-                  >
-                    <p class="font-medium">{{ actionLabel(event.action) }}</p>
-                    <time class="text-xs text-muted-foreground">{{
-                      formatDate(event.occurredAt)
-                    }}</time>
-                  </div>
-                  <p class="mt-1 text-sm text-muted-foreground">
-                    {{ event.actor.name }} · {{ roleLabel(event.actor.role) }}
-                  </p>
-                  @if (event.previousStatus || event.newStatus) {
-                    <p class="mt-2 text-sm">
-                      @if (event.previousStatus) {
-                        <span>{{ statusLabel(event.previousStatus) }}</span>
-                      }
-                      @if (event.previousStatus && event.newStatus) {
-                        <span class="mx-1 text-muted-foreground">→</span>
-                      }
-                      @if (event.newStatus) {
-                        <span>{{ statusLabel(event.newStatus) }}</span>
-                      }
-                    </p>
-                  }
-                  @if (event.details) {
-                    <p class="mt-2 text-sm">{{ event.details }}</p>
-                  }
-                </li>
-              }
-            </ol>
+            @if (ticket.history.length) {
+              <ol class="mt-4 grid gap-5 border-l-2 border-primary/25 pl-5">
+                @for (entry of ticket.history; track entry.id) {
+                  <li class="relative">
+                    <span class="absolute -left-[1.68rem] top-1 size-3 rounded-full border-2 border-card bg-primary"></span>
+                    <div class="flex flex-wrap items-baseline justify-between gap-x-3 gap-y-1">
+                      <p class="font-medium">{{ actionLabel(entry.action) }}</p>
+                      <time class="text-xs text-muted-foreground">{{ formatDate(entry.createdAt) }}</time>
+                    </div>
+                    <p class="mt-1 text-sm text-muted-foreground">{{ entry.actor.name }}</p>
+                    @if (entry.previousStatus || entry.newStatus) {
+                      <p class="mt-2 text-sm">
+                        @if (entry.previousStatus) { <span>{{ statusLabel(entry.previousStatus) }}</span> }
+                        @if (entry.previousStatus && entry.newStatus) { <span class="mx-1 text-muted-foreground">→</span> }
+                        @if (entry.newStatus) { <span>{{ statusLabel(entry.newStatus) }}</span> }
+                      </p>
+                    }
+                    @if (historyDetail(entry); as detail) { <p class="mt-2 text-sm">{{ detail }}</p> }
+                  </li>
+                }
+              </ol>
+            } @else {
+              <p class="mt-3 text-sm text-muted-foreground">No hay eventos registrados.</p>
+            }
           </section>
         </div>
         <footer hlmSheetFooter class="border-t px-6 py-4">
-          <button hlmBtn type="button" class="w-full" hlmSheetClose>
-            Cerrar detalle
-          </button>
+          <button hlmBtn type="button" variant="outline" class="w-full" hlmSheetClose>Cerrar detalle</button>
         </footer>
       }
     </hlm-sheet-content>

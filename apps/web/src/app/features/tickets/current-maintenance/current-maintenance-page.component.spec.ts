@@ -46,6 +46,7 @@ const assignedTicket: TicketDetail = {
   ],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [],
   history: [
     {
       id: 'history-id',
@@ -83,6 +84,7 @@ describe('CurrentMaintenancePageComponent', () => {
     startMaintenance: ReturnType<typeof vi.fn>;
     updateMaintenance: ReturnType<typeof vi.fn>;
     requestFreeze: ReturnType<typeof vi.fn>;
+    uploadFinalEvidence: ReturnType<typeof vi.fn>;
     resolveMaintenance: ReturnType<typeof vi.fn>;
   };
 
@@ -92,6 +94,7 @@ describe('CurrentMaintenancePageComponent', () => {
       startMaintenance: vi.fn(),
       updateMaintenance: vi.fn(),
       requestFreeze: vi.fn(),
+      uploadFinalEvidence: vi.fn(),
       resolveMaintenance: vi.fn(),
     };
 
@@ -432,7 +435,7 @@ describe('CurrentMaintenancePageComponent', () => {
     expect(fixture.nativeElement.querySelector('#freeze-reason')).toBeNull();
   });
 
-  it('requires final work before resolving and preloads persisted work', () => {
+  it('requires final work before resolving', () => {
     gateway.getCurrentMaintenance.mockReturnValue(
       of({ ticket: inProgressTicket })
     );
@@ -445,6 +448,72 @@ describe('CurrentMaintenancePageComponent', () => {
       '  Se ajustó la válvula y se verificó la presión  '
     );
     expect(fixture.componentInstance.canResolve()).toBe(true);
+  });
+
+  it('uploads a valid final-evidence image and keeps the final work text', () => {
+    gateway.getCurrentMaintenance.mockReturnValue(of({ ticket: inProgressTicket }));
+    const updatedTicket: TicketDetail = {
+      ...inProgressTicket,
+      finalEvidence: [
+        {
+          id: 'evidence-id', publicId: 'evidence-public-id', mimeType: 'image/png', size: 2048,
+          originalFilename: 'reparacion.png', createdAt: '2026-08-27T12:30:00.000Z',
+          technician: { id: 'technician-id', name: 'Diego Pérez' },
+          accessUrl: 'https://example.test/current-evidence.png',
+        },
+      ],
+    };
+    gateway.uploadFinalEvidence.mockReturnValue(of(updatedTicket));
+    const fixture = createComponent();
+    const input = fixture.nativeElement.querySelector('#final-evidence') as HTMLInputElement;
+    const file = new File(['image'], 'reparacion.png', { type: 'image/png' });
+    fixture.componentInstance.resolutionForm.controls.workPerformed.setValue('Trabajo final');
+    Object.defineProperty(input, 'files', { value: [file] });
+    fixture.componentInstance.onEvidenceSelected({ target: input } as unknown as Event);
+    fixture.componentInstance.uploadFinalEvidence(input);
+    fixture.detectChanges();
+
+    expect(gateway.uploadFinalEvidence).toHaveBeenCalledWith(inProgressTicket.id, file);
+    expect(fixture.componentInstance.ticket()?.finalEvidence).toEqual(updatedTicket.finalEvidence);
+    expect(fixture.componentInstance.resolutionForm.controls.workPerformed.value).toBe('Trabajo final');
+    expect(fixture.nativeElement.textContent).toContain('reparacion.png');
+    expect(fixture.nativeElement.querySelector('img')?.src).toBe(
+      'https://example.test/current-evidence.png'
+    );
+    expect(fixture.nativeElement.textContent).toContain('La evidencia final fue cargada correctamente');
+  });
+
+  it('rejects a non-image evidence selection without calling the gateway', () => {
+    gateway.getCurrentMaintenance.mockReturnValue(of({ ticket: inProgressTicket }));
+    const fixture = createComponent();
+    const input = fixture.nativeElement.querySelector('#final-evidence') as HTMLInputElement;
+    const file = new File(['invalid'], 'informe.pdf', { type: 'application/pdf' });
+    Object.defineProperty(input, 'files', { value: [file] });
+
+    fixture.componentInstance.onEvidenceSelected({ target: input } as unknown as Event);
+    fixture.componentInstance.uploadFinalEvidence(input);
+
+    expect(gateway.uploadFinalEvidence).not.toHaveBeenCalled();
+    expect(fixture.componentInstance.evidenceError()).toContain('JPEG, PNG o WebP');
+  });
+
+  it('shows the backend upload error and keeps the selected evidence for retry', () => {
+    gateway.getCurrentMaintenance.mockReturnValue(of({ ticket: inProgressTicket }));
+    gateway.uploadFinalEvidence.mockReturnValue(
+      throwError(
+        () => new HttpErrorResponse({ status: 400, statusText: 'Bad Request' })
+      ) as Observable<TicketDetail>
+    );
+    const fixture = createComponent();
+    const input = fixture.nativeElement.querySelector('#final-evidence') as HTMLInputElement;
+    const file = new File(['image'], 'reparacion.png', { type: 'image/png' });
+    Object.defineProperty(input, 'files', { value: [file] });
+
+    fixture.componentInstance.onEvidenceSelected({ target: input } as unknown as Event);
+    fixture.componentInstance.uploadFinalEvidence(input);
+
+    expect(fixture.componentInstance.evidenceFile()).toBe(file);
+    expect(fixture.componentInstance.evidenceError()).toContain('hasta 5 MiB');
   });
 
   it('uses previously recorded work as the initial resolution value', () => {

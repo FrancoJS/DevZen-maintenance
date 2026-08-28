@@ -66,6 +66,18 @@ const detail: TicketDetail = {
     workPerformed: 'Se aisló el equipo.',
     notes: 'Requiere repuesto nuevo.',
   },
+  finalEvidence: [
+    {
+      id: 'evidence-id',
+      publicId: 'tickets/ticket-id/final/evidence-id',
+      mimeType: 'image/webp',
+      size: 8192,
+      originalFilename: 'intervencion.webp',
+      createdAt: '2026-08-27T13:00:00.000Z',
+      technician: { id: 'technician-id', name: 'Diego Pérez' },
+      accessUrl: 'https://example.test/technician-evidence.webp',
+    },
+  ],
   history: [
     {
       id: 'history-id',
@@ -191,6 +203,9 @@ describe('TechnicianMaintenanceHistoryPageComponent', () => {
     expect(document.body.textContent).toContain('Falta de repuesto');
     expect(document.body.textContent).toContain(
       'Congelamiento solicitado'
+    );
+    expect(document.body.querySelector('img')?.src).toBe(
+      'https://example.test/technician-evidence.webp'
     );
 
     const actionLabels = Array.from(

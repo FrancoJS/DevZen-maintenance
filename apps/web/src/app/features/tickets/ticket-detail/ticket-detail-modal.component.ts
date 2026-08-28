@@ -11,6 +11,7 @@ import {
   TicketStatus,
 } from '../../../core/tickets/ticket.models';
 import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
 
 const EQUIPMENT_STOPPED_LABELS: Record<EquipmentStopped, string> = {
   YES: 'Sí, se detiene completamente',
@@ -48,7 +49,12 @@ const HISTORY_FIELD_LABELS: Record<string, string> = {
 
 @Component({
   selector: 'app-ticket-detail-modal',
-  imports: [HlmBadgeImports, HlmButtonImports, HlmSheetImports],
+  imports: [
+    HlmBadgeImports,
+    HlmButtonImports,
+    HlmSheetImports,
+    TicketEvidenceGalleryComponent,
+  ],
   templateUrl: './ticket-detail-modal.component.html',
 })
 export class TicketDetailModalComponent {

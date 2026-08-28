@@ -105,6 +105,17 @@ export interface TicketMaintenance {
   notes: string | null;
 }
 
+export interface TicketEvidence {
+  id: string;
+  publicId: string;
+  mimeType: string;
+  size: number;
+  originalFilename: string;
+  createdAt: string;
+  technician: TicketUser;
+  accessUrl: string | null;
+}
+
 export interface UpdateMaintenanceRequest {
   diagnosis?: string | null;
   workPerformed?: string | null;
@@ -189,7 +200,13 @@ export interface TicketDetail {
   assignments: TicketAssignment[];
   freezeRequests: TicketFreezeRequest[];
   maintenance: TicketMaintenance | null;
+  finalEvidence: TicketEvidence[];
   history: TicketHistoryEntry[];
+}
+
+export interface GlobalTicketHistoryResponse {
+  items: TicketDetail[];
+  total: number;
 }
 
 export interface CurrentMaintenanceResponse {

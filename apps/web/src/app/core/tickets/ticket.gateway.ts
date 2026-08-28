@@ -7,6 +7,7 @@ import {
   ApproveFreezeRequest,
   CurrentMaintenanceResponse,
   FreezeRequestsResponse,
+  GlobalTicketHistoryResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   LocationSummary,
@@ -64,6 +65,13 @@ export const ADMIN_TICKET_GATEWAY = new InjectionToken<AdminTicketGateway>(
   'ADMIN_TICKET_GATEWAY'
 );
 
+export interface AdminTicketHistoryGateway {
+  listGlobalClosedHistory(): Observable<GlobalTicketHistoryResponse>;
+}
+
+export const ADMIN_TICKET_HISTORY_GATEWAY =
+  new InjectionToken<AdminTicketHistoryGateway>('ADMIN_TICKET_HISTORY_GATEWAY');
+
 export interface AdminFreezeGateway {
   listFreezeRequests(): Observable<FreezeRequestsResponse>;
   approveFreezeRequest(
@@ -106,6 +114,7 @@ export interface TechnicianMaintenanceGateway {
     id: string,
     request: RequestFreezeRequest
   ): Observable<TicketDetail>;
+  uploadFinalEvidence(id: string, file: File): Observable<TicketDetail>;
   resolveMaintenance(
     id: string,
     request: ResolveMaintenanceRequest

@@ -81,6 +81,10 @@
             } @else {
               <p class="text-sm text-muted-foreground">La mantención todavía no ha sido iniciada.</p>
             }
+            <div class="grid gap-3">
+              <h4 class="font-semibold">Evidencia final</h4>
+              <app-ticket-evidence-gallery [evidence]="currentTicket.finalEvidence" />
+            </div>
             @if (currentTicket.resolvedAt) {
               <div class="rounded-lg border bg-muted/30 p-4"><p class="font-medium">Resolución registrada</p><p class="mt-1 text-sm text-muted-foreground">{{ currentTicket.resolvedBy?.name }} · {{ formatDate(currentTicket.resolvedAt) }}</p></div>
             }

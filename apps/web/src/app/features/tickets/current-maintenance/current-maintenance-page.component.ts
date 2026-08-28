@@ -12,6 +12,7 @@ import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
+import { HlmInputImports } from '@spartan-ng/helm/input';
 import {
   TECHNICIAN_MAINTENANCE_GATEWAY,
   TechnicianMaintenanceGateway,
@@ -34,6 +35,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
 
 const HISTORY_ACTION_LABELS: Record<TicketHistoryAction, string> = {
   TICKET_CREATED: 'Ticket creado',
@@ -71,6 +73,9 @@ const FREEZE_REASON_LABELS: Record<FreezeReasonType, string> = {
   OTHER: 'Otro',
 };
 
+const ACCEPTED_EVIDENCE_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
+const FINAL_EVIDENCE_MAX_BYTES = 5 * 1024 * 1024;
+
 @Component({
   selector: 'app-current-maintenance-page',
   imports: [
@@ -79,6 +84,8 @@ const FREEZE_REASON_LABELS: Record<FreezeReasonType, string> = {
     HlmBadgeImports,
     HlmButtonImports,
     HlmCardImports,
+    HlmInputImports,
+    TicketEvidenceGalleryComponent,
   ],
   providers: [
     HttpTicketGateway,
@@ -138,6 +145,10 @@ export class CurrentMaintenancePageComponent implements OnInit {
   readonly isResolving = signal(false);
   readonly resolutionError = signal<string | null>(null);
   readonly resolutionSuccess = signal<string | null>(null);
+  readonly evidenceFile = signal<File | null>(null);
+  readonly isUploadingEvidence = signal(false);
+  readonly evidenceError = signal<string | null>(null);
+  readonly evidenceSuccess = signal<string | null>(null);
   readonly hasMaintenanceChanges = computed(() => {
     const value = this.maintenanceFormValue();
     const baseline = this.maintenanceBaseline();
@@ -164,6 +175,12 @@ export class CurrentMaintenancePageComponent implements OnInit {
     () =>
       this.ticket()?.status === 'IN_PROGRESS' &&
       Boolean(this.resolutionFormValue().workPerformed.trim())
+  );
+  readonly canUploadEvidence = computed(
+    () =>
+      this.ticket()?.status === 'IN_PROGRESS' &&
+      Boolean(this.evidenceFile()) &&
+      !this.isUploadingEvidence()
   );
 
   constructor() {
@@ -200,6 +217,9 @@ export class CurrentMaintenancePageComponent implements OnInit {
       this.freezeSuccess.set(null);
       this.resolutionError.set(null);
       this.resolutionSuccess.set(null);
+      this.evidenceError.set(null);
+      this.evidenceSuccess.set(null);
+      this.evidenceFile.set(null);
       this.resetFreezeForm();
     }
 
@@ -356,6 +376,72 @@ export class CurrentMaintenancePageComponent implements OnInit {
       });
   }
 
+  onEvidenceSelected(event: Event): void {
+    const input = event.target as HTMLInputElement;
+    const file = input.files?.item(0) ?? null;
+    this.evidenceError.set(null);
+    this.evidenceSuccess.set(null);
+
+    if (!file) {
+      this.evidenceFile.set(null);
+      return;
+    }
+    if (!ACCEPTED_EVIDENCE_TYPES.includes(file.type)) {
+      this.evidenceFile.set(null);
+      input.value = '';
+      this.evidenceError.set('Selecciona una imagen JPEG, PNG o WebP.');
+      return;
+    }
+    if (file.size > FINAL_EVIDENCE_MAX_BYTES) {
+      this.evidenceFile.set(null);
+      input.value = '';
+      this.evidenceError.set('La evidencia no puede superar los 5 MiB.');
+      return;
+    }
+
+    this.evidenceFile.set(file);
+  }
+
+  uploadFinalEvidence(input: HTMLInputElement): void {
+    const ticket = this.ticket();
+    const file = this.evidenceFile();
+    if (
+      !ticket ||
+      ticket.status !== 'IN_PROGRESS' ||
+      !file ||
+      this.isUploadingEvidence()
+    ) {
+      return;
+    }
+
+    const pendingResolutionWork = this.resolutionForm.getRawValue().workPerformed;
+    this.isUploadingEvidence.set(true);
+    this.evidenceError.set(null);
+    this.evidenceSuccess.set(null);
+    this.gateway
+      .uploadFinalEvidence(ticket.id, file)
+      .pipe(finalize(() => this.isUploadingEvidence.set(false)))
+      .subscribe({
+        next: (updatedTicket) => {
+          this.applyTicket(updatedTicket);
+          this.resolutionForm.controls.workPerformed.setValue(
+            pendingResolutionWork,
+            { emitEvent: false }
+          );
+          this.resolutionFormValue.set(this.resolutionForm.getRawValue());
+          this.evidenceFile.set(null);
+          input.value = '';
+          this.evidenceSuccess.set('La evidencia final fue cargada correctamente.');
+        },
+        error: (error: HttpErrorResponse) => {
+          this.evidenceError.set(this.evidenceErrorMessage(error));
+          if ([403, 404, 409].includes(error.status)) {
+            this.loadCurrentMaintenance(false);
+          }
+        },
+      });
+  }
+
   statusLabel(status: TicketStatus): string {
     return STATUS_LABELS[status];
   }
@@ -389,6 +475,10 @@ export class CurrentMaintenancePageComponent implements OnInit {
       dateStyle: 'medium',
       timeStyle: 'short',
     }).format(new Date(value));
+  }
+
+  formatFileSize(size: number): string {
+    return `${(size / 1024 / 1024).toFixed(1)} MiB`;
   }
 
   statusClass(status: TicketStatus): string {
@@ -497,9 +587,25 @@ export class CurrentMaintenancePageComponent implements OnInit {
       return 'La mantención ya no está disponible.';
     }
     if (error.status === 409) {
-      return 'La mantención cambió de estado y no pudo resolverse.';
+      return 'La mantención cambió de estado o no tiene evidencia final de tu asignación actual.';
     }
     return 'No fue posible resolver la mantención. Inténtalo nuevamente.';
+  }
+
+  private evidenceErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 400) {
+      return 'La evidencia debe ser una imagen JPEG, PNG o WebP de hasta 5 MiB.';
+    }
+    if (error.status === 403) {
+      return 'Ya no eres el técnico asignado a esta mantención.';
+    }
+    if (error.status === 404) {
+      return 'La mantención ya no está disponible.';
+    }
+    if (error.status === 409) {
+      return 'La mantención cambió de estado y no admite nueva evidencia.';
+    }
+    return 'No fue posible cargar la evidencia final. Inténtalo nuevamente.';
   }
 
   private maintenanceErrorMessage(error: HttpErrorResponse): string {

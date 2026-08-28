@@ -1,18 +1,142 @@
+import { HttpErrorResponse } from '@angular/common/http';
 import { TestBed } from '@angular/core/testing';
-import { ActivatedRoute } from '@angular/router';
-import { describe, expect, it } from 'vitest';
+import { Observable, Subject, of, throwError } from 'rxjs';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import {
+  ADMIN_TICKET_HISTORY_GATEWAY,
+  AdminTicketHistoryGateway,
+} from '../../../core/tickets/ticket.gateway';
+import {
+  GlobalTicketHistoryResponse,
+  TicketDetail,
+} from '../../../core/tickets/ticket.models';
 import { MaintenanceHistoryPageComponent } from './maintenance-history-page.component';
 
-async function createComponent(scope: 'personal' | 'global') {
+const normalTicket: TicketDetail = {
+  id: 'ticket-2048',
+  ticketCode: 'TCK-2048',
+  description: 'El compresor pierde presión durante la operación.',
+  location: 'Planta 2',
+  asset: 'Compresor C-12',
+  status: 'CLOSED',
+  priority: 'HIGH',
+  requester: { id: 'requester-id', name: 'Camila Rojas' },
+  createdAt: '2026-08-24T08:50:00.000Z',
+  updatedAt: '2026-08-25T08:15:00.000Z',
+  impactAssessment: {
+    safetyRisk: false,
+    equipmentStopped: 'YES',
+    productionImpact: 'REDUCED',
+    workaroundAvailable: false,
+    affectsOtherAreas: false,
+    calculatedPriority: 'HIGH',
+  },
+  currentTechnician: null,
+  resolvedBy: { id: 'tech-diego', name: 'Diego Pérez' },
+  resolvedAt: '2026-08-24T13:45:00.000Z',
+  closedBy: { id: 'admin-id', name: 'Ana González' },
+  closedAt: '2026-08-25T08:15:00.000Z',
+  assignments: [
+    {
+      id: 'assignment-diego',
+      technician: { id: 'tech-diego', name: 'Diego Pérez' },
+      assignedBy: { id: 'admin-id', name: 'Ana González' },
+      assignedAt: '2026-08-24T09:30:00.000Z',
+      startedAt: '2026-08-24T09:45:00.000Z',
+      releasedAt: '2026-08-24T13:45:00.000Z',
+      releaseReason: 'RESOLVED',
+    },
+  ],
+  freezeRequests: [],
+  maintenance: {
+    diagnosis: 'Regulador de presión defectuoso.',
+    workPerformed: 'Se reemplazó el regulador.',
+    notes: null,
+  },
+  finalEvidence: [
+    {
+      id: 'evidence-id',
+      publicId: 'tickets/ticket-2048/final/evidence-id',
+      mimeType: 'image/jpeg',
+      size: 1536000,
+      originalFilename: 'regulador-reemplazado.jpg',
+      createdAt: '2026-08-24T13:40:00.000Z',
+      technician: { id: 'tech-diego', name: 'Diego Pérez' },
+      accessUrl: 'https://example.test/evidence.jpg',
+    },
+  ],
+  history: [
+    {
+      id: 'history-created',
+      actor: { id: 'requester-id', name: 'Camila Rojas' },
+      action: 'TICKET_CREATED',
+      previousStatus: null,
+      newStatus: 'NEW',
+      previousPriority: null,
+      newPriority: 'HIGH',
+      details: null,
+      createdAt: '2026-08-24T08:50:00.000Z',
+    },
+    {
+      id: 'history-closed',
+      actor: { id: 'admin-id', name: 'Ana González' },
+      action: 'TICKET_CLOSED',
+      previousStatus: 'RESOLVED',
+      newStatus: 'CLOSED',
+      previousPriority: null,
+      newPriority: null,
+      details: { note: 'Cierre administrativo confirmado.' },
+      createdAt: '2026-08-25T08:15:00.000Z',
+    },
+  ],
+};
+
+const reassignedTicket: TicketDetail = {
+  ...normalTicket,
+  id: 'ticket-2019',
+  ticketCode: 'TCK-2019',
+  asset: 'Transportador T-04',
+  priority: 'MEDIUM',
+  assignments: [
+    {
+      ...normalTicket.assignments[0],
+      id: 'assignment-valentina',
+      technician: { id: 'tech-valentina', name: 'Valentina Silva' },
+    },
+  ],
+  freezeRequests: [
+    {
+      id: 'freeze-request-id',
+      technician: { id: 'tech-diego', name: 'Diego Pérez' },
+      reasonType: 'SPARE_PART_UNAVAILABLE',
+      reasonDetail: 'Se debe esperar la llegada del repuesto.',
+      status: 'APPROVED',
+      requestedAt: '2026-08-24T10:00:00.000Z',
+      reviewedBy: { id: 'admin-id', name: 'Ana González' },
+      reviewedAt: '2026-08-24T11:00:00.000Z',
+      reviewNote: 'Congelamiento aprobado.',
+    },
+  ],
+};
+
+function response(items: TicketDetail[] = [normalTicket, reassignedTicket]): GlobalTicketHistoryResponse {
+  return { items, total: items.length };
+}
+
+async function createComponent(
+  gateway: Pick<AdminTicketHistoryGateway, 'listGlobalClosedHistory'>
+) {
   await TestBed.configureTestingModule({
     imports: [MaintenanceHistoryPageComponent],
-    providers: [
-      {
-        provide: ActivatedRoute,
-        useValue: { snapshot: { data: { historyScope: scope } } },
+  })
+    .overrideComponent(MaintenanceHistoryPageComponent, {
+      set: {
+        providers: [
+          { provide: ADMIN_TICKET_HISTORY_GATEWAY, useValue: gateway },
+        ],
       },
-    ],
-  }).compileComponents();
+    })
+    .compileComponents();
 
   const fixture = TestBed.createComponent(MaintenanceHistoryPageComponent);
   fixture.detectChanges();
@@ -20,81 +144,143 @@ async function createComponent(scope: 'personal' | 'global') {
 }
 
 describe('MaintenanceHistoryPageComponent', () => {
-  it('muestra al técnico solo las mantenciones en las que participó', async () => {
-    const fixture = await createComponent('personal');
+  afterEach(() => TestBed.resetTestingModule());
+
+  it('loads the closed-ticket history once and shows backend records', async () => {
+    const gateway = {
+      listGlobalClosedHistory: vi.fn(() => of(response())),
+    };
+    const fixture = await createComponent(gateway);
     const component = fixture.componentInstance;
 
-    expect(component.records().map((record) => record.ticketId)).toEqual([
-      'TCK-2037',
+    expect(gateway.listGlobalClosedHistory).toHaveBeenCalledTimes(1);
+    expect(component.records().map((ticket) => ticket.ticketCode)).toEqual([
       'TCK-2048',
       'TCK-2019',
     ]);
-    expect(fixture.nativeElement.textContent).toContain('Historial de mantenciones');
-    expect(fixture.nativeElement.textContent).not.toContain('Bomba hidráulica B-07');
+    expect(fixture.nativeElement.textContent).toContain('2 de 2 tickets cerrados');
+    expect(fixture.nativeElement.querySelector('#history-status')).toBeNull();
   });
 
-  it('muestra al administrador el historial global y el filtro de técnico', async () => {
-    const fixture = await createComponent('global');
+  it('filters by search, priority and participating technician in backend order', async () => {
+    const fixture = await createComponent({
+      listGlobalClosedHistory: vi.fn(() => of(response())),
+    });
     const component = fixture.componentInstance;
 
-    expect(component.records()).toHaveLength(5);
-    expect(fixture.nativeElement.textContent).toContain('Historial global de mantenciones');
-    expect(fixture.nativeElement.querySelector('#history-technician')).not.toBeNull();
-  });
-
-  it('combina búsqueda, estado, prioridad y técnico', async () => {
-    const fixture = await createComponent('global');
-    const component = fixture.componentInstance;
-
-    component.updateQuery('transportador');
-    component.updateStatus('CLOSED');
-    component.updatePriority('MEDIUM');
-    component.updateTechnician('tech-valentina-silva');
-
-    expect(component.records().map((record) => record.ticketId)).toEqual(['TCK-2019']);
-    expect(component.hasActiveFilters()).toBe(true);
-  });
-
-  it('restablece los filtros y muestra un estado vacío cuando no hay coincidencias', async () => {
-    const fixture = await createComponent('personal');
-    const component = fixture.componentInstance;
-
-    component.updateQuery('equipo inexistente');
-    fixture.detectChanges();
-    expect(component.records()).toHaveLength(0);
-    expect(fixture.nativeElement.textContent).toContain('No encontramos mantenciones con esos criterios.');
-
-    component.clearFilters();
-    fixture.detectChanges();
-    expect(component.records()).toHaveLength(3);
-    expect(component.hasActiveFilters()).toBe(false);
-  });
-
-  it('abre y cierra el panel lateral con una cronología ordenada', async () => {
-    const fixture = await createComponent('personal');
-    const component = fixture.componentInstance;
-    const record = component.records().find((item) => item.ticketId === 'TCK-2019');
-
-    expect(record).toBeDefined();
-    component.openRecord(record!);
-    fixture.detectChanges();
-
-    expect(document.body.textContent).toContain('Congelamiento aprobado');
-    expect(component.selectedRecord()?.events.map((event) => event.action)).toEqual([
-      'CREATED',
-      'PRIORITY_CALCULATED',
-      'ASSIGNED',
-      'STARTED',
-      'FREEZE_REQUESTED',
-      'FREEZE_APPROVED',
-      'BLOCKER_RESOLVED',
-      'REASSIGNED',
-      'STARTED',
-      'RESOLVED',
-      'CLOSED',
+    expect(component.technicianOptions()).toEqual([
+      { id: 'tech-diego', name: 'Diego Pérez' },
+      { id: 'tech-valentina', name: 'Valentina Silva' },
     ]);
 
+    component.updateQuery('transportador');
+    component.updatePriority('MEDIUM');
+    component.updateTechnician('tech-valentina');
+
+    expect(component.records().map((ticket) => ticket.ticketCode)).toEqual([
+      'TCK-2019',
+    ]);
+  });
+
+  it('distinguishes an empty backend history from empty filter results', async () => {
+    const fixture = await createComponent({
+      listGlobalClosedHistory: vi.fn(() => of(response([]))),
+    });
+    const component = fixture.componentInstance;
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'No hay tickets cerrados para mostrar.'
+    );
+
+    component.tickets.set(response().items);
+    component.total.set(2);
+    component.updateQuery('equipo inexistente');
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'No encontramos tickets con esos criterios.'
+    );
+  });
+
+  it('shows an error and retries the request', async () => {
+    const gateway = {
+      listGlobalClosedHistory: vi
+        .fn<() => Observable<GlobalTicketHistoryResponse>>()
+        .mockReturnValueOnce(
+          throwError(() => new HttpErrorResponse({ status: 500 }))
+        )
+        .mockReturnValueOnce(of(response())),
+    };
+    const fixture = await createComponent(gateway);
+    const component = fixture.componentInstance;
+
+    expect(fixture.nativeElement.textContent).toContain(
+      'No pudimos cargar el historial global'
+    );
+
+    component.loadHistory();
+    fixture.detectChanges();
+
+    expect(gateway.listGlobalClosedHistory).toHaveBeenCalledTimes(2);
+    expect(component.records()).toHaveLength(2);
+  });
+
+  it('shows loading state and opens the read-only traceability panel', async () => {
+    const pending = new Subject<GlobalTicketHistoryResponse>();
+    const fixture = await createComponent({
+      listGlobalClosedHistory: vi.fn(() => pending),
+    });
+    const component = fixture.componentInstance;
+
+    expect(fixture.nativeElement.textContent).toContain('Cargando tickets cerrados…');
+
+    pending.next(response());
+    pending.complete();
+    fixture.detectChanges();
+    component.openTicket(normalTicket);
+    fixture.detectChanges();
+
+    expect(component.selectedTicket()?.id).toBe(normalTicket.id);
+    expect(document.body.textContent).toContain('Cierre administrativo confirmado.');
+    expect(document.body.textContent).toContain('Diego Pérez');
+    expect(document.body.textContent).toContain('Regulador de presión defectuoso.');
+    expect(document.body.textContent).toContain('regulador-reemplazado.jpg');
+    expect(document.body.querySelector('img')?.src).toBe(
+      'https://example.test/evidence.jpg'
+    );
+    expect(document.body.querySelector('a[href="https://example.test/evidence.jpg"]')).not.toBeNull();
+
     component.onSheetStateChange('closed');
-    expect(component.selectedRecord()).toBeNull();
+    expect(component.selectedTicket()).toBeNull();
+  });
+
+  it('shows freeze decisions and safe fallbacks for absent optional details', async () => {
+    const fixture = await createComponent({
+      listGlobalClosedHistory: vi.fn(() => of(response())),
+    });
+    const component = fixture.componentInstance;
+
+    component.openTicket(reassignedTicket);
+    fixture.detectChanges();
+
+    expect(document.body.textContent).toContain('Falta de repuesto');
+    expect(document.body.textContent).toContain('Congelamiento aprobado.');
+
+    component.openTicket({
+      ...normalTicket,
+      maintenance: null,
+      finalEvidence: [
+        { ...normalTicket.finalEvidence[0], accessUrl: null },
+      ],
+      resolvedBy: null,
+      resolvedAt: null,
+      closedBy: null,
+      closedAt: null,
+    });
+    fixture.detectChanges();
+
+    expect(document.body.textContent).toContain('No hay información técnica registrada.');
+    expect(document.body.textContent).toContain('La imagen no está disponible.');
+    expect(document.body.textContent).toContain('Sin registro');
   });
 });

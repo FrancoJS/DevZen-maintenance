@@ -10,6 +10,7 @@ import { HttpTicketGateway } from './http-ticket.gateway';
 import {
   CreateTicketRequest,
   FreezeRequestsResponse,
+  GlobalTicketHistoryResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   TicketDetail,
@@ -49,6 +50,7 @@ const response: TicketDetail = {
   assignments: [],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [],
   history: [],
 };
 
@@ -229,6 +231,24 @@ describe('HttpTicketGateway', () => {
     pendingRequest.flush({ ...response, status: 'CLOSED' });
   });
 
+  it('lists the global closed-ticket history without query parameters', () => {
+    const historyResponse: GlobalTicketHistoryResponse = {
+      items: [{ ...response, status: 'CLOSED' }],
+      total: 1,
+    };
+
+    gateway.listGlobalClosedHistory().subscribe((result) => {
+      expect(result).toEqual(historyResponse);
+    });
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/admin/history`
+    );
+    expect(pendingRequest.request.method).toBe('GET');
+    expect(pendingRequest.request.params.keys()).toEqual([]);
+    pendingRequest.flush(historyResponse);
+  });
+
   it('lists the administrative freeze queue', () => {
     const freezeRequests: FreezeRequestsResponse = { items: [], total: 0 };
     gateway.listFreezeRequests().subscribe();
@@ -343,6 +363,22 @@ describe('HttpTicketGateway', () => {
       reasonDetail: 'Se requiere inspección externa',
     });
     pendingRequest.flush({ ...response, status: 'FREEZE_REQUESTED' });
+  });
+
+  it('uploads final evidence as multipart data using the documented file field', () => {
+    const file = new File(['evidencia'], 'reparacion.webp', {
+      type: 'image/webp',
+    });
+
+    gateway.uploadFinalEvidence(response.id, file).subscribe();
+
+    const pendingRequest = httpTesting.expectOne(
+      `${API_BASE_URL}/tickets/${response.id}/final-evidence`
+    );
+    expect(pendingRequest.request.method).toBe('POST');
+    expect(pendingRequest.request.body).toBeInstanceOf(FormData);
+    expect((pendingRequest.request.body as FormData).get('file')).toBe(file);
+    pendingRequest.flush({ ...response, status: 'IN_PROGRESS' });
   });
 
   it('resolves a maintenance with only the final work performed', () => {

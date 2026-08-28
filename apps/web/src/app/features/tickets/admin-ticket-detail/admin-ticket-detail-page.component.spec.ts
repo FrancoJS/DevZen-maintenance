@@ -59,6 +59,18 @@ const ticket: TicketDetail = {
   assignments: [],
   freezeRequests: [],
   maintenance: null,
+  finalEvidence: [
+    {
+      id: 'evidence-id',
+      publicId: 'tickets/ticket-id/final/evidence-id',
+      mimeType: 'image/png',
+      size: 4096,
+      originalFilename: 'reparacion.png',
+      createdAt: '2026-08-27T13:00:00.000Z',
+      technician: { id: 'technician-id', name: 'Diego Pérez' },
+      accessUrl: 'https://example.test/admin-evidence.png',
+    },
+  ],
   history: [
     {
       id: 'history-id',
@@ -144,6 +156,9 @@ describe('AdminTicketDetailPageComponent', () => {
     expect(
       fixture.nativeElement.querySelector('.ticket-history-content--embedded')
     ).toBeNull();
+    expect(fixture.nativeElement.querySelector('img')?.src).toBe(
+      'https://example.test/admin-evidence.png'
+    );
   });
 
   it('aplica scroll independiente al historial solo en modo embebido', () => {

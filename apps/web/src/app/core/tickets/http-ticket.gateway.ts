@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../api.config';
 import {
   AdminTicketFilters,
   AdminFreezeGateway,
+  AdminTicketHistoryGateway,
   AdminTicketGateway,
   ListMyTicketsQuery,
   MaintenanceHistoryFilters,
@@ -18,6 +19,7 @@ import {
   ApproveFreezeRequest,
   CurrentMaintenanceResponse,
   FreezeRequestsResponse,
+  GlobalTicketHistoryResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   LocationSummary,
@@ -34,6 +36,7 @@ export class HttpTicketGateway
   implements
     TicketGateway,
     AdminTicketGateway,
+    AdminTicketHistoryGateway,
     AdminFreezeGateway,
     TechnicianMaintenanceGateway
 {
@@ -109,6 +112,12 @@ export class HttpTicketGateway
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets/${id}/close`, {});
   }
 
+  listGlobalClosedHistory(): Observable<GlobalTicketHistoryResponse> {
+    return this.http.get<GlobalTicketHistoryResponse>(
+      `${API_BASE_URL}/tickets/admin/history`
+    );
+  }
+
   listFreezeRequests(): Observable<FreezeRequestsResponse> {
     return this.http.get<FreezeRequestsResponse>(
       `${API_BASE_URL}/freeze-requests`
@@ -174,6 +183,16 @@ export class HttpTicketGateway
     return this.http.post<TicketDetail>(
       `${API_BASE_URL}/tickets/${id}/freeze-requests`,
       request
+    );
+  }
+
+  uploadFinalEvidence(id: string, file: File): Observable<TicketDetail> {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    return this.http.post<TicketDetail>(
+      `${API_BASE_URL}/tickets/${id}/final-evidence`,
+      formData
     );
   }
 

@@ -78,6 +78,30 @@
         @if (currentTicket.status === 'IN_PROGRESS') {
           <article hlmCard>
             <header hlmCardHeader>
+              <h3 hlmCardTitle>Evidencia final</h3>
+              <p hlmCardDescription>Carga una imagen de la mantención terminada antes de resolverla.</p>
+            </header>
+            <div hlmCardContent class="grid gap-4">
+              @if (evidenceSuccess(); as success) {
+                <p class="text-sm text-emerald-700 dark:text-emerald-300" role="status">{{ success }}</p>
+              }
+              @if (evidenceError(); as error) {
+                <p class="text-sm text-destructive" role="alert">{{ error }}</p>
+              }
+              <div class="grid gap-2">
+                <label for="final-evidence" class="text-sm font-medium">Archivo de evidencia</label>
+                <input #evidenceInput hlmInput id="final-evidence" type="file" accept="image/jpeg,image/png,image/webp" [disabled]="isUploadingEvidence()" (change)="onEvidenceSelected($event)" />
+                <p class="text-xs text-muted-foreground">Formatos permitidos: JPEG, PNG o WebP. Tamaño máximo: 5 MiB.</p>
+              </div>
+              @if (evidenceFile(); as file) {
+                <p class="text-sm text-muted-foreground">Seleccionado: {{ file.name }} ({{ formatFileSize(file.size) }})</p>
+              }
+              <button hlmBtn type="button" variant="outline" [disabled]="!canUploadEvidence()" (click)="uploadFinalEvidence(evidenceInput)">{{ isUploadingEvidence() ? 'Cargando…' : 'Cargar evidencia' }}</button>
+              <app-ticket-evidence-gallery [evidence]="currentTicket.finalEvidence" emptyMessage="Aún no has cargado evidencia final para esta mantención." />
+            </div>
+          </article>
+          <article hlmCard>
+            <header hlmCardHeader>
               <h3 hlmCardTitle>Solicitar congelamiento</h3>
               <p hlmCardDescription>Informa un bloqueo que impida continuar la mantención.</p>
             </header>
@@ -210,6 +234,7 @@
                   <textarea id="resolution-work" formControlName="workPerformed" rows="4" class="min-h-24 resize-y rounded-md border bg-card px-3 py-2 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Describe el trabajo final ejecutado"></textarea>
                   <p class="text-xs text-muted-foreground">Este campo es obligatorio y quedará registrado como trabajo final.</p>
                 </div>
+                <p class="text-sm text-muted-foreground">El sistema validará que exista evidencia final de tu asignación actual antes de resolver.</p>
                 <button hlmBtn type="submit" class="w-full" [disabled]="!canResolve() || isResolving()">{{ isResolving() ? 'Resolviendo…' : 'Resolver mantención' }}</button>
               </form>
             </div>

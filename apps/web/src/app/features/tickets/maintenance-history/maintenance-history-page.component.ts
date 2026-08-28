@@ -1,40 +1,99 @@
-import { Component, computed, ElementRef, inject, signal, ViewChild } from '@angular/core';
+import { HttpErrorResponse } from '@angular/common/http';
+import {
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  OnInit,
+  signal,
+  ViewChild,
+} from '@angular/core';
 import { FormsModule } from '@angular/forms';
-import { ActivatedRoute } from '@angular/router';
+import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { HlmCardImports } from '@spartan-ng/helm/card';
 import { HlmInputImports } from '@spartan-ng/helm/input';
 import { HlmSheetImports } from '@spartan-ng/helm/sheet';
+import { HlmSkeletonImports } from '@spartan-ng/helm/skeleton';
 import { HlmTableImports } from '@spartan-ng/helm/table';
-import { TicketPriority, TicketStatus, UserRole } from '../../../core/tickets/ticket.models';
-import { PRIORITY_LABELS, ROLE_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
-import { MAINTENANCE_HISTORY_RECORDS, PREVIEW_TECHNICIAN_ID } from './maintenance-history.data';
 import {
-  MaintenanceHistoryAction,
-  MaintenanceHistoryFilters,
-  MaintenanceHistoryRecord,
-  MaintenanceHistoryScope,
-} from './maintenance-history.models';
+  ADMIN_TICKET_HISTORY_GATEWAY,
+  AdminTicketHistoryGateway,
+} from '../../../core/tickets/ticket.gateway';
+import { HttpTicketGateway } from '../../../core/tickets/http-ticket.gateway';
+import {
+  AssignmentReleaseReason,
+  EquipmentStopped,
+  FreezeReasonType,
+  FreezeRequestStatus,
+  ProductionImpact,
+  TicketDetail,
+  TicketHistoryAction,
+  TicketHistoryEntry,
+  TicketPriority,
+  TicketStatus,
+} from '../../../core/tickets/ticket.models';
+import { PRIORITY_LABELS, STATUS_LABELS } from '../../../shared/tickets/ticket-labels';
+import { TicketEvidenceGalleryComponent } from '../ticket-evidence-gallery/ticket-evidence-gallery.component';
+
+interface MaintenanceHistoryFilters {
+  query: string;
+  priority: TicketPriority | '';
+  technicianId: string;
+}
 
 const INITIAL_FILTERS: MaintenanceHistoryFilters = {
   query: '',
-  status: '',
   priority: '',
   technicianId: '',
 };
 
-const ACTION_LABELS: Record<MaintenanceHistoryAction, string> = {
-  CREATED: 'Solicitud creada',
+const ACTION_LABELS: Record<TicketHistoryAction, string> = {
+  TICKET_CREATED: 'Solicitud creada',
+  TICKET_UPDATED: 'Solicitud actualizada',
   PRIORITY_CALCULATED: 'Prioridad calculada',
-  ASSIGNED: 'Técnico asignado',
-  STARTED: 'Mantención iniciada',
+  PRIORITY_OVERRIDDEN: 'Prioridad corregida',
+  TECHNICIAN_ASSIGNED: 'Técnico asignado',
+  MAINTENANCE_STARTED: 'Mantención iniciada',
+  MAINTENANCE_UPDATED: 'Mantención actualizada',
   FREEZE_REQUESTED: 'Congelamiento solicitado',
   FREEZE_APPROVED: 'Congelamiento aprobado',
+  FREEZE_REJECTED: 'Congelamiento rechazado',
   BLOCKER_RESOLVED: 'Bloqueo resuelto',
-  REASSIGNED: 'Técnico reasignado',
+  TICKET_RESOLVED: 'Mantención resuelta',
+  TICKET_CLOSED: 'Ticket cerrado',
+};
+
+const EQUIPMENT_STOPPED_LABELS: Record<EquipmentStopped, string> = {
+  YES: 'Sí, completamente',
+  PARTIAL: 'Parcialmente',
+  NO: 'No',
+};
+
+const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
+  STOPPED: 'Producción detenida',
+  REDUCED: 'Producción reducida',
+  NONE: 'Sin impacto productivo',
+};
+
+const FREEZE_REASON_LABELS: Record<FreezeReasonType, string> = {
+  SPARE_PART_UNAVAILABLE: 'Falta de repuesto',
+  AWAITING_AUTHORIZATION: 'Esperando autorización',
+  SPECIALIST_UNAVAILABLE: 'Falta de personal especializado',
+  EQUIPMENT_OR_AREA_UNAVAILABLE: 'Equipo o área no disponible',
+  OTHER: 'Otro motivo',
+};
+
+const FREEZE_STATUS_LABELS: Record<FreezeRequestStatus, string> = {
+  PENDING: 'Pendiente',
+  APPROVED: 'Aprobada',
+  REJECTED: 'Rechazada',
+};
+
+const RELEASE_REASON_LABELS: Record<AssignmentReleaseReason, string> = {
+  FREEZE_APPROVED: 'Congelamiento aprobado',
   RESOLVED: 'Mantención resuelta',
-  CLOSED: 'Ticket cerrado',
 };
 
 @Component({
@@ -46,59 +105,103 @@ const ACTION_LABELS: Record<MaintenanceHistoryAction, string> = {
     HlmCardImports,
     HlmInputImports,
     HlmSheetImports,
+    HlmSkeletonImports,
     HlmTableImports,
+    TicketEvidenceGalleryComponent,
+  ],
+  providers: [
+    HttpTicketGateway,
+    {
+      provide: ADMIN_TICKET_HISTORY_GATEWAY,
+      useExisting: HttpTicketGateway,
+    },
   ],
   templateUrl: './maintenance-history-page.component.html',
   styleUrl: './maintenance-history-page.component.css',
 })
-export class MaintenanceHistoryPageComponent {
-  private readonly route = inject(ActivatedRoute);
+export class MaintenanceHistoryPageComponent implements OnInit {
+  private readonly gateway = inject<AdminTicketHistoryGateway>(
+    ADMIN_TICKET_HISTORY_GATEWAY
+  );
 
-  @ViewChild('detailSheet', { read: ElementRef }) private readonly detailSheet?: ElementRef<HTMLElement>;
+  @ViewChild('detailSheet', { read: ElementRef })
+  private readonly detailSheet?: ElementRef<HTMLElement>;
 
-  readonly scope = (this.route.snapshot.data['historyScope'] as MaintenanceHistoryScope | undefined) ?? 'personal';
   readonly filters = signal<MaintenanceHistoryFilters>({ ...INITIAL_FILTERS });
-  readonly selectedRecord = signal<MaintenanceHistoryRecord | null>(null);
-  readonly isGlobal = this.scope === 'global';
-  readonly title = this.isGlobal ? 'Historial global de mantenciones' : 'Historial de mantenciones';
-  readonly description = this.isGlobal
-    ? 'Consulta los trabajos finalizados, sus responsables y la trazabilidad de cada ticket.'
-    : 'Consulta las mantenciones finalizadas en las que participaste.';
+  readonly tickets = signal<TicketDetail[]>([]);
+  readonly total = signal(0);
+  readonly isLoading = signal(false);
+  readonly loadError = signal<string | null>(null);
+  readonly selectedTicket = signal<TicketDetail | null>(null);
+  readonly title = 'Historial global de mantenciones';
+  readonly description =
+    'Consulta los tickets cerrados, sus responsables y la trazabilidad de cada mantención.';
 
   readonly technicianOptions = computed(() => {
     const technicians = new Map<string, string>();
-    MAINTENANCE_HISTORY_RECORDS.forEach((record) =>
-      record.participants.forEach((participant) => technicians.set(participant.id, participant.name))
+    this.tickets().forEach((ticket) =>
+      ticket.assignments.forEach((assignment) =>
+        technicians.set(assignment.technician.id, assignment.technician.name)
+      )
     );
-    return Array.from(technicians, ([id, name]) => ({ id, name })).sort((first, second) =>
-      first.name.localeCompare(second.name, 'es')
-    );
+    return Array.from(technicians, ([id, name]) => ({ id, name }));
   });
 
   readonly records = computed(() => {
     const filters = this.filters();
     const normalizedQuery = filters.query.trim().toLocaleLowerCase('es-CL');
 
-    return MAINTENANCE_HISTORY_RECORDS
-      .filter((record) => this.isGlobal || record.participants.some((participant) => participant.id === PREVIEW_TECHNICIAN_ID))
-      .filter((record) => !normalizedQuery || `${record.ticketId} ${record.asset}`.toLocaleLowerCase('es-CL').includes(normalizedQuery))
-      .filter((record) => !filters.status || record.status === filters.status)
-      .filter((record) => !filters.priority || record.priority === filters.priority)
-      .filter((record) => !this.isGlobal || !filters.technicianId || record.participants.some((participant) => participant.id === filters.technicianId))
-      .sort((first, second) => this.activityDate(second).localeCompare(this.activityDate(first)));
+    return this.tickets()
+      .filter(
+        (ticket) =>
+          !normalizedQuery ||
+          `${this.ticketLabel(ticket)} ${ticket.asset} ${ticket.location}`
+            .toLocaleLowerCase('es-CL')
+            .includes(normalizedQuery)
+      )
+      .filter(
+        (ticket) => !filters.priority || ticket.priority === filters.priority
+      )
+      .filter(
+        (ticket) =>
+          !filters.technicianId ||
+          ticket.assignments.some(
+            (assignment) => assignment.technician.id === filters.technicianId
+          )
+      );
   });
 
   readonly hasActiveFilters = computed(() => {
     const filters = this.filters();
-    return Boolean(filters.query || filters.status || filters.priority || filters.technicianId);
+    return Boolean(filters.query || filters.priority || filters.technicianId);
   });
+
+  ngOnInit(): void {
+    this.loadHistory();
+  }
+
+  loadHistory(): void {
+    this.isLoading.set(true);
+    this.loadError.set(null);
+
+    this.gateway
+      .listGlobalClosedHistory()
+      .pipe(finalize(() => this.isLoading.set(false)))
+      .subscribe({
+        next: ({ items, total }) => {
+          this.tickets.set(items);
+          this.total.set(total);
+        },
+        error: (error: HttpErrorResponse) => {
+          this.tickets.set([]);
+          this.total.set(0);
+          this.loadError.set(this.loadErrorMessage(error));
+        },
+      });
+  }
 
   updateQuery(query: string): void {
     this.filters.update((filters) => ({ ...filters, query }));
-  }
-
-  updateStatus(status: MaintenanceHistoryFilters['status']): void {
-    this.filters.update((filters) => ({ ...filters, status }));
   }
 
   updatePriority(priority: MaintenanceHistoryFilters['priority']): void {
@@ -113,23 +216,21 @@ export class MaintenanceHistoryPageComponent {
     this.filters.set({ ...INITIAL_FILTERS });
   }
 
-  openRecord(record: MaintenanceHistoryRecord): void {
-    this.selectedRecord.set(record);
-    setTimeout(() => {
-      if (this.detailSheet) {
-        this.detailSheet.nativeElement.scrollTop = 0;
-      }
-    });
+  openTicket(ticket: TicketDetail): void {
+    this.selectedTicket.set(ticket);
+    setTimeout(() => this.detailSheet?.nativeElement.scrollTo({ top: 0 }));
   }
 
-  closeRecord(): void {
-    this.selectedRecord.set(null);
+  closeTicket(): void {
+    this.selectedTicket.set(null);
   }
 
   onSheetStateChange(state: 'open' | 'closed'): void {
-    if (state === 'closed') {
-      this.closeRecord();
-    }
+    if (state === 'closed') this.closeTicket();
+  }
+
+  ticketLabel(ticket: TicketDetail): string {
+    return ticket.ticketCode ?? ticket.id;
   }
 
   priorityLabel(priority: TicketPriority): string {
@@ -140,42 +241,74 @@ export class MaintenanceHistoryPageComponent {
     return STATUS_LABELS[status];
   }
 
-  roleLabel(role: UserRole): string {
-    return ROLE_LABELS[role];
-  }
-
-  actionLabel(action: MaintenanceHistoryAction): string {
+  actionLabel(action: TicketHistoryAction): string {
     return ACTION_LABELS[action];
   }
 
-  formatDate(date: string): string {
-    return new Intl.DateTimeFormat('es-CL', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(date));
+  historyDetail(entry: TicketHistoryEntry): string | null {
+    if (!entry.details) return null;
+    if (typeof entry.details['note'] === 'string') return entry.details['note'];
+    if (entry.details['workPerformedRecorded']) {
+      return 'Trabajo realizado registrado.';
+    }
+    if (entry.details['changes']) {
+      return 'Se actualizaron datos de la mantención.';
+    }
+    if (entry.details['technicianId']) {
+      return 'Se registró una nueva asignación técnica.';
+    }
+    if (Array.isArray(entry.details['changedFields'])) {
+      return 'Se actualizaron datos de la solicitud.';
+    }
+    return 'Información adicional registrada.';
   }
 
-  activityDate(record: MaintenanceHistoryRecord): string {
-    return record.closedAt ?? record.resolvedAt;
+  formatDate(date: string | null): string {
+    if (!date) return 'Sin registro';
+    return new Intl.DateTimeFormat('es-CL', {
+      dateStyle: 'medium',
+      timeStyle: 'short',
+    }).format(new Date(date));
   }
 
-  activityLabel(record: MaintenanceHistoryRecord): string {
-    return record.closedAt ? 'Cerrada' : 'Resuelta';
+  activityDate(ticket: TicketDetail): string {
+    return ticket.closedAt ?? ticket.resolvedAt ?? ticket.updatedAt;
   }
 
-  participantsLabel(record: MaintenanceHistoryRecord): string {
-    return record.participants.map((participant) => participant.name).join(', ');
+  participantsLabel(ticket: TicketDetail): string {
+    return ticket.assignments.length
+      ? ticket.assignments.map((assignment) => assignment.technician.name).join(', ')
+      : 'Sin técnicos registrados';
   }
 
-  priorityClass(priority: TicketPriority): string {
-    return {
-      LOW: 'border-blue-200 bg-blue-50 text-blue-800 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-200',
-      MEDIUM: 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-200',
-      HIGH: 'border-orange-200 bg-orange-50 text-orange-800 dark:border-orange-800 dark:bg-orange-950 dark:text-orange-200',
-      CRITICAL: 'border-red-200 bg-red-50 text-red-800 dark:border-red-800 dark:bg-red-950 dark:text-red-200',
-    }[priority];
+  booleanLabel(value: boolean): string {
+    return value ? 'Sí' : 'No';
   }
 
-  statusClass(status: MaintenanceHistoryRecord['status']): string {
-    return status === 'CLOSED'
-      ? 'border-slate-200 bg-slate-100 text-slate-800 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-200'
-      : 'border-emerald-200 bg-emerald-50 text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950 dark:text-emerald-200';
+  equipmentStoppedLabel(value: EquipmentStopped): string {
+    return EQUIPMENT_STOPPED_LABELS[value];
+  }
+
+  productionImpactLabel(value: ProductionImpact): string {
+    return PRODUCTION_IMPACT_LABELS[value];
+  }
+
+  freezeReasonLabel(reason: FreezeReasonType): string {
+    return FREEZE_REASON_LABELS[reason];
+  }
+
+  freezeStatusLabel(status: FreezeRequestStatus): string {
+    return FREEZE_STATUS_LABELS[status];
+  }
+
+  releaseReasonLabel(reason: AssignmentReleaseReason | null): string {
+    return reason ? RELEASE_REASON_LABELS[reason] : 'Sin motivo registrado';
+  }
+
+  private loadErrorMessage(error: HttpErrorResponse): string {
+    if (error.status === 403) {
+      return 'Tu sesión no tiene permisos para consultar este historial.';
+    }
+    return 'No fue posible obtener los tickets cerrados. Inténtalo nuevamente.';
   }
 }
