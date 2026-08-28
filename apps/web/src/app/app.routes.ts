@@ -34,26 +34,16 @@ export const appRoutes: Route[] = [
       },
       {
         path: 'crear-solicitud',
-        title: 'Crear solicitud | DevZen Maintenance',
-        canActivate: [roleGuard],
-        data: { title: 'Crear solicitud', roles: ALL_ROLES },
-        loadComponent: () =>
-          import('./features/tickets/create-ticket/create-ticket-page.component').then(
-            (module) => module.CreateTicketPageComponent
-          ),
+        pathMatch: 'full',
+        redirectTo: () => '/mis-solicitudes?create=1',
       },
       {
         path: 'tickets',
         children: [
           {
             path: 'new',
-            title: 'Nueva solicitud | DevZen Maintenance',
-            canActivate: [roleGuard],
-            data: { title: 'Nueva solicitud', roles: ALL_ROLES },
-            loadComponent: () =>
-              import('./features/tickets/create-ticket/create-ticket-page.component').then(
-                (module) => module.CreateTicketPageComponent
-              ),
+            pathMatch: 'full',
+            redirectTo: () => '/mis-solicitudes?create=1',
           },
           {
             path: ':id',

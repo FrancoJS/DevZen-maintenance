@@ -133,8 +133,10 @@ describe('CreateTicketPageComponent', () => {
 
   it('muestra una confirmación flotante y descartable al crear la solicitud', () => {
     const toastSuccess = vi.spyOn(toast, 'success');
+    const created = vi.fn();
     const fixture = createComponent();
     const component = fixture.componentInstance;
+    component.created.subscribe(created);
     fillValidForm(component);
 
     component.submit();
@@ -142,6 +144,9 @@ describe('CreateTicketPageComponent', () => {
     expect(toastSuccess).toHaveBeenCalledWith('Solicitud creada', expect.objectContaining({
       description: 'El ticket 54f1c1b7-2acf-4428-a2f7-58b2943fb044 fue registrado correctamente.',
       action: expect.objectContaining({ label: 'Descartar' }),
+    }));
+    expect(created).toHaveBeenCalledWith(expect.objectContaining({
+      id: '54f1c1b7-2acf-4428-a2f7-58b2943fb044',
     }));
     toastSuccess.mockRestore();
   });
@@ -171,7 +176,7 @@ describe('CreateTicketPageComponent', () => {
     expect((fixture.nativeElement.querySelector('button[type="submit"]') as HTMLButtonElement).disabled).toBe(false);
   });
 
-  it('abre el detalle del ticket y lo desvanece antes de cerrarlo', async () => {
+  it('abre el detalle reutilizable del ticket creado y permite cerrarlo', () => {
     const fixture = createComponent();
     const component = fixture.componentInstance;
     fillValidForm(component);
@@ -186,13 +191,9 @@ describe('CreateTicketPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain('No inicia el sistema hidráulico.');
     expect(fixture.nativeElement.textContent).toContain('No, continúa funcionando');
     expect(fixture.nativeElement.textContent).toContain('No afecta la producción');
-    expect(fixture.nativeElement.querySelector('section[hlmCard]')).toBeNull();
+    expect(fixture.nativeElement.querySelector('app-ticket-detail-modal')).not.toBeNull();
 
     (fixture.nativeElement.querySelector('button[aria-label="Cerrar detalle del ticket"]') as HTMLButtonElement).click();
-    fixture.detectChanges();
-    expect(fixture.nativeElement.querySelector('.ticket-modal--closing')).not.toBeNull();
-
-    await new Promise((resolve) => setTimeout(resolve, 230));
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('[role="dialog"]')).toBeNull();
   });
@@ -244,6 +245,7 @@ describe('CreateTicketPageComponent', () => {
   });
 
   it('muestra un error recuperable si el gateway falla', () => {
+    const toastError = vi.spyOn(toast, 'error');
     gateway.createTicket.mockReturnValue(
       throwError(() => new Error('El backend no está disponible')) as Observable<TicketDetail>
     );
@@ -257,5 +259,12 @@ describe('CreateTicketPageComponent', () => {
     expect(fixture.nativeElement.textContent).toContain(
       'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.'
     );
+    expect(toastError).toHaveBeenCalledWith(
+      'No pudimos crear la solicitud',
+      expect.objectContaining({
+        description: 'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.',
+      })
+    );
+    toastError.mockRestore();
   });
 });

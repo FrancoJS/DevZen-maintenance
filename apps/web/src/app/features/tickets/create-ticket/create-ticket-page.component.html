@@ -1,4 +1,5 @@
-<section class="mx-auto max-w-5xl space-y-6" aria-labelledby="create-ticket-title">
+<section class="space-y-6" [class.mx-auto]="!embedded" [class.max-w-5xl]="!embedded" aria-labelledby="create-ticket-title">
+  @if (!embedded) {
   <header class="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
     <div>
       <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
@@ -7,8 +8,9 @@
     </div>
     <span hlmBadge variant="secondary" class="w-fit">Prioridad automática</span>
   </header>
+  }
 
-  <form class="space-y-6" [formGroup]="form" (ngSubmit)="submit()" novalidate>
+  <form class="space-y-6" [class.pt-6]="embedded" [class.px-4]="embedded" [class.pb-6]="embedded" [class.sm:px-6]="embedded" [class.sm:pb-8]="embedded" [formGroup]="form" (ngSubmit)="submit()" novalidate>
     <article hlmCard>
       <header hlmCardHeader>
         <h3 hlmCardTitle>Datos de la falla</h3>
@@ -47,7 +49,7 @@
     <article hlmCard formGroupName="impactAssessment">
       <header hlmCardHeader>
         <h3 hlmCardTitle>Evaluación de impacto</h3>
-        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad.</p>
+        <p hlmCardDescription>Responde las cinco preguntas para que el sistema calcule la prioridad. No necesitas elegirla manualmente.</p>
       </header>
       <div hlmCardContent class="grid gap-3">
 
@@ -104,7 +106,7 @@
       <p class="rounded-lg border border-destructive/30 bg-destructive/10 px-4 py-3 text-sm text-destructive" role="alert">{{ error }}</p>
     }
 
-    <div class="flex flex-wrap items-center gap-3">
+    <div class="flex flex-wrap items-center justify-end gap-3 pt-5">
       <button hlmBtn type="submit" size="lg" [disabled]="isSubmitting() || !!createdTicket()">
         {{ isSubmitting() ? 'Creando solicitud…' : createdTicket() ? 'Solicitud creada' : 'Crear solicitud' }}
       </button>
@@ -117,49 +119,7 @@
 
   @if (isDetailOpen()) {
     @if (createdTicket(); as ticket) {
-      <div class="ticket-modal-backdrop fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" [class.ticket-modal-backdrop--closing]="isDetailClosing()" role="presentation" (click)="closeTicketDetail()">
-      <article hlmCard role="dialog" aria-modal="true" aria-labelledby="ticket-detail-title" class="ticket-modal max-h-[90vh] w-full max-w-2xl overflow-y-auto" [class.ticket-modal--closing]="isDetailClosing()" (click)="$event.stopPropagation()" (keydown.escape)="closeTicketDetail()" tabindex="-1">
-        <header hlmCardHeader class="border-b">
-          <div class="flex items-start justify-between gap-4">
-            <div>
-              <p class="text-sm text-muted-foreground">Detalle de la solicitud</p>
-              <h3 hlmCardTitle id="ticket-detail-title" class="mt-1">Ticket {{ ticket.id }}</h3>
-            </div>
-            <button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar detalle del ticket" (click)="closeTicketDetail()">×</button>
-          </div>
-        </header>
-        <div hlmCardContent class="grid gap-6">
-          <dl class="grid gap-4 sm:grid-cols-3">
-            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Estado</dt><dd class="mt-1 font-semibold">{{ statusLabel(ticket) }}</dd></div>
-            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</dt><dd class="mt-1"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket) }}</span></dd></div>
-            <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Creado</dt><dd class="mt-1 font-semibold">{{ formatCreatedAt(ticket.createdAt) }}</dd></div>
-          </dl>
-
-          @if (createdTicketRequest(); as request) {
-            <div class="grid gap-4 border-t pt-5">
-              <div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Descripción</p><p class="mt-1 whitespace-pre-wrap">{{ request.description }}</p></div>
-              <dl class="grid gap-4 sm:grid-cols-3">
-                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Ubicación</dt><dd class="mt-1">{{ request.location }}</dd></div>
-                <div><dt class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Máquina o equipo</dt><dd class="mt-1">{{ request.asset }}</dd></div>
-              </dl>
-              <div>
-                <p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Evaluación de impacto</p>
-                <ul class="mt-2 grid gap-2 text-sm sm:grid-cols-2">
-                  <li>Riesgo de seguridad: <strong>{{ request.impactAssessment.safetyRisk ? 'Sí' : 'No' }}</strong></li>
-                  <li>Equipo detenido: <strong>{{ equipmentStoppedLabel(request.impactAssessment.equipmentStopped) }}</strong></li>
-                  <li>Impacto productivo: <strong>{{ productionImpactLabel(request.impactAssessment.productionImpact) }}</strong></li>
-                  <li>Alternativa temporal: <strong>{{ request.impactAssessment.workaroundAvailable ? 'Sí' : 'No' }}</strong></li>
-                  <li>Afecta otras áreas: <strong>{{ request.impactAssessment.affectsOtherAreas ? 'Sí' : 'No' }}</strong></li>
-                </ul>
-              </div>
-            </div>
-          }
-        </div>
-        <footer hlmCardFooter class="justify-end">
-          <button hlmBtn type="button" (click)="closeTicketDetail()">Cerrar</button>
-        </footer>
-      </article>
-      </div>
+      <app-ticket-detail-modal [ticket]="ticket" (closed)="closeTicketDetail()" />
     }
   }
 </section>

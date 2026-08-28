@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, EventEmitter, inject, Input, Output, signal } from '@angular/core';
 import { AbstractControl, FormBuilder, ReactiveFormsModule, ValidationErrors, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import { HlmBadgeImports } from '@spartan-ng/helm/badge';
@@ -19,6 +19,7 @@ import {
   PRIORITY_LABELS,
   STATUS_LABELS,
 } from '../../../shared/tickets/ticket-labels';
+import { TicketDetailModalComponent } from '../ticket-detail/ticket-detail-modal.component';
 
 const requiredBooleanResponse = (control: AbstractControl): ValidationErrors | null =>
   control.value === null || control.value === undefined ? { required: true } : null;
@@ -44,22 +45,24 @@ const PRODUCTION_IMPACT_LABELS: Record<ProductionImpact, string> = {
     HlmButtonImports,
     HlmCardImports,
     HlmInputImports,
+    TicketDetailModalComponent,
   ],
   providers: [HttpTicketGateway, { provide: TICKET_GATEWAY, useExisting: HttpTicketGateway }],
   templateUrl: './create-ticket-page.component.html',
-  styleUrl: './create-ticket-page.component.css',
 })
 export class CreateTicketPageComponent {
   private readonly formBuilder = inject(FormBuilder);
   private readonly ticketGateway = inject<TicketGateway>(TICKET_GATEWAY);
 
+  @Input() embedded = false;
+
   readonly isSubmitting = signal(false);
   readonly createdTicket = signal<TicketDetail | null>(null);
-  readonly createdTicketRequest = signal<CreateTicketRequest | null>(null);
   readonly isDetailOpen = signal(false);
-  readonly isDetailClosing = signal(false);
   readonly submitError = signal<string | null>(null);
   readonly showValidationErrors = signal(false);
+
+  @Output() readonly created = new EventEmitter<TicketDetail>();
 
   readonly form = this.formBuilder.group({
     description: this.formBuilder.control('', [Validators.required, Validators.maxLength(1000)]),
@@ -97,9 +100,7 @@ export class CreateTicketPageComponent {
       .subscribe({
         next: (ticket) => {
           this.createdTicket.set(ticket);
-          this.createdTicketRequest.set(request);
           this.isDetailOpen.set(false);
-          this.isDetailClosing.set(false);
           this.form.disable({ emitEvent: false });
           toast.success('Solicitud creada', {
             description: `El ticket ${ticket.id} fue registrado correctamente.`,
@@ -108,38 +109,33 @@ export class CreateTicketPageComponent {
             class: 'border-primary! bg-card! text-card-foreground! shadow-lg!',
             actionButtonStyle: 'background-color: var(--primary); color: var(--primary-foreground);',
           });
+          this.created.emit(ticket);
         },
-        error: () =>
-          this.submitError.set(
-            'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.'
-          ),
+        error: () => {
+          const message =
+            'No fue posible crear la solicitud. Revisa tus datos e inténtalo nuevamente.';
+          this.submitError.set(message);
+          toast.error('No pudimos crear la solicitud', {
+            description: message,
+            duration: 8000,
+          });
+        },
       });
   }
 
   openTicketDetail(): void {
     if (this.createdTicket()) {
-      this.isDetailClosing.set(false);
       this.isDetailOpen.set(true);
     }
   }
 
   closeTicketDetail(): void {
-    if (!this.isDetailOpen() || this.isDetailClosing()) {
-      return;
-    }
-
-    this.isDetailClosing.set(true);
-    setTimeout(() => {
-      this.isDetailOpen.set(false);
-      this.isDetailClosing.set(false);
-    }, 220);
+    this.isDetailOpen.set(false);
   }
 
   startNewTicket(): void {
     this.isDetailOpen.set(false);
-    this.isDetailClosing.set(false);
     this.createdTicket.set(null);
-    this.createdTicketRequest.set(null);
     this.submitError.set(null);
     this.showValidationErrors.set(false);
     this.form.enable({ emitEvent: false });

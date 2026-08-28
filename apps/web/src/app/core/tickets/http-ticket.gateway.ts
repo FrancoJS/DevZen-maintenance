@@ -5,6 +5,7 @@ import { API_BASE_URL } from '../api.config';
 import {
   AdminTicketFilters,
   AdminTicketGateway,
+  ListMyTicketsQuery,
   MaintenanceHistoryFilters,
   TechnicianMaintenanceGateway,
   TicketGateway,
@@ -18,19 +19,32 @@ import {
   ResolveMaintenanceRequest,
   TicketDetail,
   UpdateMaintenanceRequest,
+  UpdateTicketRequest,
 } from './ticket.models';
 
 @Injectable()
 export class HttpTicketGateway
-  implements
-    Pick<TicketGateway, 'createTicket'>,
-    AdminTicketGateway,
-    TechnicianMaintenanceGateway
+  implements TicketGateway, AdminTicketGateway, TechnicianMaintenanceGateway
 {
   private readonly http = inject(HttpClient);
 
   createTicket(request: CreateTicketRequest): Observable<TicketDetail> {
     return this.http.post<TicketDetail>(`${API_BASE_URL}/tickets`, request);
+  }
+
+  listMyTickets(
+    query: ListMyTicketsQuery
+  ): Observable<PaginatedTicketsResponse> {
+    const params: Record<string, string | number> = {
+      page: query.page,
+      limit: query.limit,
+    };
+    if (query.status) params['status'] = query.status;
+    if (query.priority) params['priority'] = query.priority;
+
+    return this.http.get<PaginatedTicketsResponse>(`${API_BASE_URL}/tickets`, {
+      params,
+    });
   }
 
   listTickets(filters: AdminTicketFilters): Observable<PaginatedTicketsResponse> {
@@ -52,6 +66,13 @@ export class HttpTicketGateway
 
   getTicket(id: string): Observable<TicketDetail> {
     return this.http.get<TicketDetail>(`${API_BASE_URL}/tickets/${id}`);
+  }
+
+  updateTicket(
+    id: string,
+    request: UpdateTicketRequest
+  ): Observable<TicketDetail> {
+    return this.http.patch<TicketDetail>(`${API_BASE_URL}/tickets/${id}`, request);
   }
 
   assignTechnician(id: string, technicianId: string): Observable<TicketDetail> {

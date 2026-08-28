@@ -45,6 +45,10 @@ export interface CreateTicketRequest {
   impactAssessment: ImpactAssessment;
 }
 
+export interface UpdateTicketRequest {
+  description: string;
+}
+
 export interface TicketUser {
   id: string;
   name: string;
@@ -188,16 +192,4 @@ export interface PaginatedTechniciansResponse {
   limit: number;
   total: number;
   totalPages: number;
-}
-
-export interface TicketListItem {
-  id: string;
-  asset: string;
-  status: TicketStatus;
-  priority: TicketPriority;
-  createdAt: string;
-}
-
-export interface ListMyTicketsResponse {
-  tickets: TicketListItem[];
 }

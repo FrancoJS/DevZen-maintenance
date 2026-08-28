@@ -28,7 +28,7 @@ import { PreviewSessionService } from '../../core/preview-session.service';
         </div>
         <div class="grid gap-6 lg:grid-cols-[1fr_20rem]">
           <article hlmCard><header hlmCardHeader><h3 hlmCardTitle>Solicitudes recientes</h3><p hlmCardDescription>Últimos requerimientos enviados.</p></header><div hlmCardContent class="space-y-3"><div class="flex items-center justify-between rounded-lg border p-3"><div><p class="font-medium">Revisión de bomba hidráulica</p><p class="text-sm text-muted-foreground">#SOL-1024 · Hace 2 horas</p></div><span hlmBadge variant="secondary">Asignada</span></div><div class="flex items-center justify-between rounded-lg border p-3"><div><p class="font-medium">Cambio de luminaria</p><p class="text-sm text-muted-foreground">#SOL-1021 · Ayer</p></div><span hlmBadge variant="outline">En proceso</span></div></div></article>
-          <article hlmCard class="bg-primary text-primary-foreground"><header hlmCardHeader><h3 hlmCardTitle class="text-primary-foreground">¿Necesitas ayuda?</h3><p hlmCardDescription class="text-blue-100">Registra una nueva solicitud para que el equipo pueda atenderla.</p></header><div hlmCardContent><a hlmBtn variant="secondary" routerLink="/crear-solicitud">Crear solicitud</a></div></article>
+          <article hlmCard class="bg-primary text-primary-foreground"><header hlmCardHeader><h3 hlmCardTitle class="text-primary-foreground">¿Necesitas ayuda?</h3><p hlmCardDescription class="text-blue-100">Registra una nueva solicitud para que el equipo pueda atenderla.</p></header><div hlmCardContent><a hlmBtn variant="secondary" routerLink="/mis-solicitudes" [queryParams]="{ create: '1' }">Crear solicitud</a></div></article>
         </div>
       }
 

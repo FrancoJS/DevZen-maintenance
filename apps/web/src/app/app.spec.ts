@@ -130,22 +130,22 @@ describe('App', () => {
     expect(historyRoute?.loadComponent).toBeDefined();
   });
 
-  it.each([
-    ['camila.rojas@devzen.test', 'Solicitante123!', 'Bomba hidráulica B-07', 'Torno CNC T-05'],
-    ['diego.perez@devzen.test', 'Tecnico123!', 'Torno CNC T-05', 'Horno industrial H-01'],
-    ['ana.gonzalez@devzen.test', 'Admin123!', 'Horno industrial H-01', 'Bomba hidráulica B-07'],
-  ])(
-    'should render only the current user requests at /mis-solicitudes for %s',
-    async (email, password, ownedAsset, foreignAsset) => {
-      TestBed.inject(PreviewSessionService).login(email, password);
-      const harness = await RouterTestingHarness.create();
-      await harness.navigateByUrl('/mis-solicitudes', AppShellComponent);
-      await harness.fixture.whenStable();
-      harness.fixture.detectChanges();
+  it('consolidates request creation into Mis solicitudes', () => {
+    const privateRoutes = appRoutes.flatMap((route) => route.children ?? []);
+    const navigationRoutes = NAVIGATION_GROUPS.flatMap((group) =>
+      group.items.map((item) => item.route)
+    );
+    const legacyCreateRoute = privateRoutes.find((route) => route.path === 'crear-solicitud');
+    const ticketsRoute = privateRoutes.find((route) => route.path === 'tickets');
+    const legacyNewRoute = ticketsRoute?.children?.find((route) => route.path === 'new');
 
-      expect(harness.routeNativeElement?.textContent).toContain('Mis solicitudes');
-      expect(harness.routeNativeElement?.textContent).toContain(ownedAsset);
-      expect(harness.routeNativeElement?.textContent).not.toContain(foreignAsset);
-    }
-  );
+    expect(navigationRoutes).not.toContain('/crear-solicitud');
+    expect((legacyCreateRoute?.redirectTo as (route: unknown) => string)({})).toBe(
+      '/mis-solicitudes?create=1'
+    );
+    expect((legacyNewRoute?.redirectTo as (route: unknown) => string)({})).toBe(
+      '/mis-solicitudes?create=1'
+    );
+  });
+
 });

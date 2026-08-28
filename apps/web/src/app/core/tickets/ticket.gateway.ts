@@ -3,7 +3,6 @@ import { Observable } from 'rxjs';
 import {
   CreateTicketRequest,
   CurrentMaintenanceResponse,
-  ListMyTicketsResponse,
   PaginatedTechniciansResponse,
   PaginatedTicketsResponse,
   RequestFreezeRequest,
@@ -12,6 +11,7 @@ import {
   TicketPriority,
   TicketStatus,
   UpdateMaintenanceRequest,
+  UpdateTicketRequest,
 } from './ticket.models';
 
 /**
@@ -20,10 +20,19 @@ import {
  */
 export interface TicketGateway {
   createTicket(request: CreateTicketRequest): Observable<TicketDetail>;
-  listMyTickets(): Observable<ListMyTicketsResponse>;
+  listMyTickets(query: ListMyTicketsQuery): Observable<PaginatedTicketsResponse>;
+  getTicket(id: string): Observable<TicketDetail>;
+  updateTicket(id: string, request: UpdateTicketRequest): Observable<TicketDetail>;
 }
 
 export const TICKET_GATEWAY = new InjectionToken<TicketGateway>('TICKET_GATEWAY');
+
+export interface ListMyTicketsQuery {
+  page: number;
+  limit: number;
+  status?: TicketStatus;
+  priority?: TicketPriority;
+}
 
 export interface AdminTicketFilters {
   status?: TicketStatus;

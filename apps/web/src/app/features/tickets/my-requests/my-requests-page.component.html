@@ -5,10 +5,10 @@
       <h2 id="my-requests-title" class="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">Mis solicitudes</h2>
       <p class="mt-1 max-w-2xl text-muted-foreground">Consulta los tickets que has creado como solicitante.</p>
     </div>
-    <a hlmBtn routerLink="/crear-solicitud">Crear solicitud</a>
+    <button hlmBtn type="button" (click)="openCreateModal()">Crear solicitud</button>
   </header>
 
-  @if (isLoading()) {
+  @if (isLoading() && !tickets().length) {
     <article hlmCard aria-busy="true" aria-label="Cargando solicitudes">
       <div hlmCardContent class="space-y-4 py-8">
         <div class="h-5 w-48 animate-pulse rounded bg-muted"></div>
@@ -25,23 +25,27 @@
         <button hlmBtn type="button" variant="outline" class="mt-5" (click)="loadTickets()">Reintentar</button>
       </div>
     </article>
-  } @else if (tickets().length) {
+  } @else if (tickets().length || hasActiveFilters()) {
     <article hlmCard>
       <header hlmCardHeader class="border-b">
         <h3 hlmCardTitle>Buscar y filtrar</h3>
-        <p hlmCardDescription>Encuentra tus solicitudes por ticket, máquina, estado o prioridad.</p>
+        <p hlmCardDescription>Filtra por estado o prioridad. La búsqueda se aplica a los resultados de esta página.</p>
       </header>
       <div hlmCardContent class="grid gap-4 lg:grid-cols-[minmax(0,1.5fr)_repeat(2,minmax(10rem,1fr))_auto]">
         <div class="grid gap-2">
-          <label for="my-requests-search" class="text-sm font-medium">Buscar por ticket o equipo</label>
+          <label for="my-requests-search" class="text-sm font-medium">Buscar en esta página por ticket o equipo</label>
           <input id="my-requests-search" type="search" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" placeholder="Ej.: TK-1024 o Bomba" [value]="query()" (input)="updateQuery($any($event.target).value)" />
         </div>
         <div class="grid gap-2">
           <label for="my-requests-status" class="text-sm font-medium">Estado</label>
           <select id="my-requests-status" class="h-9 rounded-md border bg-card px-3 text-sm text-foreground focus-visible:outline-none focus-visible:ring-3 focus-visible:ring-ring/50" [value]="selectedStatus()" (change)="updateStatus($any($event.target).value)">
             <option value="">Todos los estados</option>
-            @for (status of statuses; track status) {
-              <option [value]="status">{{ statusLabel(status) }}</option>
+            @for (group of statusGroups; track group.label) {
+              <optgroup [label]="group.label">
+                @for (status of group.statuses; track status) {
+                  <option [value]="status">{{ statusLabel(status) }}</option>
+                }
+              </optgroup>
             }
           </select>
         </div>
@@ -63,7 +67,7 @@
     <article hlmCard>
       <header hlmCardHeader class="border-b">
         <h3 hlmCardTitle>Tickets creados</h3>
-        <p hlmCardDescription aria-live="polite">{{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado' : 'resultados' }} de {{ tickets().length }} {{ tickets().length === 1 ? 'solicitud registrada' : 'solicitudes registradas' }}</p>
+        <p hlmCardDescription aria-live="polite">Mostrando {{ pageStart() }}–{{ pageEnd() }} de {{ total() }} · {{ filteredTickets().length }} {{ filteredTickets().length === 1 ? 'resultado visible' : 'resultados visibles' }} en esta página</p>
       </header>
       @if (filteredTickets().length) {
         <div hlmCardContent class="p-0">
@@ -77,6 +81,7 @@
                   <th scope="col" class="px-6 py-3 font-semibold">Estado</th>
                   <th scope="col" class="px-6 py-3 font-semibold">Prioridad</th>
                   <th scope="col" class="px-6 py-3 font-semibold">Fecha de creación</th>
+                  <th scope="col" class="px-6 py-3 font-semibold"><span class="sr-only">Acciones</span></th>
                 </tr>
               </thead>
               <tbody class="divide-y">
@@ -87,6 +92,7 @@
                     <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></td>
                     <td class="px-6 py-4"><span hlmBadge variant="outline" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></td>
                     <td class="px-6 py-4 text-muted-foreground">{{ formatDate(ticket.createdAt) }}</td>
+                    <td class="px-6 py-4 text-right"><div class="flex justify-end gap-2"><button hlmBtn type="button" variant="outline" size="sm" (click)="openTicketDetail(ticket.id)">Ver detalle</button>@if (canEdit(ticket)) { <button hlmBtn type="button" size="sm" (click)="openEditModal(ticket)">Editar</button> }</div></td>
                   </tr>
                 }
               </tbody>
@@ -98,6 +104,8 @@
               <article class="rounded-lg border p-4">
                 <div class="flex flex-wrap items-start justify-between gap-3"><div><p class="font-semibold">{{ ticket.id }}</p><p class="mt-1 text-sm text-muted-foreground">{{ ticket.asset }}</p></div><span hlmBadge variant="outline" [class]="statusClass(ticket.status)">{{ statusLabel(ticket.status) }}</span></div>
                 <div class="mt-4 grid gap-3 text-sm sm:grid-cols-2"><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Prioridad</p><span hlmBadge variant="outline" class="mt-1" [class]="priorityClass(ticket.priority)">{{ priorityLabel(ticket.priority) }}</span></div><div><p class="text-xs font-medium uppercase tracking-wide text-muted-foreground">Fecha de creación</p><p class="mt-1">{{ formatDate(ticket.createdAt) }}</p></div></div>
+                <button hlmBtn type="button" variant="outline" class="mt-4 w-full" (click)="openTicketDetail(ticket.id)">Ver detalle</button>
+                @if (canEdit(ticket)) { <button hlmBtn type="button" class="mt-2 w-full" (click)="openEditModal(ticket)">Editar</button> }
               </article>
             }
           </div>
@@ -106,8 +114,38 @@
         <div hlmCardContent class="py-12 text-center">
           <p class="font-semibold">No encontramos solicitudes con esos criterios</p>
           <p class="mt-1 text-sm text-muted-foreground">Ajusta la búsqueda o vuelve a mostrar todas tus solicitudes.</p>
-          <button hlmBtn type="button" variant="outline" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
+          <button hlmBtn type="button" class="mt-5" (click)="clearFilters()">Restablecer filtros</button>
         </div>
+      }
+      @if (totalPages() > 1) {
+        <footer hlmCardContent class="border-t px-4 py-5 sm:px-6" aria-label="Paginación de solicitudes">
+          <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <p class="shrink-0 whitespace-nowrap text-sm text-muted-foreground" aria-live="polite">Página {{ page() }} de {{ totalPages() }}</p>
+            <nav hlmPagination aria-label="Paginación de solicitudes">
+              <ul hlmPaginationContent class="flex-wrap justify-center">
+                @if (page() > 1) {
+                  <li hlmPaginationItem>
+                    <hlm-pagination-previous [text]="'Anterior'" [aria-label]="'Ir a la página anterior'" (click)="previousPage()" />
+                  </li>
+                }
+                @for (pageLink of pageLinks(); track $index) {
+                  <li hlmPaginationItem>
+                    @if (pageLink === '...') {
+                      <hlm-pagination-ellipsis />
+                    } @else {
+                      <a hlmPaginationLink [isActive]="page() === pageLink" [attr.aria-label]="'Ir a la página ' + pageLink" (click)="goToPage(pageLink)">{{ pageLink }}</a>
+                    }
+                  </li>
+                }
+                @if (page() < totalPages()) {
+                  <li hlmPaginationItem>
+                    <hlm-pagination-next [text]="'Siguiente'" [aria-label]="'Ir a la página siguiente'" (click)="nextPage()" />
+                  </li>
+                }
+              </ul>
+            </nav>
+          </div>
+        </footer>
       }
     </article>
   } @else {
@@ -115,8 +153,67 @@
       <div hlmCardContent class="py-12 text-center">
         <p class="font-semibold">Aún no tienes solicitudes</p>
         <p class="mt-1 text-sm text-muted-foreground">Cuando reportes una falla, podrás seguir su estado desde aquí.</p>
-        <a hlmBtn routerLink="/crear-solicitud" variant="outline" class="mt-5">Crear mi primera solicitud</a>
+        <button hlmBtn type="button" variant="outline" class="mt-5" (click)="openCreateModal()">Crear mi primera solicitud</button>
       </div>
     </article>
+  }
+
+  @if (isCreateModalOpen()) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeCreateModal()">
+      <article hlmCard cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="dialog" aria-modal="true" aria-labelledby="create-request-modal-title" class="relative flex max-h-[90vh] w-full max-w-4xl flex-col overflow-hidden" (click)="$event.stopPropagation()" (keydown.escape)="closeCreateModal()" tabindex="-1">
+        <header hlmCardHeader class="shrink-0 bg-card">
+          <div class="flex items-start justify-between gap-4">
+            <div>
+              <p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p>
+              <h3 hlmCardTitle id="create-request-modal-title" class="mt-1">Reportar una falla</h3>
+            </div>
+            <button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar formulario de solicitud" [disabled]="!!createTicketPage?.isSubmitting()" (click)="closeCreateModal()">×</button>
+          </div>
+        </header>
+        <div hlmCardContent class="min-h-0 flex-1 overflow-y-auto p-0">
+          <app-create-ticket-page [embedded]="true" (created)="onTicketCreated($event)" />
+        </div>
+        @if (isDiscardConfirmationOpen()) {
+          <div class="absolute inset-0 z-20 grid place-items-center bg-slate-950/45 p-4" role="presentation">
+            <article hlmCard cdkTrapFocus [cdkTrapFocusAutoCapture]="true" role="alertdialog" aria-modal="true" aria-labelledby="discard-create-title" class="w-full max-w-md" (click)="$event.stopPropagation()" (keydown.escape)="cancelDiscardCreateForm()" tabindex="-1">
+              <div hlmCardHeader><h4 hlmCardTitle id="discard-create-title">¿Descartar esta solicitud?</h4><p hlmCardDescription>Ya ingresaste algunos datos. Si sales ahora, se perderán.</p></div>
+              <footer hlmCardFooter class="justify-end gap-2"><button hlmBtn type="button" variant="outline" (click)="cancelDiscardCreateForm()">Seguir editando</button><button hlmBtn type="button" variant="destructive" (click)="discardCreateForm()">Descartar solicitud</button></footer>
+            </article>
+          </div>
+        }
+      </article>
+    </div>
+  }
+
+  @if (isDetailOpen()) {
+    @if (isDetailLoading()) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeTicketDetail()">
+        <article hlmCard role="dialog" aria-modal="true" aria-label="Cargando detalle de solicitud" class="w-full max-w-md" (click)="$event.stopPropagation()">
+          <div hlmCardContent class="space-y-4 py-8 text-center"><div class="mx-auto h-5 w-40 animate-pulse rounded bg-muted"></div><p class="text-sm text-muted-foreground">Cargando detalle de la solicitud…</p></div>
+        </article>
+      </div>
+    } @else if (detailError(); as error) {
+      <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeTicketDetail()">
+        <article hlmCard role="dialog" aria-modal="true" aria-label="Error al cargar detalle de solicitud" class="w-full max-w-md" (click)="$event.stopPropagation()">
+          <div hlmCardContent class="py-8 text-center"><p class="font-semibold">No pudimos mostrar el detalle</p><p class="mt-1 text-sm text-muted-foreground">{{ error }}</p><button hlmBtn type="button" class="mt-5" (click)="loadTicketDetail(detailTicketId() ?? '')">Reintentar</button><button hlmBtn type="button" variant="ghost" class="mt-5" (click)="closeTicketDetail()">Cerrar</button></div>
+        </article>
+      </div>
+    } @else if (ticketDetail(); as ticket) {
+      <app-ticket-detail-modal [ticket]="ticket" (closed)="closeTicketDetail()" />
+    }
+  }
+
+  @if (isEditModalOpen()) {
+    <div class="fixed inset-0 z-50 grid place-items-center bg-slate-950/55 p-4 backdrop-blur-sm" role="presentation" (click)="closeEditModal()">
+      <article hlmCard role="dialog" aria-modal="true" aria-labelledby="edit-request-modal-title" class="w-full max-w-xl" (click)="$event.stopPropagation()" (keydown.escape)="closeEditModal()" tabindex="-1">
+        <header hlmCardHeader class="border-b">
+          <div class="flex items-start justify-between gap-4"><div><p class="text-sm text-muted-foreground">Solicitud de mantenimiento</p><h3 hlmCardTitle id="edit-request-modal-title" class="mt-1">Editar descripción</h3></div><button hlmBtn type="button" variant="ghost" size="icon" aria-label="Cerrar edición de solicitud" [disabled]="isSavingEdit()" (click)="closeEditModal()">×</button></div>
+        </header>
+        <form [formGroup]="editForm" (ngSubmit)="submitEdit()" novalidate>
+          <div hlmCardContent class="grid gap-3"><label for="edit-ticket-description" class="text-sm font-medium">Descripción de la falla</label><textarea id="edit-ticket-description" formControlName="description" rows="6" maxlength="1000" class="min-h-36 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-sm outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50" [class.border-destructive]="hasEditError()" [class.ring-1]="hasEditError()" [class.ring-destructive]="hasEditError()"></textarea>@if (hasEditError()) { <p class="text-sm text-destructive">La descripción es obligatoria y no puede superar 1.000 caracteres.</p> }@if (editError(); as error) { <p class="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2 text-sm text-destructive" role="alert">{{ error }}</p> }</div>
+          <footer hlmCardFooter class="justify-end gap-2"><button hlmBtn type="button" variant="outline" [disabled]="isSavingEdit()" (click)="closeEditModal()">Cancelar</button><button hlmBtn type="submit" [disabled]="isSavingEdit()">{{ isSavingEdit() ? 'Guardando…' : 'Guardar cambios' }}</button></footer>
+        </form>
+      </article>
+    </div>
   }
 </section>
