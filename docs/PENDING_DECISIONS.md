@@ -113,6 +113,13 @@ No se detectaron contradicciones funcionales entre el Word y `AGENTS.md`. Las en
 - **Seguimiento:** definir el contrato, unidad de medida y pruebas de
   congelamientos/reasignaciones antes de exponerlo.
 
+## `PD-016` — Identidad pública, catálogos y exclusividad de maquinaria — Resuelta
+
+- **Decisión aprobada:** el UUID permanece como clave técnica; `ticketCode` se genera mediante secuencia PostgreSQL, es único, estable y no aceptado desde el cliente.
+- **Catálogos:** `Location` y `Asset` son de solo lectura; una máquina pertenece a una ubicación y la ubicación de un ticket se deriva de esa relación.
+- **Exclusividad:** PostgreSQL impide más de un ticket por máquina mientras su estado sea distinto de `CLOSED`, incluidos `RESOLVED`, `FROZEN` y los estados de trabajo.
+- **Migración local:** por decisión explícita se eliminaron los tres tickets de desarrollo anteriores, con respaldo SQL temporal, antes de aplicar el esquema. La migración aborta si encuentra tickets heredados en otro entorno para evitar una pérdida silenciosa.
+
 ## Diferencias documentales ya resueltas por precedencia
 
 No requieren decisión pendiente:
